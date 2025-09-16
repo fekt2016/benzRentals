@@ -1,0 +1,16 @@
+export const PATHS = {
+  HOME: "/",
+  MODELS: "/models",
+  MODEL: "/model/:modelId",
+  LOCATIONS: "/locations",
+  LOCATION: "/locations/:locationId",
+  OFFERS: "/offers",
+  CORPORATE: "/corporate",
+  ABOUT: "/about",
+  CONTACT: "/contact",
+  HELP_CENTER: "/help",
+  BOOKINGS: "/bookings",
+  CONFIRMATION: "/confirmation",
+  LOGIN: "/login",
+  SIGNUP: "/signup",
+};
