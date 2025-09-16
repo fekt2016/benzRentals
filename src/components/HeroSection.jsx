@@ -36,7 +36,7 @@ export default HeroSection;
 const Hero = styled.section`
   height: 80vh;
   width: 100%;
-  background-image: url("../public/images/ClassABenz1b.avif"); // place your image in public/images
+  background-image: url("images/ben1.jpg"); // place your image in public/images
   background-size: cover;
   background-position: center;
   display: flex;
@@ -64,16 +64,18 @@ const HeroContent = styled.div`
     font-size: 4rem;
     font-family: ${({ theme }) => theme.fonts.heading};
     margin-bottom: 1rem;
+    color: ${({ theme }) => theme.colors.primary};
   }
 
   p {
     font-size: 1.6rem;
     margin-bottom: 2.5rem;
+    color: ${({ theme }) => theme.colors.white};
   }
 `;
 
 const FormCard = styled.div`
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.5);
   padding: 2rem;
   border-radius: ${({ theme }) => theme.radius.medium};
   display: inline-block;
