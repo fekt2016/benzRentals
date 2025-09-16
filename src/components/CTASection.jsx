@@ -1,11 +1,8 @@
 // src/components/CTASection.js
 import styled from "styled-components";
 import { Link } from "react-router-dom";
-import { getPublicUrl } from "../utils/publicUrl";
 
 const CTASection = () => {
-  const imageUrl = getPublicUrl("images/2025-mercedes-benz-gle-350.avif");
-
   return (
     <CTAWrapper>
       <CTAContent>
@@ -18,7 +15,10 @@ const CTASection = () => {
         </Text>
         <ImageWrapper>
           <Overlay />
-          <img src={imageUrl} alt="Mercedes-Benz" />
+          <img
+            src="/images/2025-mercedes-benz-gle-350.avif" // ✅ Correct path
+            alt="Mercedes-Benz"
+          />
         </ImageWrapper>
       </CTAContent>
     </CTAWrapper>
