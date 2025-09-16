@@ -1,8 +1,11 @@
 // src/components/CTASection.js
 import styled from "styled-components";
 import { Link } from "react-router-dom";
+import { getPublicUrl } from "../utils/publicUrl";
 
 const CTASection = () => {
+  const imageUrl = getPublicUrl("images/2025-mercedes-benz-gle-350.avif");
+
   return (
     <CTAWrapper>
       <CTAContent>
@@ -15,10 +18,7 @@ const CTASection = () => {
         </Text>
         <ImageWrapper>
           <Overlay />
-          <img
-            src="https://images.unsplash.com/photo-1609581726533-15d1325e9c9b?auto=format&fit=crop&w=1000&q=80"
-            alt="Mercedes-Benz"
-          />
+          <img src={imageUrl} alt="Mercedes-Benz" />
         </ImageWrapper>
       </CTAContent>
     </CTAWrapper>
@@ -91,7 +91,7 @@ const Overlay = styled.div`
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.3); // subtle dark overlay
+  background: rgba(0, 0, 0, 0.3);
   z-index: 1;
 `;
 

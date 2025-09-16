@@ -7,26 +7,26 @@ const steps = [
     title: "Choose Your Car",
     description:
       "Browse our premium Mercedes-Benz fleet and select your ideal model.",
-    img: "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=400&q=80",
+    img: "../public/images/Class31.webp",
   },
   {
     id: 2,
     title: "Select Dates & Location",
     description: "Pick your rental dates and preferred pick-up location.",
-    img: "https://images.unsplash.com/photo-1606312616160-fbb6164b71a0?auto=format&fit=crop&w=400&q=80",
+    img: "../public/images/Class4.jpg",
   },
   {
     id: 3,
     title: "Confirm & Pay",
     description: "Secure your booking with our easy online payment system.",
-    img: "https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?auto=format&fit=crop&w=400&q=80",
+    img: "../public/images/2025-mercedes-benz-gle-350.avif",
   },
   {
     id: 4,
     title: "Enjoy Your Ride",
     description:
       "Pick up your Mercedes-Benz and enjoy your premium driving experience.",
-    img: "https://images.unsplash.com/photo-1605346382595-d2d499e21c2d?auto=format&fit=crop&w=400&q=80",
+    img: "../public/images/2025-mercedes-benz-gle-350.avif",
   },
 ];
 

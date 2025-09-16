@@ -1,68 +1,49 @@
-// src/components/CarShowcase.jsx
-import React from "react";
+// src/components/CarShowcase.js
 import styled from "styled-components";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
+import { getPublicUrl } from "../utils/publicUrl";
 
 const cars = [
-  {
-    name: "Mercedes-Benz S-Class",
-    img: "../public/images/Class31.webp",
-    price: "$250/day",
-  },
-  {
-    name: "Mercedes-Benz G-Wagon",
-    img: "../public/images/class2.avif",
-    price: "$400/day",
-  },
-  {
-    name: "Mercedes-Benz C-Class",
-    img: "../public/images/Class4.jpg",
-    price: "$180/day",
-  },
-  {
-    name: "Mercedes-Benz E-Class",
-    img: "../public/images/Class5.jpg",
-    price: "$220/day",
-  },
-  {
-    name: "Mercedes-Benz AMG GT",
-    img: "https://images.unsplash.com/photo-1617817145159-cfb35c50a648?auto=format&fit=crop&w=1000&q=80",
-    price: "$500/day",
-  },
+  { name: "Mercedes S-Class", img: "images/s-class.jpg", price: "$250/day" },
+  { name: "Mercedes G-Wagon", img: "images/g-wagon.jpg", price: "$400/day" },
+  { name: "Mercedes C-Class", img: "images/c-class.jpg", price: "$180/day" },
+  { name: "Mercedes E-Class", img: "images/e-class.jpg", price: "$220/day" },
+  { name: "Mercedes AMG GT", img: "images/amg-gt.jpg", price: "$500/day" },
 ];
 
 const CarShowcase = () => {
   return (
     <Wrapper>
-      <Title>Our Featured Models</Title>
+      <h2>Our Featured Models</h2>
       <Swiper
         modules={[Navigation, Pagination, Autoplay]}
         spaceBetween={20}
         slidesPerView={1}
         navigation
         pagination={{ clickable: true }}
-        autoplay={{ delay: 3500 }}
+        autoplay={{ delay: 3000 }}
         breakpoints={{
           640: { slidesPerView: 1 },
           768: { slidesPerView: 2 },
           1024: { slidesPerView: 3 },
         }}
       >
-        {cars.map((car, index) => (
-          <SwiperSlide key={index}>
-            <Card>
-              <CarImage src={car.img} alt={car.name} />
-              <CarInfo>
-                <CarName>{car.name}</CarName>
-                <CarPrice>{car.price}</CarPrice>
-              </CarInfo>
-            </Card>
-          </SwiperSlide>
-        ))}
+        {cars.map((car, i) => {
+          const imgUrl = getPublicUrl(car.img);
+          return (
+            <SwiperSlide key={i}>
+              <Card>
+                <img src={imgUrl} alt={car.name} />
+                <h3>{car.name}</h3>
+                <p>{car.price}</p>
+              </Card>
+            </SwiperSlide>
+          );
+        })}
       </Swiper>
     </Wrapper>
   );
@@ -70,50 +51,52 @@ const CarShowcase = () => {
 
 export default CarShowcase;
 
-// ---------------- Styled Components ---------------- //
-
 const Wrapper = styled.section`
   padding: 4rem 2rem;
+  background: ${({ theme }) => theme.colors.background};
   text-align: center;
-  background: ${({ theme }) => theme.colors.background || "#f8f9fa"};
-`;
 
-const Title = styled.h2`
-  font-size: 2.4rem;
-  margin-bottom: 2.5rem;
-  color: ${({ theme }) => theme.colors.primary || "#c3002f"};
+  h2 {
+    font-size: 2.2rem;
+    margin-bottom: 2rem;
+    color: ${({ theme }) => theme.colors.primary};
+  }
+
+  .swiper-button-prev,
+  .swiper-button-next {
+    color: ${({ theme }) => theme.colors.primary};
+  }
+
+  .swiper-pagination-bullet-active {
+    background: ${({ theme }) => theme.colors.primary};
+  }
 `;
 
 const Card = styled.div`
-  background: ${({ theme }) => theme.colors.white || "#fff"};
-  border-radius: ${({ theme }) => theme.radius.medium || "12px"};
+  background: #fff;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: ${({ theme }) =>
-    theme.shadows.card || "0px 4px 12px rgba(0,0,0,0.1)"};
+  box-shadow: ${({ theme }) => theme.shadows.card};
   transition: transform 0.3s;
 
   &:hover {
     transform: translateY(-5px);
   }
-`;
 
-const CarImage = styled.img`
-  width: 100%;
-  height: 220px;
-  object-fit: cover;
-`;
+  img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+  }
 
-const CarInfo = styled.div`
-  padding: 1rem 1rem 1.5rem;
-`;
+  h3 {
+    margin: 1rem 0 0.5rem;
+    font-size: 1.25rem;
+  }
 
-const CarName = styled.h3`
-  font-size: 1.25rem;
-  margin-bottom: 0.5rem;
-  color: ${({ theme }) => theme.colors.text || "#333"};
-`;
-
-const CarPrice = styled.p`
-  font-weight: 600;
-  color: ${({ theme }) => theme.colors.primary || "#c3002f"};
+  p {
+    font-weight: 600;
+    color: ${({ theme }) => theme.colors.primary};
+    margin-bottom: 1rem;
+  }
 `;

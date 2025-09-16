@@ -5,7 +5,13 @@ import { ThemeProvider } from "styled-components";
 import { BrowserRouter } from "react-router-dom";
 import MainRoutes from "./routes/MainRoutes";
 import { useState } from "react";
-
+// export const getPublicUrl = (path) => {
+//   // For Vercel deployments, we need to handle the URL differently
+//   if (process.env.NODE_ENV === "production") {
+//     return path; // In production, we'll use direct paths
+//   }
+//   return path; // In development, we can also use direct paths
+// };
 function App() {
   const queryClient = new QueryClient({
     defaultOptions: {
