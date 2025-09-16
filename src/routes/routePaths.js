@@ -10,7 +10,9 @@ export const PATHS = {
   CONTACT: "/contact",
   HELP_CENTER: "/help",
   BOOKINGS: "/bookings",
+  BOOKING: "/booking/:bookingId",
   CONFIRMATION: "/confirmation",
   LOGIN: "/login",
   SIGNUP: "/signup",
+  CHECKOUT: "/checkout",
 };

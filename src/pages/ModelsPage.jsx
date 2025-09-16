@@ -7,13 +7,13 @@ import { Link } from "react-router-dom";
 const cars = [
   {
     id: 1,
-    name: "Mercedes-Benz S-Class",
+    name: "2021 Mercedes-Benz GLE 63 S Coupe",
     type: "Luxury Sedan",
     fuel: "Hybrid",
     seats: 5,
     price: 250,
     state: "California",
-    img: "https://images.unsplash.com/photo-1616422285623-0564b7566bbb?auto=format&fit=crop&w=1000&q=80",
+    img: "/images/Class31.webp",
   },
   {
     id: 2,
@@ -23,7 +23,7 @@ const cars = [
     seats: 5,
     price: 400,
     state: "Texas",
-    img: "https://images.unsplash.com/photo-1600185365873-d31a9eac8d4f?auto=format&fit=crop&w=1000&q=80",
+    img: "/images/gclass1.jpg",
   },
   {
     id: 3,
@@ -33,7 +33,7 @@ const cars = [
     seats: 5,
     price: 180,
     state: "California",
-    img: "https://images.unsplash.com/photo-1616789068151-d2a0c2ff7605?auto=format&fit=crop&w=1000&q=80",
+    img: "/images/cClass2.jpeg",
   },
   {
     id: 4,
@@ -43,7 +43,7 @@ const cars = [
     seats: 5,
     price: 220,
     state: "Florida",
-    img: "https://images.unsplash.com/photo-1605538031846-770aaebd5b6e?auto=format&fit=crop&w=1000&q=80",
+    img: "/images/cla1.jpg",
   },
   {
     id: 5,
@@ -53,7 +53,7 @@ const cars = [
     seats: 2,
     price: 500,
     state: "Texas",
-    img: "https://images.unsplash.com/photo-1617817145159-cfb35c50a648?auto=format&fit=crop&w=1000&q=80",
+    img: "/images/ben3.jpg",
   },
 ];
 

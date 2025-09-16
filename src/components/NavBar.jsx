@@ -19,7 +19,7 @@ const Navbar = () => {
   return (
     <Nav scrolled={scrolled}>
       <NavContainer>
-        <Logo to={PATHS.HOME}>BenzRentals</Logo>
+        <Logo to={PATHS.HOME}>BenzFlex</Logo>
 
         <Hamburger onClick={() => setIsOpen(!isOpen)}>
           <span />
@@ -43,6 +43,16 @@ const Navbar = () => {
           <MenuItem>
             <MenuLink to={PATHS.HELP_CENTER}>Help</MenuLink>
           </MenuItem>
+
+          {/* Login/Register Buttons */}
+          <MenuItem>
+            <AuthButton to={PATHS.LOGIN}>Login</AuthButton>
+          </MenuItem>
+          <MenuItem>
+            <AuthButton to={PATHS.SIGNUP} primary>
+              Register
+            </AuthButton>
+          </MenuItem>
         </Menu>
       </NavContainer>
     </Nav>
@@ -51,7 +61,7 @@ const Navbar = () => {
 
 export default Navbar;
 
-// Styled Components
+// ---------------- Styled Components ---------------- //
 const Nav = styled.nav`
   position: fixed;
   top: 0;
@@ -102,7 +112,8 @@ const Hamburger = styled.div`
 const Menu = styled.ul`
   display: flex;
   list-style: none;
-  gap: 2rem;
+  gap: 1rem;
+  align-items: center;
 
   @media (max-width: 768px) {
     position: absolute;
@@ -129,5 +140,19 @@ const MenuLink = styled(Link)`
 
   &:hover {
     color: ${({ theme }) => theme.colors.secondary};
+  }
+`;
+
+const AuthButton = styled(Link)`
+  padding: 0.5rem 1rem;
+  background: ${({ primary }) => (primary ? "#0077ff" : "#fff")};
+  color: ${({ primary }) => (primary ? "#fff" : "#000")};
+  border-radius: 6px;
+  font-weight: bold;
+  text-decoration: none;
+  transition: background 0.3s;
+
+  &:hover {
+    background: ${({ primary }) => (primary ? "#005fcc" : "#ddd")};
   }
 `;

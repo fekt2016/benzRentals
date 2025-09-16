@@ -1,28 +1,54 @@
-// src/pages/BookingConfirmationPage.jsx
-import React from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+// src/pages/BookingDetailPage.jsx
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { PATHS } from "../routes/routePaths";
 
-const BookingConfirmationPage = () => {
-  const location = useLocation();
+// Sample bookings data (replace with API call in real app)
+const sampleBookings = [
+  {
+    id: 1,
+    car: "Mercedes-Benz S-Class",
+    pickupDate: "2025-09-20",
+    returnDate: "2025-09-25",
+    location: "New York",
+    price: 250,
+    paymentMethod: "Credit Card",
+    status: "Processing",
+    licenseFile: { name: "license1.jpg" },
+    insuranceFile: { name: "insurance1.pdf" },
+  },
+  {
+    id: 2,
+    car: "Mercedes-Benz G-Wagon",
+    pickupDate: "2025-10-01",
+    returnDate: "2025-10-05",
+    location: "Los Angeles",
+    price: 400,
+    paymentMethod: "PayPal",
+    status: "Confirmed",
+    licenseFile: { name: "license2.jpg" },
+    insuranceFile: { name: "insurance2.pdf" },
+  },
+];
+
+const BookingDetailPage = () => {
+  const { bookingId } = useParams();
   const navigate = useNavigate();
-  const booking = location.state?.booking;
+  const [booking, setBooking] = useState(null);
 
-  if (!booking) return <p>No booking details found.</p>;
+  useEffect(() => {
+    // Replace with API call to fetch booking by ID
+    const found = sampleBookings.find((b) => b.id === parseInt(bookingId));
+    setBooking(found);
+  }, [bookingId]);
+
+  if (!booking) return <p>Booking not found.</p>;
 
   return (
     <PageWrapper>
-      <Title>Booking Confirmation</Title>
-
-      <Message>
-        Thank you for your booking! Your request is currently{" "}
-        <Status>Processing</Status>. Once we verify your Driver's License and
-        Insurance, your booking will be confirmed.
-      </Message>
+      <Title>Booking Details</Title>
 
       <BookingSummary>
-        <h2>Booking Details</h2>
         <Detail>
           <strong>Car:</strong> {booking.car}
         </Detail>
@@ -41,6 +67,10 @@ const BookingConfirmationPage = () => {
         <Detail>
           <strong>Payment Method:</strong> {booking.paymentMethod}
         </Detail>
+        <Detail>
+          <strong>Status:</strong>{" "}
+          <Status status={booking.status}>{booking.status}</Status>
+        </Detail>
       </BookingSummary>
 
       <FilesSection>
@@ -56,22 +86,21 @@ const BookingConfirmationPage = () => {
       </FilesSection>
 
       <ButtonWrapper>
-        <Button onClick={() => navigate(`${PATHS.HOME}`)}>Home</Button>
-        <Button onClick={() => navigate(`${PATHS.BOOKINGS}`)}>
-          My Bookings
+        <Button onClick={() => navigate("/check-bookings")}>
+          Back to My Bookings
         </Button>
       </ButtonWrapper>
     </PageWrapper>
   );
 };
 
-export default BookingConfirmationPage;
+export default BookingDetailPage;
 
 // ---------------- Styled Components ---------------- //
 
 const PageWrapper = styled.div`
   max-width: 700px;
-  margin: 3rem auto;
+  margin: 2rem auto;
   padding: 0 1rem;
 `;
 
@@ -82,28 +111,12 @@ const Title = styled.h1`
   color: ${({ theme }) => theme.colors.primary};
 `;
 
-const Message = styled.p`
-  text-align: center;
-  margin-bottom: 2rem;
-  font-size: 1.1rem;
-`;
-
-const Status = styled.span`
-  font-weight: bold;
-  color: orange;
-`;
-
 const BookingSummary = styled.div`
   background: ${({ theme }) => theme.colors.white};
   padding: 1.5rem;
   border-radius: ${({ theme }) => theme.radius.medium};
   box-shadow: ${({ theme }) => theme.shadows.card};
   margin-bottom: 2rem;
-
-  h2 {
-    margin-bottom: 1rem;
-    color: ${({ theme }) => theme.colors.primary};
-  }
 `;
 
 const Detail = styled.p`
@@ -114,11 +127,15 @@ const Detail = styled.p`
   }
 `;
 
+const Status = styled.span`
+  font-weight: bold;
+  color: ${({ status }) => (status === "Confirmed" ? "green" : "orange")};
+`;
+
 const FilesSection = styled.div`
-  background: ${({ theme }) => theme.colors.white};
-  padding: 1.5rem;
-  border-radius: ${({ theme }) => theme.radius.medium};
-  box-shadow: ${({ theme }) => theme.shadows.card};
+  background: #f9f9f9;
+  padding: 1.2rem;
+  border-radius: ${({ theme }) => theme.radius.small};
   margin-bottom: 2rem;
 
   h2 {
@@ -134,7 +151,6 @@ const FileItem = styled.p`
 const ButtonWrapper = styled.div`
   display: flex;
   justify-content: center;
-  gap: 1rem;
 `;
 
 const Button = styled.button`

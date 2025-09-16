@@ -1,4 +1,3 @@
-// src/pages/ModelPage.jsx
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import styled from "styled-components";
@@ -8,7 +7,8 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import "swiper/css/thumbs";
-
+import DriversLicenseForm from "../components/Modal/DriversLicenseForm";
+import { useNavigate } from "react-router-dom";
 // Sample car data
 const cars = [
   {
@@ -37,26 +37,89 @@ const cars = [
       "https://images.unsplash.com/photo-1616789068151-d2a0c2ff7605?auto=format&fit=crop&w=1000&q=80",
     ],
   },
+  {
+    id: 3,
+    name: "Mercedes-Benz G-Wagon",
+    type: "Luxury SUV",
+    fuel: "Petrol",
+    seats: 5,
+    price: 400,
+    images: [
+      "https://images.unsplash.com/photo-1600185365873-d31a9eac8d4f?auto=format&fit=crop&w=1000&q=80",
+      "https://images.unsplash.com/photo-1617817145159-cfb35c50a648?auto=format&fit=crop&w=1000&q=80",
+      "https://images.unsplash.com/photo-1616789068151-d2a0c2ff7605?auto=format&fit=crop&w=1000&q=80",
+    ],
+  },
+  {
+    id: 4,
+    name: "Mercedes-Benz G-Wagon",
+    type: "Luxury SUV",
+    fuel: "Petrol",
+    seats: 5,
+    price: 400,
+    images: [
+      "https://images.unsplash.com/photo-1600185365873-d31a9eac8d4f?auto=format&fit=crop&w=1000&q=80",
+      "https://images.unsplash.com/photo-1617817145159-cfb35c50a648?auto=format&fit=crop&w=1000&q=80",
+      "https://images.unsplash.com/photo-1616789068151-d2a0c2ff7605?auto=format&fit=crop&w=1000&q=80",
+    ],
+  },
+  {
+    id: 5,
+    name: "Mercedes-Benz G-Wagon",
+    type: "Luxury SUV",
+    fuel: "Petrol",
+    seats: 5,
+    price: 400,
+    images: [
+      "https://images.unsplash.com/photo-1600185365873-d31a9eac8d4f?auto=format&fit=crop&w=1000&q=80",
+      "https://images.unsplash.com/photo-1617817145159-cfb35c50a648?auto=format&fit=crop&w=1000&q=80",
+      "https://images.unsplash.com/photo-1616789068151-d2a0c2ff7605?auto=format&fit=crop&w=1000&q=80",
+    ],
+  },
 ];
 
 const ModelPage = () => {
   const { modelId } = useParams();
   const car = cars.find((c) => c.id === parseInt(modelId));
   const [thumbsSwiper, setThumbsSwiper] = useState(null);
-
+  const navigate = useNavigate();
   // Booking form state
   const [pickupDate, setPickupDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
   const [location, setLocation] = useState("New York");
 
+  // Modal state
+  // const [showModal, setShowModal] = useState(false);
+
   if (!car) return <p>Car not found.</p>;
 
   const handleBooking = (e) => {
     e.preventDefault();
-    alert(
-      `Booking requested for ${car.name} from ${pickupDate} to ${returnDate} at ${location}`
-    );
+
+    // Validate booking dates if needed
+    if (!pickupDate || !returnDate) {
+      alert("Please select pickup and return dates");
+      return;
+    }
+
+    // Navigate to checkout with booking info
+    navigate("/checkout", {
+      state: {
+        booking: {
+          car: car.name,
+          pickupDate,
+          returnDate,
+          location,
+          price: car.price,
+        },
+      },
+    });
   };
+  // const handleModalSubmit = (e) => {
+  //   e.preventDefault();
+  //   alert("Driver's license submitted! Booking complete.");
+  //   setShowModal(false); // Close modal
+  // };
 
   return (
     <PageWrapper>
@@ -149,13 +212,38 @@ const ModelPage = () => {
           </BookingForm>
         </DetailsWrapper>
       </ContentWrapper>
+
+      {/* {showModal && (
+        <DriversLicenseForm setShowModal={setShowModal} />
+        // <ModalOverlay>
+        //   <ModalContent>
+        //     <h2>Driver's License Verification</h2>
+        //     <Form onSubmit={handleModalSubmit}>
+        //       <label>
+        //         Driver's License Number
+        //         <input type="text" required />
+        //       </label>
+        //       <label>
+        //         Upload License
+        //         <input type="file" accept="image/*,.pdf" required />
+        //       </label>
+        //       <label>
+        //         Upload Insurance
+        //         <input type="file" accept="image/*,.pdf" required />
+        //       </label>
+        //       <button type="submit">Submit</button>
+        //     </Form>
+        //     <CloseButton onClick={() => setShowModal(false)}>×</CloseButton>
+        //   </ModalContent>
+        // </ModalOverlay>
+      )} */}
     </PageWrapper>
   );
 };
 
 export default ModelPage;
 
-// ---------------- Styled ---------------- //
+// ---------------- Styled Components ---------------- //
 const PageWrapper = styled.div`
   max-width: 1200px;
   margin: 2rem auto;
@@ -279,3 +367,5 @@ const ThumbImage = styled.img`
     border-color: ${({ theme }) => theme.colors.primary};
   }
 `;
+
+// ---------------- Modal Styles ---------------- //
