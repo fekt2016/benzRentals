@@ -13,13 +13,13 @@ const steps = [
     id: 2,
     title: "Select Dates & Location",
     description: "Pick your rental dates and preferred pick-up location.",
-    img: "/images/Class4.jpg",
+    img: "/images/ben2.jpg",
   },
   {
     id: 3,
     title: "Confirm & Pay",
     description: "Secure your booking with our easy online payment system.",
-    img: "/images/2025-mercedes-benz-gle-350.avif",
+    img: "/images/ben23.jpg",
   },
   {
     id: 4,

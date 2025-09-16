@@ -16,7 +16,7 @@ const CTASection = () => {
         <ImageWrapper>
           <Overlay />
           <img
-            src="/images/2025-mercedes-benz-gle-350.avif" // ✅ Correct path
+            src="/images/ben44.jpeg" // ✅ Correct path
             alt="Mercedes-Benz"
           />
         </ImageWrapper>
