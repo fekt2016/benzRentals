@@ -16,3 +16,13 @@ export const PATHS = {
   SIGNUP: "/signup",
   CHECKOUT: "/checkout",
 };
+
+export const ADMIN_PATHS = {
+  DASHBOARD: "/admin",
+  CARS: "/admin/cars",
+  ADD_CAR: "/admin/cars/new",
+  EDIT_CAR: "/admin/cars/:carId/edit",
+  BOOKINGS: "/admin/bookings",
+  USERS: "/admin/users",
+  REPORTS: "/admin/reports",
+};
