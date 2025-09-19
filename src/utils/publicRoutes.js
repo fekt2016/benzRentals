@@ -1,22 +1,8 @@
 export const PUBLIC_ROUTES = [
   "/auth/login",
-  "/auth/register",
+  "/auth/verifyotp",
   "/auth/forgot-password",
   "/auth/reset-password",
-  "/product",
-  "/product/category-counts",
-  "/seller/public-profile",
-  "/seller/profile/:sellerId",
-  "/public/docs",
-  "/health-check",
-  "follow/:sellerId/followers",
-  "/users/register",
-  "/users/signup",
-  "users/login",
-  "/wishlist/sync",
-  "/discount",
-  "/newsletter",
-  "/search/results",
 ];
 export const PUBLIC_GET_ENDPOINTS = [
   /^\/product\/[a-fA-F\d]{24}$/,

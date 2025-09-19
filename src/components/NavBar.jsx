@@ -1,26 +1,15 @@
 // src/components/Navbar.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
 import { PATHS } from "../routes/routePaths";
 
 const Navbar = () => {
-  const [scrolled, setScrolled] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   return (
-    <Nav scrolled={scrolled}>
+    <Nav>
       <NavContainer>
-        <Logo to={PATHS.HOME}>BenzFlex</Logo>
-
         <Hamburger onClick={() => setIsOpen(!isOpen)}>
           <span />
           <span />
@@ -45,14 +34,6 @@ const Navbar = () => {
           </MenuItem>
 
           {/* Login/Register Buttons */}
-          <MenuItem>
-            <AuthButton to={PATHS.LOGIN}>Login</AuthButton>
-          </MenuItem>
-          <MenuItem>
-            <AuthButton to={PATHS.SIGNUP} primary>
-              Register
-            </AuthButton>
-          </MenuItem>
         </Menu>
       </NavContainer>
     </Nav>
@@ -63,7 +44,7 @@ export default Navbar;
 
 // ---------------- Styled Components ---------------- //
 const Nav = styled.nav`
-  position: fixed;
+  /* position: fixed;
   top: 0;
   width: 100%;
   z-index: 999;
@@ -71,7 +52,7 @@ const Nav = styled.nav`
   background-color: ${({ scrolled, theme }) =>
     scrolled ? theme.colors.background : "transparent"};
   box-shadow: ${({ scrolled }) =>
-    scrolled ? "0 4px 12px rgba(0,0,0,0.1)" : "none"};
+    scrolled ? "0 4px 12px rgba(0,0,0,0.1)" : "none"}; */
 `;
 
 const NavContainer = styled.div`
@@ -81,13 +62,6 @@ const NavContainer = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-`;
-
-const Logo = styled(Link)`
-  font-size: 2rem;
-  font-weight: 700;
-  color: ${({ theme }) => theme.colors.primary};
-  text-decoration: none;
 `;
 
 const Hamburger = styled.div`
@@ -140,19 +114,5 @@ const MenuLink = styled(Link)`
 
   &:hover {
     color: ${({ theme }) => theme.colors.secondary};
-  }
-`;
-
-const AuthButton = styled(Link)`
-  padding: 0.5rem 1rem;
-  background: ${({ primary }) => (primary ? "#0077ff" : "#fff")};
-  color: ${({ primary }) => (primary ? "#fff" : "#000")};
-  border-radius: 6px;
-  font-weight: bold;
-  text-decoration: none;
-  transition: background 0.3s;
-
-  &:hover {
-    background: ${({ primary }) => (primary ? "#005fcc" : "#ddd")};
   }
 `;

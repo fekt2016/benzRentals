@@ -13,7 +13,7 @@ export const getAuthToken = () => {
   try {
     // Get role from cookies instead of localStorage
     const role = Cookies.get("current_role") || "user";
-    const tokenKey = TOKEN_KEYS[role] || "token";
+    const tokenKey = TOKEN_KEYS[role] || "user_token";
 
     return {
       token: Cookies.get(tokenKey), // Get token from cookies

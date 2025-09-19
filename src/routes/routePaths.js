@@ -25,4 +25,5 @@ export const ADMIN_PATHS = {
   BOOKINGS: "/admin/bookings",
   USERS: "/admin/users",
   REPORTS: "/admin/reports",
+  NOTIFICATIONS: "/admin/notifications",
 };

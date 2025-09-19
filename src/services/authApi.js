@@ -9,8 +9,13 @@ const authApi = {
 
   // Get the currently logged-in user
   getCurrentUser: async () => {
-    const response = await api.get("/auth/me"); // your backend endpoint
-    return response.data.data.user;
+    try {
+      console.log("get current user");
+      const response = await api.get("/auth/me"); // your backend endpoint
+      return response;
+    } catch (error) {
+      console.log(error);
+    }
   },
 
   // Logout user
@@ -18,13 +23,19 @@ const authApi = {
     const response = await api.post("/auth/logout");
     return response.data;
   },
-  sendOtp: async (email) => {
-    const response = await api.post("/auth/send-otp", { email });
+  sendOtp: async (payload) => {
+    const response = await api.post("/auth/login", payload);
     return response.data;
   },
-  verifyOtp: async (email, otp) => {
-    const response = await api.post("/auth/verify-otp", { email, otp });
-    return response.data;
+  verifyOtp: async (payload) => {
+    console.log("api payload", payload);
+    try {
+      const response = await api.post("/auth/verifyotp", payload);
+      return response.data;
+    } catch (error) {
+      console.error("Error verifying OTP:", error);
+      throw error; // Propagate error to React Query
+    }
   },
   register: async (username, email, phone, password) => {
     const response = await api.post("/auth/signup", {

@@ -7,54 +7,114 @@ import { getRelativePath, isPublicRoute, normalizePath } from "../utils/path";
 import { getAuthToken } from "../utils/tokenService";
 import { TOKEN_KEYS } from "../utils/tokenService";
 
-const API_CONFIG = {
-  DEVELOPMENT: "http://localhost:4000/api/v1/",
-  PRODUCTION: "https://eazworld.com/api/v1/",
-  TIMEOUT: 500000,
-};
+// Environment-based configuration
+const isProduction = process.env.NODE_ENV === "production";
+const baseURL = isProduction
+  ? `${window.location.origin}/api/v1`
+  : "http://localhost:4000/api/v1";
 
+// Create axios instance with default config
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
+  baseURL,
+  withCredentials: true,
+  timeout: 15000, // Reduced from 500s to 15s for better UX
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-api.interceptors.request.use((config) => {
-  const relativePath = getRelativePath(config.url);
-  const normalizedPath = normalizePath(relativePath);
-  const method = config.method ? config.method.toLowerCase() : "get";
+// Request interceptor
+api.interceptors.request.use(
+  (config) => {
+    console.log(config);
+    const relativePath = getRelativePath(config.url);
+    const normalizedPath = normalizePath(relativePath);
+    const method = config.method ? config.method.toLowerCase() : "get";
 
-  console.debug(`[API] ${method.toUpperCase()} ${normalizedPath}`);
+    console.debug(`[API] ${method.toUpperCase()} ${normalizedPath}`);
 
-  // Skip authentication for public routes
-  if (isPublicRoute(normalizedPath, method)) {
+    // Skip authentication for public routes
+    if (isPublicRoute(normalizedPath, method)) {
+      return config;
+    }
+
+    // Add authentication for protected routes
+    const { token, role } = getAuthToken();
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+      config.headers["x-user-role"] = role;
+      config.roleContext = role;
+    } else {
+      // If no token found, redirect to login
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
+      return Promise.reject(new Error("Authentication token not found"));
+    }
+
     return config;
+  },
+  (error) => {
+    console.error("Request Error:", error);
+    return Promise.reject(error);
   }
-
-  // Add authentication for protected routes
-  const { token, role } = getAuthToken();
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-    config.headers["x-user-role"] = role;
-    config.roleContext = role;
-  }
-
-  return config;
-});
+);
 
 // Response interceptor
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // You can process successful responses here if needed
+    return response;
+  },
   (error) => {
-    console.error("API Error:", error.response?.data || error.message);
+    const originalRequest = error.config;
 
-    // Handle authentication errors by clearing invalid tokens
-    if (error.response?.status === 401) {
-      // Clear all authentication cookies
-      Object.values(TOKEN_KEYS).forEach((key) => Cookies.remove(key));
-      Cookies.remove("current_role");
+    // Network errors (server not responding, CORS issues, etc.)
+    if (error.code === "ECONNABORTED") {
+      console.error("API Request Timeout:", error.message);
+      error.message =
+        "Request timeout. Please check your connection and try again.";
+    } else if (!error.response) {
+      console.error("Network Error:", error.message);
+      error.message =
+        "Network error. Please check if the server is running and accessible.";
+    } else {
+      // Server responded with error status
+      console.error("API Error:", error.response.status, error.response.data);
+
+      // Handle specific HTTP status codes
+      if (error.response.status === 401) {
+        // Clear all authentication cookies
+        Object.values(TOKEN_KEYS).forEach((key) => Cookies.remove(key));
+        Cookies.remove("current_role");
+
+        // Redirect to login if not already there
+        if (
+          typeof window !== "undefined" &&
+          !window.location.pathname.includes("login")
+        ) {
+          window.location.href = "/login";
+        }
+
+        error.message = "Your session has expired. Please log in again.";
+      } else if (error.response.status === 403) {
+        error.message = "You don't have permission to access this resource.";
+      } else if (error.response.status >= 500) {
+        error.message = "Server error. Please try again later.";
+      }
+    }
+
+    // Enhanced error logging for debugging
+    if (isProduction) {
+      // Send error to logging service in production
+      console.error("API Error Details:", {
+        url: originalRequest?.url,
+        method: originalRequest?.method,
+        status: error.response?.status,
+        message: error.message,
+        timestamp: new Date().toISOString(),
+      });
     }
 
     return Promise.reject(error);
@@ -66,22 +126,23 @@ export const authUtils = {
   // Set authentication tokens
   setAuthToken: (token, role = "user") => {
     const tokenKey = TOKEN_KEYS[role] || "token";
-    Cookies.set(tokenKey, token, {
+    const cookieOptions = {
       expires: 7, // 7 days
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-    });
-    Cookies.set("current_role", role, {
-      expires: 7,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-    });
+      path: "/",
+    };
+
+    Cookies.set(tokenKey, token, cookieOptions);
+    Cookies.set("current_role", role, cookieOptions);
   },
 
   // Clear all authentication tokens
   clearAuthTokens: () => {
-    Object.values(TOKEN_KEYS).forEach((key) => Cookies.remove(key));
-    Cookies.remove("current_role");
+    Object.values(TOKEN_KEYS).forEach((key) =>
+      Cookies.remove(key, { path: "/" })
+    );
+    Cookies.remove("current_role", { path: "/" });
   },
 
   // Get current authentication status
@@ -102,11 +163,21 @@ export const authUtils = {
         expires: 7,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
+        path: "/",
       });
       return true;
     }
     return false;
   },
+};
+
+// Enhanced API methods with better error handling
+export const apiClient = {
+  get: (url, config) => api.get(url, config),
+  post: (url, data, config) => api.post(url, data, config),
+  put: (url, data, config) => api.put(url, data, config),
+  delete: (url, config) => api.delete(url, config),
+  patch: (url, data, config) => api.patch(url, data, config),
 };
 
 export default api;

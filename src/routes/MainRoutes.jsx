@@ -27,6 +27,9 @@ const EditCar = lazy(() => import("../pages/adminPages/EditCar"));
 const AdminBookings = lazy(() => import("../pages/adminPages/AdminBookings"));
 const AdminUsers = lazy(() => import("../pages/adminPages/AdminUser"));
 const AdminReports = lazy(() => import("../pages/adminPages/AdminReports"));
+const NotificationPage = lazy(() =>
+  import("../pages/adminPages/NotificationPage")
+);
 const MainRoutes = () => (
   <Routes>
     {/* User routes */}
@@ -57,6 +60,7 @@ const MainRoutes = () => (
       <Route path={ADMIN_PATHS.BOOKINGS} element={<AdminBookings />} />
       <Route path={ADMIN_PATHS.USERS} element={<AdminUsers />} />
       <Route path={ADMIN_PATHS.REPORTS} element={<AdminReports />} />
+      <Route path={ADMIN_PATHS.NOTIFICATIONS} element={<NotificationPage />} />
     </Route>
 
     {/* 404 fallback */}

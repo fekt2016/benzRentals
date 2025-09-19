@@ -2,7 +2,13 @@
 import React from "react";
 import styled from "styled-components";
 import { NavLink } from "react-router-dom";
-import { FaTachometerAlt, FaCar, FaUsers, FaFileAlt } from "react-icons/fa";
+import {
+  FaTachometerAlt,
+  FaCar,
+  FaUsers,
+  FaFileAlt,
+  FaBell,
+} from "react-icons/fa";
 
 const SidebarContainer = styled.aside`
   width: 250px;
@@ -33,13 +39,12 @@ const SidebarLink = styled(NavLink)`
   align-items: center;
   gap: 1rem;
   padding: 1rem 2rem;
-  color: ${({ theme }) => theme.colors.white}; // text white
+  color: ${({ theme }) => theme.colors.white};
   text-decoration: none;
   transition: background 0.2s;
 
   &.active {
-    background: ${({ theme }) =>
-      theme.colors.primaryDark}; // darker shade when active
+    background: ${({ theme }) => theme.colors.primaryDark};
     color: white;
     font-weight: 600;
   }
@@ -70,6 +75,10 @@ const AdminSidebar = ({ open }) => {
       </SidebarLink>
       <SidebarLink to="/admin/reports">
         <FaFileAlt /> Reports
+      </SidebarLink>
+      {/* Notification Page Link */}
+      <SidebarLink to="/admin/notifications">
+        <FaBell /> Notifications
       </SidebarLink>
     </SidebarContainer>
   );
