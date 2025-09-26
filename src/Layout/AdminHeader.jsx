@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import { FaBell, FaUserCircle, FaBars } from "react-icons/fa";
+import { useLogout } from "../hooks/useAuth";
 
 const HeaderContainer = styled.header`
   width: 100%;
@@ -84,6 +85,7 @@ const DropdownItem = styled.button`
 `;
 
 const AdminHeader = ({ toggleSidebar }) => {
+  const { mutate: logout } = useLogout();
   const [profileOpen, setProfileOpen] = useState(false);
   const notifications = 3; // Example
 
@@ -111,7 +113,7 @@ const AdminHeader = ({ toggleSidebar }) => {
           <Dropdown open={profileOpen}>
             <DropdownItem>Profile</DropdownItem>
             <DropdownItem>Settings</DropdownItem>
-            <DropdownItem>Logout</DropdownItem>
+            <DropdownItem onClick={logout}>Logout</DropdownItem>
           </Dropdown>
         </ProfileMenu>
       </RightSection>

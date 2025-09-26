@@ -7,12 +7,11 @@ import Footer from "../Layout/Footer";
 
 const Container = styled.div`
   display: flex;
-  display: flex;
   flex-direction: column;
   justify-content: top;
 `;
 const Main = styled.div`
-  flex: 1;
+  margin-top: 4rem;
   padding: 1rem;
 `;
 
@@ -21,9 +20,7 @@ export default function MainLayout() {
     <Container>
       <Header />
       <Main>
-        <div>
-          <Outlet />
-        </div>
+        <Outlet />
       </Main>
       <Footer />
     </Container>

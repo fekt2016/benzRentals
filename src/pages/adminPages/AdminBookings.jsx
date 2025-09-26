@@ -1,149 +1,294 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import styled from "styled-components";
-import { FaEdit, FaTrash } from "react-icons/fa";
+import { FaSearch } from "react-icons/fa";
+import { useGetBookings } from "../../hooks/useBooking";
+import { useVerifyDriver } from "../../hooks/useDriver";
+import BookingStats from "../../components/BookingStats";
+import BookingTable from "../../components/BookingTable";
+import VerificationModal from "../../components/Modal/VerificationModal";
 
-const Container = styled.div`
-  padding: 2rem;
-`;
+const AdminBookingPage = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [verificationData, setVerificationData] = useState({
+    license: {
+      name: "",
+      number: "",
+      issuedBy: "",
+      expiryDate: "",
+      verified: false,
+    },
+    insurance: {
+      provider: "",
+      policyNumber: "",
+      expiryDate: "",
+      verified: false,
+    },
+  });
 
-const Title = styled.h1`
-  margin-bottom: 2rem;
-`;
+  const { data: bookingsData } = useGetBookings();
+  const bookings = useMemo(() => bookingsData?.data || [], [bookingsData]);
 
-const Table = styled.table`
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 0.5rem;
-  min-width: 700px;
+  const { mutate: verifyDriver } = useVerifyDriver();
 
-  th,
-  td {
-    padding: 1rem;
-    text-align: left;
-  }
+  // Filtering logic
+  const filteredBookings = bookings.filter((booking) => {
+    const matchesSearch =
+      booking.user?.fullName
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      booking.car?.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking._id?.toLowerCase().includes(searchTerm.toLowerCase());
 
-  th {
-    border-bottom: 2px solid ${({ theme }) => theme.colors.gray};
-  }
+    const matchesStatus =
+      statusFilter === "all" || booking.status === statusFilter;
 
-  td {
-    background: ${({ theme }) => theme.colors.white};
-    border-bottom: 1px solid ${({ theme }) => theme.colors.gray};
-    border-radius: var(--radius-sm);
-  }
+    return matchesSearch && matchesStatus;
+  });
 
-  @media (max-width: 767px) {
-    display: none;
-  }
-`;
+  // Stats summary
+  const stats = {
+    total: bookings.length,
+    pending: bookings.filter((b) => b.status === "pending").length,
+    confirmed: bookings.filter((b) => b.status === "confirmed").length,
+    completed: bookings.filter((b) => b.status === "completed").length,
+    cancelled: bookings.filter((b) => b.status === "cancelled").length,
+    payment_pending: bookings.filter((b) => b.status === "payment_pending")
+      .length,
+  };
 
-const CardList = styled.div`
-  display: none;
+  // Open verification modal
+  const handleOpenVerification = (booking) => {
+    setSelectedBooking(booking);
 
-  @media (max-width: 767px) {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-`;
+    // Pre-fill verification data if driver exists
+    if (booking.driver) {
+      setVerificationData({
+        license: {
+          name: booking.driver.fullName || "",
+          number: booking.driver.license?.number || "",
+          issuedBy: booking.driver.license?.issuedBy || "",
+          expiryDate: booking.driver.license?.expiryDate?.split("T")[0] || "",
+          verified: booking.driver.license?.verified || false,
+        },
+        insurance: {
+          provider: booking.driver.insurance?.provider || "",
+          policyNumber: booking.driver.insurance?.policyNumber || "",
+          expiryDate: booking.driver.insurance?.expiryDate?.split("T")[0] || "",
+          verified: booking.driver.insurance?.verified || false,
+        },
+      });
+    }
 
-const UserCard = styled.div`
-  background: ${({ theme }) => theme.colors.white};
-  padding: 1rem;
-  border-radius: var(--radius-lg);
-  box-shadow: ${({ theme }) => theme.shadows.md};
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+    setIsVerificationModalOpen(true);
+  };
 
-  div {
-    display: flex;
-    justify-content: space-between;
-  }
-`;
+  // Handle driver verification
+  const handleVerifyDriver = (verificationData) => {
+    if (!selectedBooking?.driver?._id) {
+      console.error("No driver ID found for verification");
+      return;
+    }
 
-const ActionBtn = styled.button`
-  padding: 0.3rem 0.6rem;
-  border-radius: var(--radius-md);
-  border: none;
-  cursor: pointer;
-  background-color: ${({ color }) => color || "#333"};
-  color: white;
-  margin-right: 0.5rem;
+    verifyDriver(
+      {
+        driverId: selectedBooking.driver._id,
+        verificationData,
+      },
+      {
+        onSuccess: (data) => {
+          console.log("Driver verified successfully:", data);
+          handleCloseModal();
+          // In a real app, you might want to refetch bookings here
+        },
+        onError: (error) => {
+          console.error("Error verifying driver:", error);
+        },
+      }
+    );
+  };
 
-  &:hover {
-    opacity: 0.8;
-  }
-`;
+  // Handle verification data changes
+  const handleVerificationChange = (section, field, value) => {
+    setVerificationData((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [field]: value,
+      },
+    }));
+  };
 
-const UsersManagementPage = () => {
-  const users = [
-    { id: 1, name: "John Doe", email: "john@example.com", role: "user" },
-    { id: 2, name: "Jane Smith", email: "jane@example.com", role: "admin" },
-  ];
+  // Handle checkbox changes
+  const handleCheckboxChange = (section, field, checked) => {
+    setVerificationData((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [field]: checked,
+      },
+    }));
+  };
+
+  // Close modal and reset state
+  const handleCloseModal = () => {
+    setIsVerificationModalOpen(false);
+    setSelectedBooking(null);
+    setVerificationData({
+      license: {
+        name: "",
+        number: "",
+        issuedBy: "",
+        expiryDate: "",
+        verified: false,
+      },
+      insurance: {
+        provider: "",
+        policyNumber: "",
+        expiryDate: "",
+        verified: false,
+      },
+    });
+  };
+
+  const handleDeleteBooking = (bookingId) => {
+    if (window.confirm("Are you sure you want to delete this booking?")) {
+      console.log("Deleting booking:", bookingId);
+      // Add your delete mutation here
+    }
+  };
 
   return (
     <Container>
-      <Title>Manage Users</Title>
+      {/* Header Controls */}
+      <Header>
+        <Title>Booking Management</Title>
+        <Controls>
+          <SearchBox>
+            <FaSearch />
+            <input
+              type="text"
+              placeholder="Search bookings..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </SearchBox>
+          <FilterSelect
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="payment_pending">Payment Pending</option>
+          </FilterSelect>
+        </Controls>
+      </Header>
 
-      {/* Desktop Table */}
-      <Table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u) => (
-            <tr key={u.id}>
-              <td>{u.name}</td>
-              <td>{u.email}</td>
-              <td>{u.role}</td>
-              <td>
-                <ActionBtn color="#FFA500" title="Edit">
-                  <FaEdit />
-                </ActionBtn>
-                <ActionBtn color="#FF4C4C" title="Delete">
-                  <FaTrash />
-                </ActionBtn>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
+      {/* Stats */}
+      <BookingStats stats={stats} />
 
-      {/* Mobile Cards */}
-      <CardList>
-        {users.map((u) => (
-          <UserCard key={u.id}>
-            <div>
-              <span>Name:</span>
-              <span>{u.name}</span>
-            </div>
-            <div>
-              <span>Email:</span>
-              <span>{u.email}</span>
-            </div>
-            <div>
-              <span>Role:</span>
-              <span>{u.role}</span>
-            </div>
-            <div>
-              <ActionBtn color="#FFA500" title="Edit">
-                <FaEdit />
-              </ActionBtn>
-              <ActionBtn color="#FF4C4C" title="Delete">
-                <FaTrash />
-              </ActionBtn>
-            </div>
-          </UserCard>
-        ))}
-      </CardList>
+      {/* Table */}
+      <TableContainer>
+        <BookingTable
+          bookings={filteredBookings}
+          onOpenVerification={handleOpenVerification}
+          onDelete={handleDeleteBooking}
+        />
+      </TableContainer>
+
+      {/* Verification Modal */}
+      {isVerificationModalOpen && selectedBooking && (
+        <VerificationModal
+          selectedBooking={selectedBooking}
+          verificationData={verificationData}
+          onClose={handleCloseModal}
+          onVerificationChange={handleVerificationChange}
+          onCheckboxChange={handleCheckboxChange}
+          onVerify={() => handleVerifyDriver(verificationData)}
+        />
+      )}
     </Container>
   );
 };
 
-export default UsersManagementPage;
+export default AdminBookingPage;
+
+/* -------------------- STYLES -------------------- */
+const Container = styled.div`
+  padding: 2rem;
+  background: #f8fafc;
+  min-height: 100vh;
+`;
+
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+`;
+
+const Title = styled.h1`
+  color: #1e293b;
+  font-size: 2rem;
+  font-weight: 700;
+`;
+
+const Controls = styled.div`
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+`;
+
+const SearchBox = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  input {
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    width: 250px;
+    font-size: 0.875rem;
+
+    &:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgb(59 130 246 / 0.1);
+    }
+  }
+
+  svg {
+    position: absolute;
+    left: 0.75rem;
+    color: #6b7280;
+  }
+`;
+
+const FilterSelect = styled.select`
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+  font-size: 0.875rem;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+  }
+`;
+
+const TableContainer = styled.div`
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+`;

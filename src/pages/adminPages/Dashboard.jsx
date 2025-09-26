@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import {
-  FaCarSide,
-  FaCalendarCheck,
-  FaDollarSign,
+  // FaCarSide,
+  // FaCalendarCheck,
+  // FaDollarSign,
   FaUsers,
   FaBell,
   FaPlus,

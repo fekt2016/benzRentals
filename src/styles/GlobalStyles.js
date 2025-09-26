@@ -21,6 +21,30 @@ export const devices = {
 
 const GlobalStyles = createGlobalStyle`
   :root {
+    //colors
+--primary: #D32F2F;
+--primary-dark: #B71C1C;
+--secondary: #0D0D0D;
+--background: #FFFFFF;
+--text: #1A1A1A;
+--white: #FFFFFF;
+--gray: #9E9E9E;
+--gray: #9E9E00;
+--accent: #FFD700;
+
+ --color-white-0: #fff;
+  --color-grey-50: #f9fafb;
+  --color-grey-100: #f3f4f6;
+  --color-grey-200: #e5e7eb;
+  --color-grey-300: #d1d5db;
+  --color-grey-400: #9ca3af;
+  --color-grey-500: #6b7280;
+  --color-grey-600: #4b5563;
+  --color-grey-700: #374151; 
+  --color-grey-800: #1f2937;
+  --color-grey-900: #111827;
+
+
     /* Shadows */
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
     --shadow-md: 0px 6px 24px rgba(0, 0, 0, 0.06);

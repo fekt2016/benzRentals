@@ -5,7 +5,6 @@ import Cookies from "js-cookie";
 import { PUBLIC_ROUTES, PUBLIC_GET_ENDPOINTS } from "../utils/publicRoutes";
 import { getRelativePath, isPublicRoute, normalizePath } from "../utils/path";
 import { getAuthToken } from "../utils/tokenService";
-import { TOKEN_KEYS } from "../utils/tokenService";
 
 // Environment-based configuration
 const isProduction = process.env.NODE_ENV === "production";
@@ -26,45 +25,21 @@ const api = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
-    console.log(config);
     const relativePath = getRelativePath(config.url);
     const normalizedPath = normalizePath(relativePath);
     const method = config.method ? config.method.toLowerCase() : "get";
-
-    console.debug(`[API] ${method.toUpperCase()} ${normalizedPath}`);
-
     // Skip authentication for public routes
     if (isPublicRoute(normalizedPath, method)) {
-      return config;
-    }
-
-    // Add authentication for protected routes
-    const { token, role } = getAuthToken();
-
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-      config.headers["x-user-role"] = role;
-      config.roleContext = role;
-    } else {
-      // If no token found, redirect to login
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
-      }
-      return Promise.reject(new Error("Authentication token not found"));
+      return config; // no token needed
     }
 
     return config;
   },
-  (error) => {
-    console.error("Request Error:", error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
-
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
-    // You can process successful responses here if needed
     return response;
   },
   (error) => {
@@ -85,16 +60,14 @@ api.interceptors.response.use(
 
       // Handle specific HTTP status codes
       if (error.response.status === 401) {
-        // Clear all authentication cookies
-        Object.values(TOKEN_KEYS).forEach((key) => Cookies.remove(key));
-        Cookies.remove("current_role");
+        Cookies.remove("token");
 
         // Redirect to login if not already there
-        if (
-          typeof window !== "undefined" &&
-          !window.location.pathname.includes("login")
-        ) {
-          window.location.href = "/login";
+        const hasToken = !!Cookies.get("token"); // check if user ever had a token
+        const isOnLoginPage = window.location.pathname.includes("login");
+
+        if (hasToken && !isOnLoginPage) {
+          window.location.href = "/login"; // only redirect logged-in users
         }
 
         error.message = "Your session has expired. Please log in again.";

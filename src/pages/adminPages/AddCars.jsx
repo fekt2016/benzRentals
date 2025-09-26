@@ -1,223 +1,306 @@
-// src/pages/admin/AddEditCarPage.jsx
 import React, { useState, useRef } from "react";
 import styled from "styled-components";
-import { devices } from "../../styles/GlobalStyles"; // your breakpoints
+import { useCreateCar } from "../../hooks/useCar";
+import { compressImage } from "../../utils/ImageCompress";
 
-const Container = styled.div`
-  padding: 2rem;
-  @media ${devices.sm} {
-    padding: 1rem;
-  }
-`;
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  background: ${({ theme }) => theme.colors.white};
-  padding: 2rem;
-  border-radius: var(--radius-lg);
-  box-shadow: ${({ theme }) => theme.shadows.md};
-
-  @media ${devices.sm} {
-    padding: 1rem;
-  }
-`;
-
-const Input = styled.input`
-  padding: 0.8rem 1rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid ${({ theme }) => theme.colors.gray};
-  font-size: 1.4rem;
-
-  @media ${devices.sm} {
-    font-size: 1.2rem;
-  }
-`;
-
-const Button = styled.button`
-  padding: 0.8rem 1rem;
-  background-color: ${({ theme }) => theme.colors.primary};
-  color: white;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  border: none;
-  font-size: 1.4rem;
-
-  @media ${devices.sm} {
-    font-size: 1.2rem;
-  }
-`;
-
-const DragDropArea = styled.div`
-  border: 2px dashed ${({ theme }) => theme.colors.gray};
-  padding: 2rem;
-  border-radius: var(--radius-md);
-  text-align: center;
-  cursor: pointer;
-  background-color: ${({ isDragging, theme }) =>
-    isDragging ? theme.colors.primaryLight : "transparent"};
-  transition: background-color 0.3s;
-  font-size: 1.4rem;
-
-  @media ${devices.sm} {
-    padding: 1rem;
-    font-size: 1.2rem;
-  }
-`;
-
-const ImagesPreview = styled.div`
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-
-  div {
-    position: relative;
-  }
-
-  img {
-    width: 120px;
-    height: 80px;
-    object-fit: cover;
-    border-radius: var(--radius-sm);
-    border: 1px solid ${({ theme }) => theme.colors.gray};
-
-    @media ${devices.sm} {
-      width: 90px;
-      height: 60px;
-    }
-  }
-
-  button {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background: red;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-
-    @media ${devices.sm} {
-      width: 16px;
-      height: 16px;
-      font-size: 0.8rem;
-    }
-  }
-`;
-
-const AddEditCarPage = () => {
+const AddCar = () => {
   const [car, setCar] = useState({
-    model: "",
     series: "",
-    year: "",
+    model: "",
+    year: new Date().getFullYear(),
     pricePerDay: "",
+    transmission: "automatic",
+    fuelType: "petrol",
+    seats: 4,
     images: [],
+    available: true,
   });
-
-  const [previewImages, setPreviewImages] = useState([]);
-  const [isDragging, setIsDragging] = useState(false);
+  const { mutate: createCar } = useCreateCar();
   const fileInputRef = useRef(null);
 
-  const handleFiles = (files) => {
-    const fileArray = Array.from(files);
-    setCar((prev) => ({ ...prev, images: [...prev.images, ...fileArray] }));
-
-    const previews = fileArray.map((file) => URL.createObjectURL(file));
-    setPreviewImages((prev) => [...prev, ...previews]);
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    setCar((prev) => ({
+      ...prev,
+      images: [...prev.images, ...files],
+    }));
   };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    handleFiles(e.dataTransfer.files);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = () => setIsDragging(false);
 
   const handleRemoveImage = (index) => {
     setCar((prev) => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
     }));
-    setPreviewImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(car); // TODO: send to backend
+
+    if (!car.series || !car.model || !car.year || !car.pricePerDay) {
+      alert("Please fill all required fields");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("series", car.series);
+    formData.append("model", car.model);
+    formData.append("year", car.year);
+    formData.append("pricePerDay", car.pricePerDay);
+    formData.append("transmission", car.transmission);
+    formData.append("fuelType", car.fuelType);
+    formData.append("seats", car.seats);
+    formData.append("available", car.available);
+
+    // Process additional images
+    if (car.images && car.images.length > 0) {
+      const compressionResults = await Promise.allSettled(
+        car.images.map(compressImage)
+      );
+
+      compressionResults.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+          formData.append("images", result.value);
+        } else {
+          console.warn(`Image ${index} compression failed:`, result.reason);
+          formData.append("images", car.images[index]);
+        }
+      });
+    }
+    // for (let [key, value] of formData.entries()) {
+    //   console.log(key, "→", value);
+    // }
+    // Call your API using react-query
+    createCar(formData);
   };
 
   return (
     <Container>
-      <h1>Add / Edit Car</h1>
+      <h1>Add New Car</h1>
       <Form onSubmit={handleSubmit}>
-        <Input
-          placeholder="Model"
-          value={car.model}
-          onChange={(e) => setCar({ ...car, model: e.target.value })}
-        />
-        <Input
-          placeholder="Series"
-          value={car.series}
-          onChange={(e) => setCar({ ...car, series: e.target.value })}
-        />
-        <Input
-          type="number"
-          placeholder="Year"
-          value={car.year}
-          onChange={(e) => setCar({ ...car, year: e.target.value })}
-        />
-        <Input
-          type="number"
-          placeholder="Price Per Day"
-          value={car.pricePerDay}
-          onChange={(e) => setCar({ ...car, pricePerDay: e.target.value })}
-        />
+        <div>
+          <Label>Series*</Label>
+          <Select
+            value={car.series}
+            onChange={(e) => setCar({ ...car, series: e.target.value })}
+            required
+          >
+            <option value="">Select Series</option>
+            {[
+              "A-Class",
+              "B-Class",
+              "C-Class",
+              "E-Class",
+              "S-Class",
+              "CLA",
+              "CLS",
+              "GLA",
+              "GLB",
+              "GLC",
+              "GLE",
+              "GLS",
+              "G-Class",
+              "EQC",
+              "AMG GT",
+            ].map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </Select>
+        </div>
 
-        <DragDropArea
-          isDragging={isDragging}
-          onClick={() => fileInputRef.current.click()}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-        >
-          Drag & Drop Images Here or Click to Select
-        </DragDropArea>
+        <div>
+          <Label>Model*</Label>
+          <Input
+            type="text"
+            value={car.model}
+            onChange={(e) => setCar({ ...car, model: e.target.value })}
+            required
+          />
+        </div>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*"
-          style={{ display: "none" }}
-          onChange={(e) => handleFiles(e.target.files)}
-        />
+        <div>
+          <Label>Year*</Label>
+          <Input
+            type="number"
+            min="2000"
+            max="2030"
+            value={car.year}
+            onChange={(e) => setCar({ ...car, year: parseInt(e.target.value) })}
+            required
+          />
+        </div>
 
-        {previewImages.length > 0 && (
+        <div>
+          <Label>Price Per Day ($)*</Label>
+          <Input
+            type="number"
+            min="0"
+            step="0.01"
+            value={car.pricePerDay}
+            onChange={(e) =>
+              setCar({ ...car, pricePerDay: parseFloat(e.target.value) })
+            }
+            required
+          />
+        </div>
+
+        <div>
+          <Label>Transmission</Label>
+          <Select
+            value={car.transmission}
+            onChange={(e) => setCar({ ...car, transmission: e.target.value })}
+          >
+            <option value="automatic">Automatic</option>
+            <option value="manual">Manual</option>
+          </Select>
+        </div>
+
+        <div>
+          <Label>Fuel Type</Label>
+          <Select
+            value={car.fuelType}
+            onChange={(e) => setCar({ ...car, fuelType: e.target.value })}
+          >
+            <option value="petrol">Petrol</option>
+            <option value="diesel">Diesel</option>
+            <option value="electric">Electric</option>
+            <option value="hybrid">Hybrid</option>
+          </Select>
+        </div>
+
+        <div>
+          <Label>Seats</Label>
+          <Input
+            type="number"
+            min="2"
+            max="9"
+            value={car.seats}
+            onChange={(e) =>
+              setCar({ ...car, seats: parseInt(e.target.value) })
+            }
+          />
+        </div>
+
+        <div>
+          <Label>Available</Label>
+          <input
+            type="checkbox"
+            checked={car.available}
+            onChange={(e) => setCar({ ...car, available: e.target.checked })}
+          />
+        </div>
+
+        <div>
+          <Label>Images</Label>
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+          />
           <ImagesPreview>
-            {previewImages.map((src, idx) => (
-              <div key={idx}>
-                <img src={src} alt={`Car ${idx + 1}`} />
-                <button type="button" onClick={() => handleRemoveImage(idx)}>
+            {car.images.map((img, idx) => (
+              <PreviewImageWrapper key={idx}>
+                <PreviewImage
+                  src={typeof img === "string" ? img : URL.createObjectURL(img)}
+                  alt={`Car ${idx}`}
+                />
+                <RemoveButton
+                  type="button"
+                  onClick={() => handleRemoveImage(idx)}
+                >
                   &times;
-                </button>
-              </div>
+                </RemoveButton>
+              </PreviewImageWrapper>
             ))}
           </ImagesPreview>
-        )}
+        </div>
 
-        <Button type="submit">Save</Button>
+        <Button type="submit">Add Car</Button>
       </Form>
     </Container>
   );
 };
 
-export default AddEditCarPage;
+export default AddCar;
+
+// Styled Components (same as before)
+const Container = styled.div`
+  max-width: 800px;
+  margin: 4rem auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`;
+
+const Label = styled.label`
+  font-weight: 600;
+`;
+
+const Input = styled.input`
+  padding: 0.8rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+`;
+
+const Select = styled.select`
+  padding: 0.8rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+`;
+
+const Button = styled.button`
+  padding: 1rem 2rem;
+  background: #d32f2f;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: #b71c1c;
+  }
+`;
+
+const ImagesPreview = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+`;
+
+const PreviewImageWrapper = styled.div`
+  position: relative;
+`;
+
+const PreviewImage = styled.img`
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 6px;
+`;
+
+const RemoveButton = styled.button`
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #b71c1c;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 0;
+`;

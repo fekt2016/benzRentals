@@ -15,6 +15,10 @@ export const PATHS = {
   LOGIN: "/login",
   SIGNUP: "/signup",
   CHECKOUT: "/checkout",
+  PROFILE: "/profile",
+  SETTINGS: "/settings",
+  REVIEWS: "/reviews",
+  NOTIFICATIONS: "/notifications",
 };
 
 export const ADMIN_PATHS = {

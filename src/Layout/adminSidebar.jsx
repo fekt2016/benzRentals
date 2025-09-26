@@ -16,7 +16,7 @@ const SidebarContainer = styled.aside`
   display: flex;
   flex-direction: column;
   position: fixed;
-  height: 100vh;
+  /* height: 100vh; */
   transform: ${({ open }) => (open ? "translateX(0)" : "translateX(-100%)")};
   transition: transform 0.3s ease-in-out;
   z-index: 100;
