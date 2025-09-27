@@ -38,7 +38,6 @@ export const useMyBookings = () => {
 };
 
 export const useGetBookingById = (id) => {
-  console.log("id", id);
   return useQuery({
     queryKey: ["booking", id],
     queryFn: async () => {

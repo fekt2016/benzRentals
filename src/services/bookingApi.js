@@ -10,7 +10,6 @@ const bookingApi = {
     try {
       console.log("id api", id);
       const response = await api.get(`/bookings/${id}`);
-      console.log("response", response);
       return response;
     } catch (error) {
       console.error("Error fetching booking by ID:", error);

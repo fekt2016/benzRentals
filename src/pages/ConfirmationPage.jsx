@@ -1,65 +1,135 @@
 // src/pages/BookingConfirmationPage.jsx
-import React from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import styled from "styled-components";
 import { PATHS } from "../routes/routePaths";
+import { useGetBookingConfirmation } from "../hooks/usePayment";
 
 const BookingConfirmationPage = () => {
-  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const booking = location.state?.booking;
+  const bookingId = searchParams.get("booking_id");
 
-  if (!booking) return <p>No booking details found.</p>;
+  const {
+    data: response,
+    isLoading,
+    error,
+  } = useGetBookingConfirmation(bookingId);
 
+  const booking = response?.data?.booking;
+  const session = response?.data?.session;
+
+  // Debug effect
+  useEffect(() => {
+    if (response) {
+      console.log("🎯 Frontend - Final data received:", {
+        bookingExists: !!booking,
+        userExists: !!booking?.user,
+        carExists: !!booking?.car,
+        user: booking?.user,
+        car: booking?.car,
+        isUserObject:
+          typeof booking?.user === "object" && booking?.user !== null,
+        isCarObject: typeof booking?.car === "object" && booking?.car !== null,
+      });
+    }
+  }, [response, booking]);
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error || !booking) {
+    return (
+      <div>
+        <h2>Error</h2>
+        <p>{error?.message || "Booking not found"}</p>
+      </div>
+    );
+  }
+
+  // Now you can safely access the populated data!
   return (
     <PageWrapper>
-      <Title>Booking Confirmation</Title>
+      <HeaderSection>
+        <Title>Booking Confirmed!</Title>
+        <StatusBadge color="#28a745">Confirmed</StatusBadge>
+      </HeaderSection>
 
-      <Message>
-        Thank you for your booking! Your request is currently{" "}
-        <Status>Processing</Status>. Once we verify your Driver's License and
-        Insurance, your booking will be confirmed.
-      </Message>
+      {/* User Information - Now populated! */}
+      {booking.user && (
+        <Section>
+          <h2>Customer Information</h2>
+          <Detail>
+            <strong>Name:</strong> {booking.user.fullName}
+          </Detail>
+          <Detail>
+            <strong>Email:</strong> {booking.user.email}
+          </Detail>
+          <Detail>
+            <strong>Phone:</strong> {booking.user.phone}
+          </Detail>
+        </Section>
+      )}
 
-      <BookingSummary>
+      {/* Car Information - Now populated! */}
+      {booking.car && (
+        <Section>
+          <h2>Car Details</h2>
+          <Detail>
+            <strong>Car:</strong> {booking.car.model} {booking.car.series}
+          </Detail>
+          <Detail>
+            <strong>Year:</strong> {booking.car.year}
+          </Detail>
+          <Detail>
+            <strong>Daily Rate:</strong> ${booking.car.pricePerDay}
+          </Detail>
+          {booking.car.images && booking.car.images.length > 0 && (
+            <CarImage src={booking.car.images[0]} alt={booking.car.model} />
+          )}
+        </Section>
+      )}
+
+      {/* Booking Information */}
+      <Section>
         <h2>Booking Details</h2>
         <Detail>
-          <strong>Car:</strong> {booking.car}
+          <strong>Booking ID:</strong> {booking._id}
         </Detail>
         <Detail>
-          <strong>Pickup Date:</strong> {booking.pickupDate}
+          <strong>Pickup Date:</strong>{" "}
+          {new Date(booking.pickupDate).toLocaleDateString()}
         </Detail>
         <Detail>
-          <strong>Return Date:</strong> {booking.returnDate}
+          <strong>Return Date:</strong>{" "}
+          {new Date(booking.returnDate).toLocaleDateString()}
         </Detail>
         <Detail>
-          <strong>Location:</strong> {booking.location}
+          <strong>Pickup Location:</strong> {booking.pickupLocation}
         </Detail>
         <Detail>
-          <strong>Price:</strong> ${booking.price}/day
+          <strong>Total Price:</strong> ${booking.totalPrice}
         </Detail>
-        <Detail>
-          <strong>Payment Method:</strong> {booking.paymentMethod}
-        </Detail>
-      </BookingSummary>
+      </Section>
 
-      <FilesSection>
-        <h2>Uploaded Documents</h2>
-        <FileItem>
-          <strong>Driver's License:</strong>{" "}
-          {booking.licenseFile?.name || "Not uploaded"}
-        </FileItem>
-        <FileItem>
-          <strong>Insurance:</strong>{" "}
-          {booking.insuranceFile?.name || "Not uploaded"}
-        </FileItem>
-      </FilesSection>
+      {/* Payment Information */}
+      {session && (
+        <Section>
+          <h2>Payment Information</h2>
+          <Detail>
+            <strong>Status:</strong> {session.payment_status}
+          </Detail>
+          <Detail>
+            <strong>Amount Paid:</strong> $
+            {(session.amount_total / 100).toFixed(2)}
+          </Detail>
+        </Section>
+      )}
 
       <ButtonWrapper>
-        <Button onClick={() => navigate(`${PATHS.HOME}`)}>Home</Button>
-        <Button onClick={() => navigate(`${PATHS.BOOKINGS}`)}>
-          My Bookings
-        </Button>
+        <Button onClick={() => navigate(PATHS.HOME)}>Home</Button>
+        <Button onClick={() => navigate(PATHS.BOOKINGS)}>My Bookings</Button>
       </ButtonWrapper>
     </PageWrapper>
   );
@@ -67,87 +137,76 @@ const BookingConfirmationPage = () => {
 
 export default BookingConfirmationPage;
 
-// ---------------- Styled Components ---------------- //
-
+// Styled Components
 const PageWrapper = styled.div`
   max-width: 700px;
-  margin: 3rem auto;
-  padding: 0 1rem;
+  margin: 2rem auto;
+  padding: 1rem;
+`;
+
+const HeaderSection = styled.div`
+  text-align: center;
+  margin-bottom: 2rem;
 `;
 
 const Title = styled.h1`
-  text-align: center;
-  margin-bottom: 1.5rem;
-  font-size: 2.5rem;
-  color: ${({ theme }) => theme.colors.primary};
+  color: #333;
+  margin-bottom: 1rem;
 `;
 
-const Message = styled.p`
-  text-align: center;
-  margin-bottom: 2rem;
-  font-size: 1.1rem;
-`;
-
-const Status = styled.span`
+const StatusBadge = styled.span`
+  background: #28a745;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
   font-weight: bold;
-  color: orange;
 `;
 
-const BookingSummary = styled.div`
-  background: ${({ theme }) => theme.colors.white};
+const Section = styled.div`
+  background: #f8f9fa;
   padding: 1.5rem;
-  border-radius: ${({ theme }) => theme.radius.medium};
-  box-shadow: ${({ theme }) => theme.shadows.card};
-  margin-bottom: 2rem;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
 
   h2 {
+    color: #333;
     margin-bottom: 1rem;
-    color: ${({ theme }) => theme.colors.primary};
   }
 `;
 
 const Detail = styled.p`
   margin: 0.5rem 0;
+  display: flex;
+  justify-content: space-between;
 
   strong {
-    color: ${({ theme }) => theme.colors.primary};
+    color: #555;
   }
 `;
 
-const FilesSection = styled.div`
-  background: ${({ theme }) => theme.colors.white};
-  padding: 1.5rem;
-  border-radius: ${({ theme }) => theme.radius.medium};
-  box-shadow: ${({ theme }) => theme.shadows.card};
-  margin-bottom: 2rem;
-
-  h2 {
-    margin-bottom: 1rem;
-    color: ${({ theme }) => theme.colors.primary};
-  }
-`;
-
-const FileItem = styled.p`
-  margin: 0.5rem 0;
+const CarImage = styled.img`
+  width: 100%;
+  max-width: 300px;
+  border-radius: 10px;
+  margin-top: 1rem;
 `;
 
 const ButtonWrapper = styled.div`
   display: flex;
-  justify-content: center;
   gap: 1rem;
+  justify-content: center;
+  margin-top: 2rem;
 `;
 
 const Button = styled.button`
-  background-color: ${({ theme }) => theme.colors.primary};
-  color: ${({ theme }) => theme.colors.white};
-  padding: 0.8rem 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #007bff;
+  color: white;
   border: none;
-  border-radius: ${({ theme }) => theme.radius.small};
-  font-weight: 600;
+  border-radius: 5px;
   cursor: pointer;
-  transition: background 0.3s;
 
   &:hover {
-    background-color: ${({ theme }) => theme.colors.primaryDark};
+    background: #0056b3;
   }
 `;

@@ -1,4 +1,4 @@
-// import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { PATHS } from "../routes/routePaths";
@@ -12,18 +12,12 @@ import {
   FiShield,
   FiMapPin,
   FiCalendar,
-  FiUser,
-  FiLock,
 } from "react-icons/fi";
-
-const paymentMethods = [
-  { id: "credit-card", name: "Credit Card", icon: FiCreditCard },
-  { id: "paypal", name: "PayPal", icon: FiCreditCard },
-  { id: "stripe", name: "Stripe", icon: FiCreditCard },
-];
 import { useMyDrivers } from "../hooks/useDriver";
 import { useAddBookingDriver, useGetBookingById } from "../hooks/useBooking";
-import { useMemo, useState } from "react";
+import { useStripePayment } from "../hooks/usePayment";
+
+const paymentMethods = [{ id: "stripe", name: "Stripe", icon: FiCreditCard }];
 
 export default function CheckoutPage() {
   const location = useLocation();
@@ -32,6 +26,8 @@ export default function CheckoutPage() {
 
   const { data: bookingResponse } = useGetBookingById(bookingId);
   const { data: myDrivers } = useMyDrivers();
+  const { mutate: processStripePayment, isPending: isStripeProcessing } =
+    useStripePayment();
 
   const drivers = useMemo(() => myDrivers?.data || [], [myDrivers]);
 
@@ -39,19 +35,10 @@ export default function CheckoutPage() {
     () => bookingResponse?.data?.data || {},
     [bookingResponse]
   );
-  console.log("booking", booking);
 
   const { mutate: addBookingDriver } = useAddBookingDriver(booking?._id);
 
   const [showModal, setShowModal] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState(paymentMethods[0].id);
-  const [processing, setProcessing] = useState(false);
-  const [cardDetails, setCardDetails] = useState({
-    number: "",
-    name: "",
-    expiry: "",
-    cvv: "",
-  });
 
   // Calculate total price
   const totalDays = useMemo(() => {
@@ -68,72 +55,50 @@ export default function CheckoutPage() {
   const allVerified =
     booking?.driver?.insurance?.verified && booking?.driver?.license?.verified;
 
-  const handleCardInputChange = (field, value) => {
-    let formattedValue = value;
-
-    // Format card number with spaces
-    if (field === "number") {
-      formattedValue = value
-        .replace(/\s/g, "")
-        .replace(/(.{4})/g, "$1 ")
-        .trim();
-      if (formattedValue.length > 19)
-        formattedValue = formattedValue.slice(0, 19);
-    }
-
-    // Format expiry date
-    if (field === "expiry") {
-      formattedValue = value
-        .replace(/\D/g, "")
-        .replace(/(\d{2})(\d)/, "$1/$2")
-        .slice(0, 5);
-    }
-
-    // Format CVV (only numbers, max 4 digits)
-    if (field === "cvv") {
-      formattedValue = value.replace(/\D/g, "").slice(0, 4);
-    }
-
-    setCardDetails((prev) => ({
-      ...prev,
-      [field]: formattedValue,
-    }));
-  };
-
-  const isCardFormValid = () => {
-    return (
-      cardDetails.number.replace(/\s/g, "").length === 16 &&
-      cardDetails.name.trim().length > 0 &&
-      cardDetails.expiry.length === 5 &&
-      cardDetails.cvv.length >= 3
-    );
-  };
-
-  const handleCheckout = async (e) => {
-    e.preventDefault();
+  // In your CheckoutPage component - update the handleStripePayment function
+  const handleStripePayment = () => {
     if (!allVerified) {
       alert("Documents are pending verification. Cannot proceed to payment.");
       return;
     }
 
-    // Validate card form if credit card is selected
-    if (paymentMethod === "credit-card" && !isCardFormValid()) {
-      alert("Please fill in all card details correctly.");
-      return;
-    }
+    const paymentData = {
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: booking?.car?.name || "Car Rental",
+            },
+            unit_amount: Math.round(totalPrice * 100),
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: `${window.location.origin}${PATHS.CONFIRMATION}?session_id={CHECKOUT_SESSION_ID}&booking_id=${booking?._id}`,
+      cancel_url: `${window.location.origin}${PATHS.CHECKOUT}`,
+      metadata: {
+        booking_id: booking?._id,
+        car_id: booking?.car?._id,
+        total_days: totalDays,
+        total_amount: totalPrice,
+      },
+    };
 
-    setProcessing(true);
-    try {
-      setTimeout(() => {
-        setProcessing(false);
-        alert("Checkout successful! Booking confirmed.");
-        navigate(PATHS.CONFIRMATION, { state: { booking } });
-      }, 2000);
-    } catch (err) {
-      console.error("Checkout error:", err);
-      setProcessing(false);
-      alert("Something went wrong with checkout.");
-    }
+    // Debug log
+    processStripePayment(paymentData, {
+      onSuccess: (response) => {
+        navigate(PATHS.CONFIRMATION, {
+          state: {
+            bookingId: booking._id,
+            booking: booking, // Pass the entire booking object
+            sessionId: response.id,
+            totalPrice: totalPrice,
+            totalDays: totalDays,
+          },
+        });
+      },
+    });
   };
 
   const handleOpenModal = () => {
@@ -145,9 +110,7 @@ export default function CheckoutPage() {
   };
 
   const handleUpdateDocuments = (formData) => {
-    console.log("data", formData);
     try {
-      console.log("Submitting document update with data:", formData);
       if (formData instanceof FormData) {
         addBookingDriver(formData);
       }
@@ -317,7 +280,7 @@ export default function CheckoutPage() {
 
         {/* Right Column - Payment Form */}
         <FormSection>
-          <FormWrapper onSubmit={handleCheckout}>
+          <FormWrapper>
             <FormHeader>
               <SectionTitle>Payment Details</SectionTitle>
               <SecureBadge>
@@ -325,134 +288,37 @@ export default function CheckoutPage() {
                 256-bit SSL Secure
               </SecureBadge>
             </FormHeader>
+
             <PaymentMethodCard>
-              <SectionSubtitle>Select Payment Method</SectionSubtitle>
+              <SectionSubtitle>Payment Method</SectionSubtitle>
               <PaymentGrid>
                 {paymentMethods.map((method) => {
                   const IconComponent = method.icon;
                   return (
-                    <PaymentCard
-                      key={method.id}
-                      selected={paymentMethod === method.id}
-                      onClick={() => setPaymentMethod(method.id)}
-                    >
+                    <PaymentCard key={method.id} selected={true}>
                       <PaymentIcon>
                         <IconComponent />
                       </PaymentIcon>
                       <PaymentName>{method.name}</PaymentName>
-                      <RadioDot selected={paymentMethod === method.id} />
+                      <RadioDot selected={true} />
                     </PaymentCard>
                   );
                 })}
               </PaymentGrid>
             </PaymentMethodCard>
 
-            {/* Credit Card Form - Only shows when Credit Card is selected */}
-            {paymentMethod === "credit-card" && (
-              <CreditCardForm>
-                <SectionSubtitle>Card Details</SectionSubtitle>
-                <FormGroup>
-                  <FormLabel>
-                    <FiCreditCard />
-                    Card Number
-                  </FormLabel>
-                  <FormInput
-                    type="text"
-                    placeholder="1234 5678 9012 3456"
-                    value={cardDetails.number}
-                    onChange={(e) =>
-                      handleCardInputChange("number", e.target.value)
-                    }
-                    maxLength="19"
-                  />
-                </FormGroup>
-
-                <FormGroup>
-                  <FormLabel>
-                    <FiUser />
-                    Cardholder Name
-                  </FormLabel>
-                  <FormInput
-                    type="text"
-                    placeholder="John Doe"
-                    value={cardDetails.name}
-                    onChange={(e) =>
-                      handleCardInputChange("name", e.target.value)
-                    }
-                  />
-                </FormGroup>
-
-                <FormRow>
-                  <FormGroup>
-                    <FormLabel>Expiry Date</FormLabel>
-                    <FormInput
-                      type="text"
-                      placeholder="MM/YY"
-                      value={cardDetails.expiry}
-                      onChange={(e) =>
-                        handleCardInputChange("expiry", e.target.value)
-                      }
-                      maxLength="5"
-                    />
-                  </FormGroup>
-
-                  <FormGroup>
-                    <FormLabel>
-                      <FiLock />
-                      CVV
-                    </FormLabel>
-                    <FormInput
-                      type="text"
-                      placeholder="123"
-                      value={cardDetails.cvv}
-                      onChange={(e) =>
-                        handleCardInputChange("cvv", e.target.value)
-                      }
-                      maxLength="4"
-                    />
-                  </FormGroup>
-                </FormRow>
-
-                <CardPreview>
-                  <CardFront>
-                    <CardChip />
-                    <CardNumber>
-                      {cardDetails.number || "•••• •••• •••• ••••"}
-                    </CardNumber>
-                    <CardBottom>
-                      <CardHolder>
-                        <div>Card Holder</div>
-                        <div>{cardDetails.name || "YOUR NAME"}</div>
-                      </CardHolder>
-                      <CardExpiry>
-                        <div>Expires</div>
-                        <div>{cardDetails.expiry || "MM/YY"}</div>
-                      </CardExpiry>
-                    </CardBottom>
-                  </CardFront>
-                </CardPreview>
-              </CreditCardForm>
-            )}
-
-            {/* PayPal Message */}
-            {paymentMethod === "paypal" && (
-              <PaymentMessage>
-                <p>
-                  You will be redirected to PayPal to complete your payment
-                  securely.
-                </p>
-              </PaymentMessage>
-            )}
-
             {/* Stripe Message */}
-            {paymentMethod === "stripe" && (
-              <PaymentMessage>
-                <p>
-                  You will be redirected to Stripe to complete your payment
-                  securely.
-                </p>
-              </PaymentMessage>
-            )}
+            <PaymentMessage>
+              <p>
+                You will be redirected to Stripe to complete your payment
+                securely.
+              </p>
+              {isStripeProcessing && (
+                <div style={{ marginTop: "10px", color: "#3b82f6" }}>
+                  <FiClock /> Redirecting to Stripe...
+                </div>
+              )}
+            </PaymentMessage>
 
             <PaymentDetailsCard>
               <SectionSubtitle>Payment Summary</SectionSubtitle>
@@ -475,15 +341,12 @@ export default function CheckoutPage() {
 
             <ActionCard>
               <SubmitButton
-                type="submit"
-                disabled={
-                  processing ||
-                  !allVerified ||
-                  (paymentMethod === "credit-card" && !isCardFormValid())
-                }
-                processing={processing}
+                type="button"
+                onClick={handleStripePayment}
+                disabled={!allVerified || isStripeProcessing}
+                processing={isStripeProcessing}
               >
-                {processing ? (
+                {isStripeProcessing ? (
                   <LoadingSpinner>
                     <div></div>
                     <div></div>
@@ -492,9 +355,7 @@ export default function CheckoutPage() {
                 ) : (
                   <>
                     <FiCreditCard />
-                    {paymentMethod === "credit-card"
-                      ? "Pay Now"
-                      : "Continue to Payment"}
+                    Pay with Stripe
                   </>
                 )}
                 <Amount>${totalPrice.toFixed(2)}</Amount>
@@ -506,15 +367,6 @@ export default function CheckoutPage() {
                   Waiting for document verification to complete payment
                 </WarningMessage>
               )}
-
-              {paymentMethod === "credit-card" &&
-                !isCardFormValid() &&
-                allVerified && (
-                  <WarningMessage>
-                    <FiClock />
-                    Please fill in all card details correctly
-                  </WarningMessage>
-                )}
 
               <SecurityNote>
                 <FiShield />
@@ -537,25 +389,7 @@ export default function CheckoutPage() {
   );
 }
 
-// Updated styled components for document display without preview
-const DocumentIcon = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: #f1f5f9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #64748b;
-  font-size: 1.25rem;
-`;
-
-const DocumentName = styled.span`
-  font-weight: 500;
-  color: #1e293b;
-`;
-
-// Rest of the styled components remain the same...
+// Styled components (removed unused ones)
 const PageWrapper = styled.div`
   max-width: 1200px;
   margin: 4rem auto;
@@ -646,6 +480,13 @@ const EditLink = styled.button`
   font-size: 0.875rem;
   cursor: pointer;
   text-decoration: underline;
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
 `;
 
 const SectionSubtitle = styled.h3`
@@ -835,11 +676,28 @@ const DocumentItem = styled.div`
   border-left: 4px solid ${(props) => (props.verified ? "#10b981" : "#f59e0b")};
 `;
 
+const DocumentIcon = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 1.25rem;
+`;
+
 const DocumentInfo = styled.div`
   flex: 1;
   display: flex;
   justify-content: space-between;
   align-items: center;
+`;
+
+const DocumentName = styled.span`
+  font-weight: 500;
+  color: #1e293b;
 `;
 
 const DocumentStatusText = styled.span`
@@ -898,14 +756,7 @@ const PaymentCard = styled.div`
   padding: 1rem;
   border: 2px solid ${(props) => (props.selected ? "#3b82f6" : "#e2e8f0")};
   border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
   background: ${(props) => (props.selected ? "#f0f9ff" : "white")};
-
-  &:hover {
-    border-color: #3b82f6;
-    transform: translateY(-1px);
-  }
 `;
 
 const PaymentIcon = styled.div`
@@ -1067,131 +918,6 @@ const SecurityNote = styled.div`
   justify-content: center;
   color: #64748b;
   font-size: 0.875rem;
-`;
-
-const SectionTitle = styled.h2`
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
-`;
-
-const CreditCardForm = styled.div`
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 1.5rem;
-  background: #f8fafc;
-`;
-
-const FormGroup = styled.div`
-  margin-bottom: 1rem;
-`;
-
-const FormRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const FormLabel = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 0.5rem;
-  font-size: 0.875rem;
-`;
-
-const FormInput = styled.input`
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: all 0.2s;
-  background: white;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgb(59 130 246 / 0.1);
-  }
-
-  &::placeholder {
-    color: #9ca3af;
-  }
-`;
-
-const CardPreview = styled.div`
-  margin-top: 1.5rem;
-  perspective: 1000px;
-`;
-
-const CardFront = styled.div`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  padding: 1.5rem;
-  color: white;
-  position: relative;
-  height: 160px;
-  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.3);
-`;
-
-const CardChip = styled.div`
-  width: 40px;
-  height: 30px;
-  background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
-  border-radius: 5px;
-  margin-bottom: 1rem;
-`;
-
-const CardNumber = styled.div`
-  font-family: "Courier New", monospace;
-  font-size: 1.25rem;
-  letter-spacing: 2px;
-  margin-bottom: 1.5rem;
-  font-weight: 600;
-`;
-
-const CardBottom = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-`;
-
-const CardHolder = styled.div`
-  font-size: 0.75rem;
-
-  div:first-child {
-    opacity: 0.8;
-    margin-bottom: 0.25rem;
-  }
-
-  div:last-child {
-    font-size: 0.875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-  }
-`;
-
-const CardExpiry = styled.div`
-  font-size: 0.75rem;
-  text-align: right;
-
-  div:first-child {
-    opacity: 0.8;
-    margin-bottom: 0.25rem;
-  }
-
-  div:last-child {
-    font-size: 0.875rem;
-    font-weight: 600;
-  }
 `;
 
 const PaymentMessage = styled.div`
