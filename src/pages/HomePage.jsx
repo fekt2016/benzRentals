@@ -26,7 +26,7 @@ const HomePage = () => {
   const featuresRef = useRef(null);
   const showcaseRef = useRef(null);
   const statsRef = useRef(null);
-  const testimonialsRef = useRef(null);
+  const discountRef = useRef(null);
   const ctaRef = useRef(null);
 
   const { data: carData } = useGetCars();
@@ -36,7 +36,7 @@ const HomePage = () => {
   const featuresControls = useAnimation();
   const showcaseControls = useAnimation();
   const statsControls = useAnimation();
-  const testimonialsControls = useAnimation();
+  const discountControls = useAnimation();
   const ctaControls = useAnimation();
 
   // Check if elements are in view using useInView
@@ -44,7 +44,7 @@ const HomePage = () => {
   const featuresInView = useInView(featuresRef, { threshold: 0.3 });
   const showcaseInView = useInView(showcaseRef, { threshold: 0.2 });
   const statsInView = useInView(statsRef, { threshold: 0.3 });
-  const testimonialsInView = useInView(testimonialsRef, { threshold: 0.3 });
+  const discountInView = useInView(discountRef, { threshold: 0.3 });
   const ctaInView = useInView(ctaRef, { threshold: 0.4 });
 
   // Trigger animations when elements come into view
@@ -65,8 +65,8 @@ const HomePage = () => {
   }, [statsInView, statsControls]);
 
   useEffect(() => {
-    if (testimonialsInView) testimonialsControls.start("visible");
-  }, [testimonialsInView, testimonialsControls]);
+    if (discountInView) discountControls.start("visible");
+  }, [discountInView, discountControls]);
 
   useEffect(() => {
     if (ctaInView) ctaControls.start("visible");
@@ -128,30 +128,6 @@ const HomePage = () => {
     { number: "50+", label: "Premium Vehicles", icon: FaCar },
     { number: "99%", label: "Satisfaction Rate", icon: FaStar },
     { number: "24/7", label: "Support Available", icon: FaClock },
-  ];
-
-  const testimonials = [
-    {
-      name: "Michael Rodriguez",
-      role: "Business Executive",
-      content:
-        "The Mercedes S-Class rental exceeded my expectations. Flawless service and the car was impeccable.",
-      rating: 5,
-    },
-    {
-      name: "Sarah Johnson",
-      role: "Wedding Planner",
-      content:
-        "Perfect for our luxury wedding transportation needs. Professional service from start to finish.",
-      rating: 5,
-    },
-    {
-      name: "David Chen",
-      role: "Tech Entrepreneur",
-      content:
-        "Best rental experience I've had. The GLE was perfect for my business trips and client meetings.",
-      rating: 5,
-    },
   ];
 
   return (
@@ -372,46 +348,103 @@ const HomePage = () => {
         </Container>
       </ShowcaseSection>
 
-      {/* Testimonials Section */}
-      <TestimonialsSection ref={testimonialsRef}>
+      {/* Discount Section */}
+      <DiscountSection ref={discountRef}>
         <Container>
           <motion.div
             initial="hidden"
-            animate={testimonialsControls}
-            variants={sectionVariants}
+            animate={discountControls}
+            variants={discountVariants}
           >
-            <SectionHeader>
-              <SectionSubtitle>Client Stories</SectionSubtitle>
-              <SectionTitle>What Our Customers Say</SectionTitle>
-            </SectionHeader>
+            <DiscountCard>
+              <DiscountContent>
+                <DiscountBadge>
+                  <FaAward />
+                  Limited Time Offer
+                </DiscountBadge>
 
-            <TestimonialsGrid>
-              {testimonials.map((testimonial, index) => (
-                <motion.div
-                  key={testimonial.name}
-                  variants={testimonialVariants}
-                  custom={index}
-                >
-                  <TestimonialCard>
-                    <Rating>
-                      {[...Array(testimonial.rating)].map((_, i) => (
-                        <FaStar key={i} />
-                      ))}
-                    </Rating>
-                    <TestimonialContent>
-                      "{testimonial.content}"
-                    </TestimonialContent>
-                    <TestimonialAuthor>
-                      <AuthorName>{testimonial.name}</AuthorName>
-                      <AuthorRole>{testimonial.role}</AuthorRole>
-                    </TestimonialAuthor>
-                  </TestimonialCard>
-                </motion.div>
-              ))}
-            </TestimonialsGrid>
+                <DiscountTitle>
+                  Get <DiscountHighlight>15% OFF</DiscountHighlight> Your First
+                  Luxury Trip
+                </DiscountTitle>
+
+                <DiscountDescription>
+                  Experience Mercedes-Benz excellence at an exclusive price. New
+                  customers save 15% on their first rental. Limited time offer
+                  for luxury seekers.
+                </DiscountDescription>
+
+                <DiscountFeatures>
+                  <DiscountFeature>
+                    <FaCheckCircle />
+                    <span>Applicable on all Mercedes-Benz models</span>
+                  </DiscountFeature>
+                  <DiscountFeature>
+                    <FaCheckCircle />
+                    <span>No minimum rental period required</span>
+                  </DiscountFeature>
+                  <DiscountFeature>
+                    <FaCheckCircle />
+                    <span>Includes premium insurance coverage</span>
+                  </DiscountFeature>
+                  <DiscountFeature>
+                    <FaCheckCircle />
+                    <span>Flexible cancellation policy</span>
+                  </DiscountFeature>
+                </DiscountFeatures>
+
+                <DiscountActions>
+                  <DiscountButton to="/models" primary>
+                    <FaCar />
+                    Claim Your 15% Off
+                  </DiscountButton>
+                  <DiscountButton
+                    as="button"
+                    secondary
+                    onClick={() =>
+                      alert("Contact us at 1-800-MERCEDES for details")
+                    }
+                  >
+                    <FaClock />
+                    Limited Time Offer
+                  </DiscountButton>
+                </DiscountActions>
+
+                <DiscountTerms>
+                  *Offer valid for first-time customers only. Cannot be combined
+                  with other promotions. Valid until{" "}
+                  {new Date(
+                    Date.now() + 30 * 24 * 60 * 60 * 1000
+                  ).toLocaleDateString()}
+                  .
+                </DiscountTerms>
+              </DiscountContent>
+
+              <DiscountVisual>
+                <CarImageBackground
+                  src="https://images.unsplash.com/photo-1563720223182-8e41e09c2396?auto=format&fit=crop&w=800&q=80"
+                  alt="Mercedes-Benz Luxury Car"
+                />
+                <DiscountOverlay />
+                <DiscountStats>
+                  <DiscountStat>
+                    <StatValue>15%</StatValue>
+                    <StatLabel>Discount</StatLabel>
+                  </DiscountStat>
+                  <DiscountStat>
+                    <StatValue>500+</StatValue>
+                    <StatLabel>Happy Customers</StatLabel>
+                  </DiscountStat>
+                  <DiscountStat>
+                    <StatValue>4.9/5</StatValue>
+                    <StatLabel>Rating</StatLabel>
+                  </DiscountStat>
+                </DiscountStats>
+              </DiscountVisual>
+            </DiscountCard>
           </motion.div>
         </Container>
-      </TestimonialsSection>
+      </DiscountSection>
 
       {/* CTA Section */}
       <CTASection ref={ctaRef}>
@@ -496,12 +529,12 @@ const carCardVariants = {
   },
 };
 
-const testimonialVariants = {
-  hidden: { opacity: 0, x: -30 },
+const discountVariants = {
+  hidden: { opacity: 0, y: 50 },
   visible: {
     opacity: 1,
-    x: 0,
-    transition: { duration: 0.6 },
+    y: 0,
+    transition: { duration: 0.8, ease: "easeOut" },
   },
 };
 
@@ -1109,76 +1142,235 @@ const ViewAllButton = styled(Link)`
   }
 `;
 
-// Testimonials Section
-const TestimonialsSection = styled.section`
+// Discount Section
+const DiscountSection = styled.section`
   padding: 6rem 0;
-  background: white;
+  background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
 
   @media (max-width: 768px) {
     padding: 4rem 0;
   }
 `;
 
-const TestimonialsGrid = styled.div`
+const DiscountCard = styled.div`
+  background: white;
+  border-radius: 30px;
+  overflow: hidden;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
+  grid-template-columns: 1fr 1fr;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
 
-  @media (max-width: 1024px) {
-    grid-template-columns: repeat(2, 1fr);
+  @media (max-width: 968px) {
+    grid-template-columns: 1fr;
   }
+`;
+
+const DiscountContent = styled.div`
+  padding: 4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 
   @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
+    padding: 3rem 2rem;
   }
-`;
-
-const TestimonialCard = styled.div`
-  background: #f8fafc;
-  padding: 2.5rem;
-  border-radius: 20px;
-  border: 1px solid #e2e8f0;
-  height: 100%;
 
   @media (max-width: 480px) {
-    padding: 2rem;
+    padding: 2rem 1.5rem;
   }
 `;
 
-const Rating = styled.div`
-  color: #fbbf24;
-  margin-bottom: 1rem;
-  display: flex;
-  gap: 0.25rem;
+const DiscountBadge = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 2rem;
+  width: fit-content;
 `;
 
-const TestimonialContent = styled.p`
+const DiscountTitle = styled.h2`
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 1.75rem;
+  }
+`;
+
+const DiscountHighlight = styled.span`
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+`;
+
+const DiscountDescription = styled.p`
   font-size: 1.1rem;
-  line-height: 1.6;
-  color: #475569;
+  color: #64748b;
   margin-bottom: 2rem;
-  font-style: italic;
+  line-height: 1.6;
 
   @media (max-width: 480px) {
     font-size: 1rem;
   }
 `;
 
-const TestimonialAuthor = styled.div`
-  border-top: 1px solid #e2e8f0;
-  padding-top: 1.5rem;
+const DiscountFeatures = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
 `;
 
-const AuthorName = styled.div`
+const DiscountFeature = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #374151;
+
+  svg {
+    color: #10b981;
+    flex-shrink: 0;
+  }
+
+  span {
+    font-weight: 500;
+  }
+`;
+
+const DiscountActions = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+  }
+`;
+
+const DiscountButton = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  border-radius: 12px;
   font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 0.25rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  justify-content: center;
+
+  ${(props) =>
+    props.primary
+      ? `
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+    }
+  `
+      : `
+    background: transparent;
+    color: #3b82f6;
+    border: 2px solid #3b82f6;
+
+    &:hover {
+      background: #3b82f6;
+      color: white;
+      transform: translateY(-2px);
+    }
+  `}
+
+  @media (max-width: 480px) {
+    width: 100%;
+  }
 `;
 
-const AuthorRole = styled.div`
-  color: #64748b;
-  font-size: 0.9rem;
+const DiscountTerms = styled.p`
+  font-size: 0.8rem;
+  color: #94a3b8;
+  line-height: 1.4;
+`;
+
+const DiscountVisual = styled.div`
+  position: relative;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+
+  @media (max-width: 968px) {
+    min-height: 400px;
+  }
+`;
+
+const CarImageBackground = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+`;
+
+const DiscountOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.9) 0%,
+    rgba(29, 78, 216, 0.9) 100%
+  );
+`;
+
+const DiscountStats = styled.div`
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  text-align: center;
+  color: white;
+
+  @media (max-width: 480px) {
+    gap: 1rem;
+  }
+`;
+
+const DiscountStat = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const StatValue = styled.div`
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+
+  @media (max-width: 480px) {
+    font-size: 1.5rem;
+  }
 `;
 
 // CTA Section

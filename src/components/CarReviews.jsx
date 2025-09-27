@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { useGetCarReview } from "../hooks/useReview";
+import { useGetCarReviews } from "../hooks/useReview";
 import {
   FaStar,
   FaRegStar,
@@ -9,7 +9,7 @@ import {
 } from "react-icons/fa";
 
 export default function CarReviews({ modelId }) {
-  const { data: reviewData } = useGetCarReview(modelId);
+  const { data: reviewData } = useGetCarReviews(modelId);
   const reviews = reviewData?.data || [];
 
   // Get only the most recent 5 reviews

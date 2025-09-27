@@ -13,13 +13,50 @@ export const useCreateReview = () => {
     },
   });
 };
-export const useGetCarReview = (carId) => {
+export const useGetCarReviews = (carId) => {
   const queryClient = useQueryClient();
   return useQuery({
     queryKey: ["reviews"],
     queryFn: async () => {
       const response = await reviewApi.getCarReview(carId);
       return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reviews"] });
+    },
+  });
+};
+export const useGetUserReviews = (userId) => {
+  const queryClient = useQueryClient();
+  return useQuery({
+    queryKey: ["reviews"],
+    queryFn: async () => {
+      const response = await reviewApi.getUserReviews(userId);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reviews"] });
+    },
+  });
+};
+export const useDeleteReview = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => {
+      const response = await reviewApi.deleteReview(id);
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reviews"] });
+    },
+  });
+};
+export const useUpdateReview = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data) => {
+      const response = await reviewApi.updateReview(data);
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["reviews"] });

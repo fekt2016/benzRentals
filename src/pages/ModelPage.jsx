@@ -17,6 +17,7 @@ import "swiper/css/thumbs";
 import "swiper/css/effect-fade";
 import { useGetCarById } from "../hooks/useCar";
 import { useMyDrivers } from "../hooks/useDriver";
+import { useCurrentUser } from "../hooks/useAuth";
 
 import BookingForm from "../components/forms/BookingForm";
 import ReviewSection from "../components/ReviewSection";
@@ -30,9 +31,9 @@ const ModelPage = () => {
   const { data: myDrivers } = useMyDrivers();
   const drivers = useMemo(() => myDrivers?.data || [], [myDrivers]);
   const car = useMemo(() => carData?.data || null, [carData]);
-
-  // const { data: reviewData } = useGetCarReview(car?._id);
-  // const reviews = useMemo(() => reviewData?.data || null, [reviewData]);
+  const { data: userData } = useCurrentUser();
+  console.log("userData", userData);
+  const user = useMemo(() => userData?.user || null, [userData]);
 
   const [thumbsSwiper, setThumbsSwiper] = useState(null);
 
@@ -253,8 +254,7 @@ const ModelPage = () => {
       {/* Enhanced Review Section */}
       <Section>
         <SectionTitle>💬 Customer Reviews & Ratings</SectionTitle>
-        <ReviewSection modelId={modelId} />
-        {/* <CarReviewPage carId={modelId} /> */}
+        <ReviewSection modelId={modelId} userId={user?._id} />
       </Section>
 
       {/* Similar Cars Section */}

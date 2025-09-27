@@ -17,7 +17,7 @@ const BookingDetailPage = lazy(() => import("../pages/BookingDetailPage"));
 const ConfirmationPage = lazy(() => import("../pages/ConfirmationPage"));
 const CheckoutPage = lazy(() => import("../pages/CheckoutPage"));
 const LoginPage = lazy(() => import("../Auth/Login"));
-// const UserReviewPage = lazy(() => import("../pages/UserReviewPage"));
+const CarReviewsPage = lazy(() => import("../pages/CarReviewPage"));
 // Layouts
 const MainLayout = lazy(() => import("../Layout/MainLayout"));
 const AdminLayout = lazy(() => import("../Layout/AdminLayout"));
@@ -74,7 +74,7 @@ const MainRoutes = () => (
           <Route path={PATHS.PROFILE} element={<ProfilePage />} />
           <Route path={PATHS.BOOKINGS} element={<BookingsPage />} />
           <Route path={PATHS.BOOKING} element={<BookingDetailPage />} />
-          {/* <Route path={PATHS.REVIEWS} element={<UserReviewPage />} /> */}
+          <Route path={PATHS.REVIEWS} element={<CarReviewsPage />} />
         </Route>
       </Route>
 

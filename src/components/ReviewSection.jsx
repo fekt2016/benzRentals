@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import styled, { keyframes } from "styled-components";
 import {
   FaStar,
@@ -8,38 +8,14 @@ import {
   FaEdit,
   FaImages,
 } from "react-icons/fa";
+import { useGetUserReviews, useCreateReview } from "../hooks/useReview";
+import { useGetBookings } from "../hooks/useBooking"; // Your actual hook
 
-// Mock data - replace with actual API calls
-const MOCK_REVIEWS = [
-  {
-    id: 1,
-    user: { name: "Michael Rodriguez", avatar: null },
-    rating: 5,
-    comment:
-      "Absolutely loved the Mercedes S-Class! The ride was smooth and the service was exceptional. Will definitely rent again!",
-    date: "2024-01-15",
-    verified: true,
-    photos: [],
-    features: ["Comfort", "Performance", "Cleanliness"],
-  },
-  {
-    id: 2,
-    user: { name: "Sarah Johnson", avatar: null },
-    rating: 4,
-    comment:
-      "Great car for our anniversary trip. The interior was pristine and the fuel efficiency was better than expected.",
-    date: "2024-01-10",
-    verified: true,
-    photos: [],
-    features: ["Interior", "Fuel Efficiency"],
-  },
-];
+const ReviewSection = ({ modelId, userId }) => {
+  console.log("userId", userId);
 
-const ReviewSection = ({ carId, userId }) => {
-  const [reviews, setReviews] = useState(MOCK_REVIEWS);
+  // State for UI controls
   const [showForm, setShowForm] = useState(false);
-  const [userHasBooked, setUserHasBooked] = useState(false);
-  const [userHasReviewed, setUserHasReviewed] = useState(false);
   const [formData, setFormData] = useState({
     rating: 5,
     comment: "",
@@ -48,41 +24,98 @@ const ReviewSection = ({ carId, userId }) => {
   });
   const [activeFilter, setActiveFilter] = useState("all");
 
-  // Check if user has booked this car (replace with actual API call)
-  useEffect(() => {
-    // Simulate API call to check user bookings
-    const checkUserBooking = async () => {
-      // Replace with actual API call
-      const hasBooked = true; // Mock data - user has booked
-      const hasReviewed = false; // Mock data - user hasn't reviewed yet
+  // Custom hooks for data management
+  const { data: reviewsData, isLoading: reviewsLoading } =
+    useGetUserReviews(modelId);
+  const {
+    mutate: createReview,
+    isLoading: isSubmitting,
+    // isSuccess: submitSuccess,
+  } = useCreateReview();
 
-      setUserHasBooked(hasBooked);
-      setUserHasReviewed(hasReviewed);
-      setShowForm(hasBooked && !hasReviewed);
-    };
+  // Use your actual hook for user bookings
+  const { data: myBookings, isLoading: bookingsLoading } =
+    useGetBookings(userId);
 
-    checkUserBooking();
-  }, [carId, userId]);
+  // Memoized computed values
+  const reviews = useMemo(() => {
+    return reviewsData?.data || [];
+  }, [reviewsData]);
 
+  // Check if user has booked this specific car model
+  const userHasBooked = useMemo(() => {
+    if (!myBookings || !modelId) return false;
+
+    return myBookings.some(
+      (booking) =>
+        booking.carModelId === modelId ||
+        booking.modelId === modelId ||
+        booking.car?.modelId === modelId
+    );
+  }, [myBookings, modelId]);
+
+  // Check if user has already reviewed this car
+  const userHasReviewed = useMemo(() => {
+    if (!reviews.length || !userId) return false;
+
+    return reviews.some(
+      (review) => review.userId === userId || review.user?.id === userId
+    );
+  }, [reviews, userId]);
+
+  // Derived state
+  const filteredReviews = useMemo(() => {
+    return activeFilter === "all"
+      ? reviews
+      : reviews.filter((review) => review.rating === parseInt(activeFilter));
+  }, [reviews, activeFilter]);
+
+  const averageRating = useMemo(() => {
+    return reviews.length > 0
+      ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length
+      : 0;
+  }, [reviews]);
+
+  const ratingDistribution = useMemo(() => {
+    return [5, 4, 3, 2, 1].map((stars) => ({
+      stars,
+      count: reviews.filter((r) => r.rating === stars).length,
+      percentage:
+        reviews.length > 0
+          ? (reviews.filter((r) => r.rating === stars).length /
+              reviews.length) *
+            100
+          : 0,
+    }));
+  }, [reviews]);
+
+  // Event handlers
   const handleSubmitReview = async (e) => {
     e.preventDefault();
 
-    // Simulate API call
-    const newReview = {
-      id: reviews.length + 1,
-      user: { name: "Current User", avatar: null },
-      rating: formData.rating,
-      comment: formData.comment,
-      date: new Date().toISOString().split("T")[0],
-      verified: true,
-      photos: formData.photos,
-      features: formData.features,
-    };
+    if (!formData.comment.trim()) return;
 
-    setReviews((prev) => [newReview, ...prev]);
-    setFormData({ rating: 5, comment: "", photos: [], features: [] });
-    setShowForm(false);
-    setUserHasReviewed(true);
+    createReview(
+      {
+        modelId,
+        userId,
+        rating: formData.rating,
+        comment: formData.comment,
+        features: formData.features,
+        photos: formData.photos,
+      },
+      {
+        onSuccess: () => {
+          // Reset form on successful submission
+          setFormData({ rating: 5, comment: "", photos: [], features: [] });
+          setShowForm(false);
+        },
+        onError: (error) => {
+          console.error("Failed to submit review:", error);
+          // You might want to show an error message to the user
+        },
+      }
+    );
   };
 
   const handleRatingClick = (rating) => {
@@ -98,19 +131,14 @@ const ReviewSection = ({ carId, userId }) => {
     }));
   };
 
-  const filteredReviews =
-    activeFilter === "all"
-      ? reviews
-      : reviews.filter((review) => review.rating === parseInt(activeFilter));
-
-  const averageRating =
-    reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length;
-  const ratingDistribution = [5, 4, 3, 2, 1].map((stars) => ({
-    stars,
-    count: reviews.filter((r) => r.rating === stars).length,
-    percentage:
-      (reviews.filter((r) => r.rating === stars).length / reviews.length) * 100,
-  }));
+  // Loading states
+  if (reviewsLoading || bookingsLoading) {
+    return (
+      <ReviewSectionWrapper>
+        <LoadingState>Loading reviews...</LoadingState>
+      </ReviewSectionWrapper>
+    );
+  }
 
   return (
     <ReviewSectionWrapper>
@@ -121,7 +149,10 @@ const ReviewSection = ({ carId, userId }) => {
         </Title>
 
         {userHasBooked && !userHasReviewed && (
-          <AddReviewButton onClick={() => setShowForm(!showForm)}>
+          <AddReviewButton
+            onClick={() => setShowForm(!showForm)}
+            disabled={isSubmitting}
+          >
             <FaEdit /> {showForm ? "Cancel Review" : "Write a Review"}
           </AddReviewButton>
         )}
@@ -168,6 +199,7 @@ const ReviewSection = ({ carId, userId }) => {
                   type="button"
                   onClick={() => handleRatingClick(star)}
                   active={star <= formData.rating}
+                  disabled={isSubmitting}
                 >
                   <FaStar />
                 </StarButton>
@@ -192,6 +224,8 @@ const ReviewSection = ({ carId, userId }) => {
                   key={feature}
                   selected={formData.features.includes(feature)}
                   onClick={() => handleFeatureToggle(feature)}
+                  disabled={isSubmitting}
+                  type="button"
                 >
                   {feature}
                 </FeatureTag>
@@ -209,12 +243,18 @@ const ReviewSection = ({ carId, userId }) => {
               }
               required
               rows={4}
+              disabled={isSubmitting}
+              maxLength={500}
             />
             <CharCount>{formData.comment.length}/500</CharCount>
           </CommentSection>
 
-          <SubmitButton type="submit">
-            <FaCheckCircle /> Submit Review
+          <SubmitButton
+            type="submit"
+            disabled={isSubmitting || !formData.comment.trim()}
+          >
+            <FaCheckCircle />
+            {isSubmitting ? "Submitting..." : "Submit Review"}
           </SubmitButton>
         </ReviewForm>
       )}
@@ -280,7 +320,7 @@ const ReviewSection = ({ carId, userId }) => {
 
               <ReviewComment>{review.comment}</ReviewComment>
 
-              {review.features.length > 0 && (
+              {review.features && review.features.length > 0 && (
                 <ReviewFeatures>
                   {review.features.map((feature) => (
                     <FeatureBadge key={feature}>{feature}</FeatureBadge>
@@ -288,7 +328,7 @@ const ReviewSection = ({ carId, userId }) => {
                 </ReviewFeatures>
               )}
 
-              {review.photos.length > 0 && (
+              {review.photos && review.photos.length > 0 && (
                 <ReviewPhotos>
                   <PhotoLabel>
                     <FaImages /> Photos
@@ -318,7 +358,7 @@ const ReviewSection = ({ carId, userId }) => {
               <h3>Experience this Mercedes-Benz for yourself</h3>
               <p>Book now and share your own review after your trip</p>
             </CTAContent>
-            <CTAButton href={`/booking/${carId}`}>Book This Car</CTAButton>
+            <CTAButton href={`/booking/${modelId}`}>Book This Car</CTAButton>
           </CTACard>
         </CTASection>
       )}
@@ -328,7 +368,91 @@ const ReviewSection = ({ carId, userId }) => {
 
 export default ReviewSection;
 
-// Animations
+// Styled components (same as before)
+const LoadingState = styled.div`
+  text-align: center;
+  padding: 3rem;
+  color: #6b7280;
+  font-size: 1.1rem;
+`;
+
+const AddReviewButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  opacity: ${(props) => (props.disabled ? 0.6 : 1)};
+
+  &:hover {
+    transform: ${(props) => (props.disabled ? "none" : "translateY(-2px)")};
+    box-shadow: ${(props) =>
+      props.disabled ? "none" : "0 10px 25px rgba(59, 130, 246, 0.3)"};
+  }
+`;
+
+// const StarButton = styled.button`
+//   background: none;
+//   border: none;
+//   cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+//   font-size: 2rem;
+//   color: ${(props) => (props.active ? "#fbbf24" : "#d1d5db")};
+//   transition: all 0.2s ease;
+//   padding: 0.5rem;
+//   opacity: ${(props) => (props.disabled ? 0.6 : 1)};
+
+//   &:hover {
+//     transform: ${(props) => (props.disabled ? "none" : "scale(1.2)")};
+//   }
+// `;
+
+// const FeatureTag = styled.button`
+//   padding: 0.5rem 1rem;
+//   border: 2px solid ${(props) => (props.selected ? "#3b82f6" : "#e5e7eb")};
+//   background: ${(props) => (props.selected ? "#3b82f6" : "white")};
+//   color: ${(props) => (props.selected ? "white" : "#374151")};
+//   border-radius: 20px;
+//   cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+//   transition: all 0.3s ease;
+//   font-size: 0.9rem;
+//   opacity: ${(props) => (props.disabled ? 0.6 : 1)};
+
+//   &:hover {
+//     border-color: ${(props) => (props.disabled ? "#e5e7eb" : "#3b82f6")};
+//   }
+// `;
+
+// const SubmitButton = styled.button`
+//   display: flex;
+//   align-items: center;
+//   gap: 0.5rem;
+//   padding: 1rem 2rem;
+//   background: ${(props) =>
+//     props.disabled
+//       ? "#9ca3af"
+//       : "linear-gradient(135deg, #10b981 0%, #059669 100%)"};
+//   color: white;
+//   border: none;
+//   border-radius: 12px;
+//   font-weight: 600;
+//   cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+//   transition: all 0.3s ease;
+//   opacity: ${(props) => (props.disabled ? 0.6 : 1)};
+
+//   &:hover {
+//     transform: ${(props) => (props.disabled ? "none" : "translateY(-2px)")};
+//     box-shadow: ${(props) =>
+//       props.disabled ? "none" : "0 10px 25px rgba(16, 185, 129, 0.3)"};
+//   }
+// `;
+
+// Keep all the other existing styled components exactly as they were
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
@@ -339,7 +463,6 @@ const slideIn = keyframes`
   to { transform: translateX(0); opacity: 1; }
 `;
 
-// Styled Components
 const ReviewSectionWrapper = styled.section`
   margin: 4rem 0;
   animation: ${fadeIn} 0.6s ease-out;
@@ -379,24 +502,77 @@ const ReviewCount = styled.span`
   font-weight: normal;
 `;
 
-const AddReviewButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 1rem 1.5rem;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
+// ... (all other styled components remain exactly the same)
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
-  }
-`;
+// Animations
+// const fadeIn = keyframes`
+//   from { opacity: 0; transform: translateY(20px); }
+//   to { opacity: 1; transform: translateY(0); }
+// `;
+
+// const slideIn = keyframes`
+//   from { transform: translateX(-10px); opacity: 0; }
+//   to { transform: translateX(0); opacity: 1; }
+// `;
+
+// Styled Components
+// const ReviewSectionWrapper = styled.section`
+//   margin: 4rem 0;
+//   animation: ${fadeIn} 0.6s ease-out;
+// `;
+
+// const Header = styled.div`
+//   display: flex;
+//   justify-content: space-between;
+//   align-items: center;
+//   margin-bottom: 2rem;
+//   flex-wrap: wrap;
+//   gap: 1rem;
+
+//   @media (max-width: 768px) {
+//     flex-direction: column;
+//     align-items: flex-start;
+//   }
+// `;
+
+// const Title = styled.h2`
+//   display: flex;
+//   align-items: center;
+//   gap: 1rem;
+//   font-size: 2rem;
+//   color: #1f2937;
+//   margin: 0;
+// `;
+
+// const StarIcon = styled(FaStar)`
+//   color: #fbbf24;
+//   font-size: 1.8rem;
+// `;
+
+// const ReviewCount = styled.span`
+//   font-size: 1rem;
+//   color: #6b7280;
+//   font-weight: normal;
+// `;
+
+// const AddReviewButton = styled.button`
+//   display: flex;
+//   align-items: center;
+//   gap: 0.5rem;
+//   padding: 1rem 1.5rem;
+//   background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+//   color: white;
+//   border: none;
+//   border-radius: 12px;
+//   font-weight: 600;
+//   cursor: pointer;
+//   transition: all 0.3s ease;
+
+//   &:hover {
+//     transform: translateY(-2px);
+//     box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+//   }
+// `;
 
 const ReviewStats = styled.div`
   display: grid;

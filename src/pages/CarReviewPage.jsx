@@ -1,598 +1,470 @@
-// components/CarReviews.js
-import React, { useState, useEffect } from "react";
-import styled from "styled-components";
+// components/UserReviews.js
+import React, { useMemo, useState } from "react";
+import styled, { keyframes } from "styled-components";
 import {
   Star,
   StarHalf,
   StarOutline,
   Login,
-  CheckCircle,
+  Edit,
+  Delete,
 } from "@styled-icons/material";
+import { FaCar, FaCalendar } from "react-icons/fa";
 import { useCurrentUser } from "../hooks/useAuth";
-import { useCreateReview } from "../hooks/useReview";
-// import { useMyBookings } from "../hooks/useBooking";
+import {
+  useDeleteReview,
+  useUpdateReview,
+  useGetUserReviews,
+} from "../hooks/useReview";
 
-const CarReviews = ({ carId }) => {
+const UserReviews = () => {
   const { data: userData } = useCurrentUser();
-  // const { data: reviewsData, isLoading, error } = useGetCarReview(carId);
-  // const { data: BookingsData } = useMyBookings();
-  // console.log("BookingsData", BookingsData);
-
-  // const bookings = useMemo(() => {
-  //   return myBookings?.data?.data.filter(
-  //     (booking) => booking.status === "completed"
-  //   );
-  // }, [myBookings]);
-
-  // const userBookings = useMemo(() => {
-  //   return bookings.filter((booking) => booking.car._id === carId);
-  // }, [bookings, carId]);
   const user = userData?.user || null;
-  // const reviews = useMemo(() => {
-  //   reviewsData?.reviews || [];
-  // }, [reviewsData]);
-  const { mutate: createReview, isLoading: isSubmitting } = useCreateReview();
+  console.log("user", user);
+  const { mutate: deleteReview } = useDeleteReview();
+  const { mutate: updateReview, isLoading: isUpdating } = useUpdateReview();
+  const { data: reviewsData } = useGetUserReviews(user?._id);
+  console.log(reviewsData);
+  const reviews = useMemo(() => reviewsData?.data || [], [reviewsData]);
 
-  const [newReview, setNewReview] = useState({ rating: 5, comment: "" });
-  const [hasRentedCar, setHasRentedCar] = useState(false);
-  console.log(setHasRentedCar);
-  // const [userReview, setUserReview] = useState(null);
+  const [editingReview, setEditingReview] = useState(null);
+  const [activeFilter, setActiveFilter] = useState("all");
 
-  // Check if user has rented this car and if they've already reviewed it
-  useEffect(() => {
-    if (user && carId) {
-      // Check if user has any completed bookings for this car
-      // const rentedThisCar = userBookings.some(
-      //   (booking) => booking.car._id === carId && booking.status === "completed"
-      // );
-      // setHasRentedCar(rentedThisCar);
-      // Check if user has already reviewed this car
-      // const existingReview = reviews.find(
-      //   (review) => review.user._id === user._id
-      // );
-      // setUserReview(existingReview);
-    }
-  }, [user, carId]);
+  // Calculate statistics for user's reviews
+  const averageRating =
+    reviews.length > 0
+      ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length
+      : 0;
 
-  // Calculate average rating
-  // const averageRating =
-  //   reviews.length > 0
-  //     ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length
-  //     : 0;
+  const ratingDistribution = [5, 4, 3, 2, 1].map((stars) => ({
+    stars,
+    count: reviews.filter((r) => r.rating === stars).length,
+    percentage:
+      (reviews.filter((r) => r.rating === stars).length / reviews.length) * 100,
+  }));
 
-  // Function to render star rating
-  const renderStars = (rating) => {
+  const filteredReviews =
+    activeFilter === "all"
+      ? reviews
+      : reviews.filter((review) => review.rating === parseInt(activeFilter));
+
+  const renderStars = (rating, size = 20) => {
     const stars = [];
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 !== 0;
 
     for (let i = 0; i < fullStars; i++) {
-      stars.push(<StyledStar key={i} />);
+      stars.push(<StyledStar key={i} size={size} />);
     }
 
     if (hasHalfStar) {
-      stars.push(<StyledStarHalf key="half" />);
+      stars.push(<StyledStarHalf key="half" size={size} />);
     }
 
     const emptyStars = 5 - stars.length;
     for (let i = 0; i < emptyStars; i++) {
-      stars.push(<StyledStarOutline key={`empty-${i}`} />);
+      stars.push(<StyledStarOutline key={`empty-${i}`} size={size} />);
     }
 
     return stars;
   };
 
-  const handleSubmitReview = (e) => {
+  const handleUpdateReview = (e) => {
     e.preventDefault();
+    if (!editingReview.comment.trim()) return;
 
-    if (!newReview.comment.trim()) {
-      alert("Please enter a comment for your review.");
-      return;
-    }
-
-    if (!hasRentedCar) {
-      alert("You can only review cars you've rented.");
-      return;
-    }
-
-    createReview(
+    updateReview(
       {
-        carId,
-        rating: newReview.rating,
-        comment: newReview.comment.trim(),
+        reviewId: editingReview._id,
+        rating: editingReview.rating,
+        comment: editingReview.comment.trim(),
       },
       {
         onSuccess: () => {
-          setNewReview({ rating: 5, comment: "" });
-        },
-        onError: (error) => {
-          console.error("Failed to submit review:", error);
-          alert("Failed to submit review. Please try again.");
+          setEditingReview(null);
         },
       }
     );
   };
 
-  const handleLoginRedirect = () => {
-    window.location.href = `/login?redirect=${encodeURIComponent(
-      window.location.pathname
-    )}`;
+  const handleDeleteReview = (reviewId) => {
+    deleteReview(reviewId);
   };
 
-  // Determine review eligibility and message
-  const getReviewEligibility = () => {
-    if (!user) {
-      return {
-        canReview: false,
-        message: "Please log in to leave a review",
-        type: "login",
-      };
-    }
-
-    // if (userReview) {
-    //   return {
-    //     canReview: false,
-    //     message: "You've already reviewed this car",
-    //     type: "reviewed",
-    //   };
-    // }
-
-    if (!hasRentedCar) {
-      return {
-        canReview: false,
-        message: "You can review this car after completing a rental",
-        type: "not-rented",
-      };
-    }
-
-    return {
-      canReview: true,
-      message: "Share your experience with this car",
-      type: "eligible",
-    };
+  const startEditing = (review) => {
+    setEditingReview({ ...review });
   };
 
-  const eligibility = getReviewEligibility();
+  const cancelEditing = () => {
+    setEditingReview(null);
+  };
 
-  // if (isLoading) {
-  //   return (
-  //     <ReviewsWrapper>
-  //       <LoadingState>Loading reviews...</LoadingState>
-  //     </ReviewsWrapper>
-  //   );
-  // }
-
-  // if (error) {
-  //   return (
-  //     <ReviewsWrapper>
-  //       <ErrorState>
-  //         <h3>Unable to load reviews</h3>
-  //         <p>Please try refreshing the page.</p>
-  //       </ErrorState>
-  //     </ReviewsWrapper>
-  //   );
-  // }
+  if (!user) {
+    return (
+      <ModernReviewsWrapper>
+        <LoginPrompt>
+          <PromptIcon>
+            <Login size={48} />
+          </PromptIcon>
+          <PromptContent>
+            <h3>Please Log In</h3>
+            <p>You need to be logged in to view and manage your reviews.</p>
+            <ActionButton onClick={() => (window.location.href = "/login")}>
+              Log In
+            </ActionButton>
+          </PromptContent>
+        </LoginPrompt>
+      </ModernReviewsWrapper>
+    );
+  }
 
   return (
-    <ReviewsWrapper>
-      <ReviewsHeader>
-        <h2>Customer Reviews</h2>
-        <RatingSummary>
-          {/* <AverageRating>{averageRating.toFixed(1)}</AverageRating> */}
-          {/* <StarsContainer>{renderStars(averageRating)}</StarsContainer> */}
-          {/* <ReviewCount>({reviews.length} reviews)</ReviewCount> */}
-        </RatingSummary>
-      </ReviewsHeader>
+    <ModernReviewsWrapper>
+      {/* Header Section */}
+      <HeaderSection>
+        <HeaderContent>
+          <Title>
+            <StarIcon />
+            My Reviews
+            <ReviewCount>{reviews.length} reviews</ReviewCount>
+          </Title>
 
-      {/* Add Review Section */}
-      <ReviewSection>
-        {eligibility.canReview ? (
-          <ReviewForm onSubmit={handleSubmitReview}>
-            <ReviewEligibilityBadge type="eligible">
-              <CheckCircle size={16} />
-              You've rented this car - Share your experience!
-            </ReviewEligibilityBadge>
+          <StatsGrid>
+            <AverageRatingCard>
+              <RatingValue>{averageRating.toFixed(1)}</RatingValue>
+              <StarsContainer>{renderStars(averageRating, 24)}</StarsContainer>
+              <RatingText>Average Rating</RatingText>
+            </AverageRatingCard>
 
-            <h3>Add Your Review</h3>
-            <RatingInput>
-              <label>Rating:</label>
-              <select
-                value={newReview.rating}
-                onChange={(e) =>
-                  setNewReview({ ...newReview, rating: Number(e.target.value) })
-                }
-                disabled={isSubmitting}
+            <RatingBars>
+              {ratingDistribution.map(({ stars, count, percentage }) => (
+                <RatingBar key={stars}>
+                  <StarLabel>{stars} ★</StarLabel>
+                  <BarContainer>
+                    <BarFill percentage={percentage} />
+                  </BarContainer>
+                  <BarCount>{count}</BarCount>
+                </RatingBar>
+              ))}
+            </RatingBars>
+          </StatsGrid>
+        </HeaderContent>
+      </HeaderSection>
+
+      {/* Reviews Management Section */}
+      <ManagementSection>
+        {/* Reviews Filter */}
+        {reviews.length > 0 && (
+          <FilterSection>
+            <FilterLabel>Filter by rating:</FilterLabel>
+            <FilterTabs>
+              <FilterTab
+                active={activeFilter === "all"}
+                onClick={() => setActiveFilter("all")}
               >
-                {[5, 4, 3, 2, 1].map((rating) => (
-                  <option key={rating} value={rating}>
-                    {rating} Star{rating !== 1 ? "s" : ""}
-                  </option>
-                ))}
-              </select>
-            </RatingInput>
-            <TextArea
-              placeholder="Share your experience with this car..."
-              value={newReview.comment}
-              onChange={(e) =>
-                setNewReview({ ...newReview, comment: e.target.value })
-              }
-              rows={4}
-              disabled={isSubmitting}
-              maxLength={500}
-            />
-            <CharacterCount>
-              {newReview.comment.length}/500 characters
-            </CharacterCount>
-            <SubmitButton
-              type="submit"
-              disabled={isSubmitting || !newReview.comment.trim()}
-            >
-              {isSubmitting ? "Submitting..." : "Submit Review"}
-            </SubmitButton>
-          </ReviewForm>
-        ) : (
-          <ReviewEligibilityPrompt type={eligibility.type}>
-            <div className="icon">
-              {eligibility.type === "login" && <Login size={24} />}
-              {eligibility.type === "reviewed" && <CheckCircle size={24} />}
-              {/* {eligibility.type === "not-rented" && <Clock size={24} />} */}
-            </div>
-            <div className="content">
-              <h3>
-                {eligibility.type === "login" &&
-                  "Want to share your experience?"}
-                {eligibility.type === "reviewed" && "Review Submitted"}
-                {eligibility.type === "not-rented" && "Rent to Review"}
-              </h3>
-              <p>{eligibility.message}</p>
-              {eligibility.type === "login" && (
-                <LoginButton onClick={handleLoginRedirect}>
-                  Log In to Review
-                </LoginButton>
-              )}
-              {eligibility.type === "not-rented" && (
-                <RentButton
-                  onClick={() => (window.location.href = `/cars/${carId}/book`)}
+                All ({reviews.length})
+              </FilterTab>
+              {[5, 4, 3, 2, 1].map((rating) => (
+                <FilterTab
+                  key={rating}
+                  active={activeFilter === rating.toString()}
+                  onClick={() => setActiveFilter(rating.toString())}
                 >
-                  Rent This Car
-                </RentButton>
-              )}
-            </div>
-          </ReviewEligibilityPrompt>
+                  {rating} ★ (
+                  {reviews.filter((r) => r.rating === rating).length})
+                </FilterTab>
+              ))}
+            </FilterTabs>
+          </FilterSection>
         )}
-      </ReviewSection>
 
-      {/* User's Existing Review */}
-      {/* {userReview && (
-        <UserReviewSection>
-          <h3>Your Review</h3>
-          <ReviewItem>
-            <ReviewHeader>
-              <UserInfo>
-                <UserName>You</UserName>
-                <ReviewDate>
-                  {new Date(userReview.createdAt).toLocaleDateString()}
-                </ReviewDate>
-              </UserInfo>
-              <StarsContainer>{renderStars(userReview.rating)}</StarsContainer>
-            </ReviewHeader>
-            <Comment>{userReview.comment}</Comment>
-          </ReviewItem>
-        </UserReviewSection>
-      )} */}
+        {/* User's Reviews */}
+        <ReviewsGrid>
+          {filteredReviews.map((review) => (
+            <ReviewCard key={review._id} highlight>
+              <ReviewHeader>
+                <CarInfo>
+                  <CarIcon>
+                    <FaCar size={20} />
+                  </CarIcon>
+                  <div>
+                    <CarName>
+                      {review.car?.make} {review.car?.model} {review.car?.year}
+                    </CarName>
+                    <CarDetails>
+                      {review.car?.type} • {review.car?.fuelType}
+                    </CarDetails>
+                  </div>
+                </CarInfo>
+                <ActionButtons>
+                  <EditButton onClick={() => startEditing(review)}>
+                    <Edit size={16} />
+                    Edit
+                  </EditButton>
+                  <DeleteButton onClick={() => handleDeleteReview(review._id)}>
+                    <Delete size={16} />
+                    Delete
+                  </DeleteButton>
+                </ActionButtons>
+              </ReviewHeader>
 
-      {/* Other Users' Reviews */}
-      {/* {reviews.filter((review) => !user || review.user._id !== user._id)
-        .length > 0 ? (
-        <ReviewsList>
-          <h3>Other Reviews</h3>
-          {reviews
-            .filter((review) => !user || review.user._id !== user._id)
-            .map((review) => (
-              <ReviewItem key={review._id}>
-                <ReviewHeader>
-                  <UserInfo>
-                    <UserName>
-                      {review.user?.name ||
-                        review.user?.username ||
-                        "Anonymous"}
-                    </UserName>
+              {editingReview && editingReview._id === review._id ? (
+                <EditForm onSubmit={handleUpdateReview}>
+                  <RatingSelection>
+                    <StarRating>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <StarButton
+                          key={star}
+                          type="button"
+                          onClick={() =>
+                            setEditingReview((prev) => ({
+                              ...prev,
+                              rating: star,
+                            }))
+                          }
+                          active={star <= editingReview.rating}
+                        >
+                          <Star size={20} />
+                        </StarButton>
+                      ))}
+                    </StarRating>
+                  </RatingSelection>
+                  <TextArea
+                    value={editingReview.comment}
+                    onChange={(e) =>
+                      setEditingReview((prev) => ({
+                        ...prev,
+                        comment: e.target.value,
+                      }))
+                    }
+                    rows={3}
+                  />
+                  <EditActions>
+                    <CancelButton type="button" onClick={cancelEditing}>
+                      Cancel
+                    </CancelButton>
+                    <UpdateButton type="submit" disabled={isUpdating}>
+                      {isUpdating ? "Updating..." : "Update Review"}
+                    </UpdateButton>
+                  </EditActions>
+                </EditForm>
+              ) : (
+                <>
+                  <ReviewMeta>
+                    <StarsContainer>
+                      {renderStars(review.rating)}
+                    </StarsContainer>
                     <ReviewDate>
+                      <FaCalendar size={14} />
+                      Reviewed on{" "}
                       {new Date(review.createdAt).toLocaleDateString()}
                     </ReviewDate>
-                  </UserInfo>
-                  <StarsContainer>{renderStars(review.rating)}</StarsContainer>
-                </ReviewHeader>
-                <Comment>{review.comment}</Comment>
-              </ReviewItem>
-            ))}
-        </ReviewsList>
-      ) : (
-        !userReview && (
-          <EmptyReviews>
-            <h3>No reviews yet</h3>
-            <p>Be the first to share your experience with this car!</p>
-          </EmptyReviews>
-        )
-      )} */}
-    </ReviewsWrapper>
+                    {review.updatedAt !== review.createdAt && (
+                      <UpdatedBadge>
+                        Edited •{" "}
+                        {new Date(review.updatedAt).toLocaleDateString()}
+                      </UpdatedBadge>
+                    )}
+                  </ReviewMeta>
+                  <ReviewComment>{review.comment}</ReviewComment>
+                </>
+              )}
+            </ReviewCard>
+          ))}
+        </ReviewsGrid>
+
+        {reviews.length === 0 ? (
+          <EmptyState>
+            <EmptyIcon>💬</EmptyIcon>
+            <h4>No Reviews Yet</h4>
+            <p>
+              You haven't written any reviews yet. Start reviewing cars you've
+              rented!
+            </p>
+            <ActionButton
+              primary
+              onClick={() => (window.location.href = "/cars")}
+            >
+              Browse Cars
+            </ActionButton>
+          </EmptyState>
+        ) : filteredReviews.length === 0 ? (
+          <EmptyState>
+            <EmptyIcon>🔍</EmptyIcon>
+            <h4>No reviews match your filter</h4>
+            <p>Try selecting a different rating filter</p>
+          </EmptyState>
+        ) : null}
+      </ManagementSection>
+    </ModernReviewsWrapper>
   );
 };
 
-export default CarReviews;
+export default UserReviews;
 
-// Styled Components
-const ReviewsWrapper = styled.section`
-  margin-top: 3rem;
-  padding-top: 2rem;
-  border-top: 2px solid #e2e8f0;
+// Styled Components (mostly reused from CarReviews with some additions)
+const fadeIn = keyframes`
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 `;
 
-const ReviewsHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+const slideIn = keyframes`
+  from { transform: translateX(-10px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+`;
+
+const ModernReviewsWrapper = styled.section`
+  margin: 3rem 0;
+  animation: ${fadeIn} 0.6s ease-out;
+`;
+
+const HeaderSection = styled.div`
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 2.5rem;
   margin-bottom: 2rem;
+  color: white;
+  position: relative;
+  overflow: hidden;
 
-  h2 {
-    color: #3b82f6;
-    margin: 0;
-    font-size: 1.8rem;
-  }
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 200px;
+    height: 200px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    transform: translate(30%, -30%);
   }
 `;
 
-const RatingSummary = styled.div`
+const HeaderContent = styled.div`
+  position: relative;
+  z-index: 2;
+`;
+
+const Title = styled.h2`
   display: flex;
   align-items: center;
   gap: 1rem;
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin: 0 0 2rem 0;
 `;
 
-const AverageRating = styled.div`
-  font-size: 2rem;
-  font-weight: bold;
-  color: #3b82f6;
-`;
-
-const StarsContainer = styled.div`
-  display: flex;
-  gap: 2px;
-  color: #f59e0b;
-`;
-
-const StyledStar = styled(Star)`
-  width: 20px;
-  height: 20px;
-`;
-
-const StyledStarHalf = styled(StarHalf)`
-  width: 20px;
-  height: 20px;
-`;
-
-const StyledStarOutline = styled(StarOutline)`
-  width: 20px;
-  height: 20px;
+const StarIcon = styled(Star)`
+  color: #ffd700;
+  width: 32px;
+  height: 32px;
 `;
 
 const ReviewCount = styled.span`
-  color: #64748b;
-  font-size: 0.9rem;
-`;
-
-const ReviewSection = styled.div`
-  margin-bottom: 2rem;
-`;
-
-const ReviewForm = styled.form`
-  background: #f8fafc;
-  padding: 1.5rem;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-
-  h3 {
-    margin-top: 0;
-    margin-bottom: 1rem;
-    color: #1e293b;
-  }
-`;
-
-const ReviewEligibilityBadge = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 6px;
-  color: #166534;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 1rem;
   font-weight: 600;
-  margin-bottom: 1rem;
+  backdrop-filter: blur(10px);
+`;
 
-  svg {
-    color: #22c55e;
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 3rem;
+  align-items: center;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
 `;
 
-const ReviewEligibilityPrompt = styled.div`
-  background: #f8fafc;
-  padding: 2rem;
-  border-radius: 8px;
+const AverageRatingCard = styled.div`
   text-align: center;
-  border: 2px dashed #cbd5e1;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 1.5rem;
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+`;
+
+const RatingValue = styled.div`
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+`;
+
+const RatingText = styled.div`
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin-top: 0.5rem;
+`;
+
+const RatingBars = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+`;
+
+const RatingBar = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
-
-  .icon {
-    color: ${(props) => {
-      switch (props.type) {
-        case "login":
-          return "#3b82f6";
-        case "reviewed":
-          return "#22c55e";
-        case "not-rented":
-          return "#f59e0b";
-        default:
-          return "#64748b";
-      }
-    }};
-  }
-
-  .content {
-    flex: 1;
-
-    h3 {
-      margin: 0 0 0.5rem 0;
-      color: #1e293b;
-    }
-
-    p {
-      color: #64748b;
-      margin-bottom: 1.5rem;
-    }
-  }
-
-  @media (max-width: 480px) {
-    flex-direction: column;
-    text-align: center;
-  }
 `;
 
-const LoginButton = styled.button`
-  background: #3b82f6;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background: #2563eb;
-  }
+const StarLabel = styled.span`
+  font-size: 0.9rem;
+  width: 40px;
+  opacity: 0.9;
 `;
 
-const RentButton = styled.button`
-  background: #f59e0b;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.2s;
-
-  &:hover {
-    background: #d97706;
-  }
+const BarContainer = styled.div`
+  flex: 1;
+  background: rgba(255, 255, 255, 0.2);
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
 `;
 
-const RatingInput = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
-
-  label {
-    font-weight: 600;
-    color: #374151;
-  }
-
-  select {
-    padding: 0.5rem;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    background: white;
-
-    &:disabled {
-      background: #f3f4f6;
-      cursor: not-allowed;
-    }
-  }
+const BarFill = styled.div`
+  background: #ffd700;
+  height: 100%;
+  width: ${(props) => props.percentage}%;
+  transition: width 0.3s ease;
+  border-radius: 4px;
 `;
 
-const TextArea = styled.textarea`
-  width: 100%;
-  padding: 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  resize: vertical;
-  font-family: inherit;
-  transition: border-color 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-
-  &:disabled {
-    background: #f3f4f6;
-    cursor: not-allowed;
-  }
-`;
-
-const CharacterCount = styled.div`
+const BarCount = styled.span`
+  font-size: 0.9rem;
+  width: 30px;
   text-align: right;
-  font-size: 0.8rem;
-  color: #64748b;
-  margin-top: 0.25rem;
+  opacity: 0.9;
 `;
 
-const SubmitButton = styled.button`
-  background: #3b82f6;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-top: 1rem;
-  font-weight: 600;
-  transition: background-color 0.2s;
-
-  &:hover:not(:disabled) {
-    background: #2563eb;
-  }
-
-  &:disabled {
-    background: #9ca3af;
-    cursor: not-allowed;
-  }
-`;
-
-const UserReviewSection = styled.div`
-  margin-bottom: 2rem;
-
-  h3 {
-    color: #1e293b;
-    margin-bottom: 1rem;
-  }
-`;
-
-const ReviewsList = styled.div`
+const ManagementSection = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-
-  h3 {
-    color: #1e293b;
-    margin-bottom: 1rem;
-  }
 `;
 
-const ReviewItem = styled.div`
+const ReviewCard = styled.div`
   background: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  border: 1px solid ${(props) => (props.highlight ? "#e0f2fe" : "#e2e8f0")};
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: ${(props) =>
+    props.highlight
+      ? "0 4px 25px rgba(56, 189, 248, 0.15)"
+      : "0 2px 10px rgba(0, 0, 0, 0.04)"};
+  animation: ${slideIn} 0.3s ease-out;
+  ${(props) =>
+    props.highlight &&
+    `
+    border-left: 4px solid #3b82f6;
+    background: #f8fafc;
+  `}
 `;
 
 const ReviewHeader = styled.div`
@@ -600,55 +472,319 @@ const ReviewHeader = styled.div`
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 1rem;
-
-  @media (max-width: 480px) {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
 `;
 
-const UserInfo = styled.div``;
+const CarInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+`;
 
-const UserName = styled.div`
-  font-weight: 600;
+const CarIcon = styled.div`
+  color: #3b82f6;
+  background: #eff6ff;
+  padding: 0.75rem;
+  border-radius: 12px;
+`;
+
+const CarName = styled.div`
+  font-weight: 700;
   color: #1e293b;
+  font-size: 1.2rem;
+  margin-bottom: 0.25rem;
+`;
+
+const CarDetails = styled.div`
+  color: #64748b;
+  font-size: 0.9rem;
+`;
+
+const ReviewMeta = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+`;
+
+const StarsContainer = styled.div`
+  display: flex;
+  gap: 2px;
+  color: #fbbf24;
+`;
+
+const StyledStar = styled(Star)`
+  width: ${(props) => props.size || 20}px;
+  height: ${(props) => props.size || 20}px;
+`;
+
+const StyledStarHalf = styled(StarHalf)`
+  width: ${(props) => props.size || 20}px;
+  height: ${(props) => props.size || 20}px;
+`;
+
+const StyledStarOutline = styled(StarOutline)`
+  width: ${(props) => props.size || 20}px;
+  height: ${(props) => props.size || 20}px;
 `;
 
 const ReviewDate = styled.div`
-  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   color: #64748b;
+  font-size: 0.9rem;
 `;
 
-const Comment = styled.p`
+const UpdatedBadge = styled.span`
+  background: #fef3c7;
+  color: #92400e;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+`;
+
+const ReviewComment = styled.p`
+  color: #374151;
   line-height: 1.6;
   margin: 0;
-  color: #374151;
   white-space: pre-wrap;
 `;
 
-const EmptyReviews = styled.div`
-  text-align: center;
-  padding: 3rem;
-  color: #64748b;
+const ActionButtons = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
 
-  h3 {
-    margin-bottom: 0.5rem;
-    color: #1e293b;
+const EditButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem;
+  background: #eff6ff;
+  color: #3b82f6;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #dbeafe;
+    transform: translateY(-1px);
   }
 `;
 
-const LoadingState = styled.div`
+const DeleteButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem;
+  background: #fef2f2;
+  color: #ef4444;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #fee2e2;
+    transform: translateY(-1px);
+  }
+`;
+
+const EditForm = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+`;
+
+const RatingSelection = styled.div`
+  label {
+    display: block;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: #374151;
+  }
+`;
+
+const StarRating = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const StarButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: ${(props) => (props.active ? "#fbbf24" : "#d1d5db")};
+  transition: all 0.2s ease;
+  padding: 0.25rem;
+
+  &:hover {
+    transform: scale(1.2);
+    color: #fbbf24;
+  }
+`;
+
+const TextArea = styled.textarea`
+  width: 100%;
+  padding: 1.25rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+`;
+
+const EditActions = styled.div`
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+`;
+
+const CancelButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #e5e7eb;
+  }
+`;
+
+const UpdateButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: #2563eb;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const FilterSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border-radius: 12px;
+`;
+
+const FilterLabel = styled.span`
+  font-weight: 600;
+  color: #374151;
+`;
+
+const FilterTabs = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const FilterTab = styled.button`
+  padding: 0.5rem 1rem;
+  border: 2px solid ${(props) => (props.active ? "#3b82f6" : "#e2e8f0")};
+  background: ${(props) => (props.active ? "#3b82f6" : "white")};
+  color: ${(props) => (props.active ? "white" : "#64748b")};
+  border-radius: 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #3b82f6;
+  }
+`;
+
+const ReviewsGrid = styled.div`
+  display: grid;
+  gap: 1.5rem;
+`;
+
+const EmptyState = styled.div`
   text-align: center;
-  padding: 2rem;
+  padding: 3rem;
   color: #64748b;
 `;
 
-const ErrorState = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: #ef4444;
+const EmptyIcon = styled.div`
+  font-size: 3rem;
+  margin-bottom: 1rem;
+`;
 
+const LoginPrompt = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  padding: 4rem 2rem;
+  text-align: center;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+`;
+
+const PromptIcon = styled.div`
+  color: #3b82f6;
+`;
+
+const PromptContent = styled.div`
   h3 {
-    margin-bottom: 0.5rem;
+    margin: 0 0 0.5rem 0;
+    color: #1e293b;
+    font-size: 1.5rem;
+  }
+  p {
+    margin: 0 0 1.5rem 0;
+    color: #64748b;
+  }
+`;
+
+const ActionButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  background: ${(props) =>
+    props.primary
+      ? "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)"
+      : "transparent"};
+  color: ${(props) => (props.primary ? "white" : "#3b82f6")};
+  border: ${(props) => (props.primary ? "none" : "2px solid #3b82f6")};
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: ${(props) =>
+      props.primary
+        ? "0 8px 20px rgba(59, 130, 246, 0.3)"
+        : "0 8px 20px rgba(59, 130, 246, 0.15)"};
   }
 `;

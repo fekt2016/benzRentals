@@ -21,7 +21,6 @@ export function formatDate(dateStr) {
   }
 }
 export function getRandomItems(arr, num) {
-  console.log("arr", arr);
   if (num > arr.length) {
     throw new Error("Not enough items in the array");
   }
