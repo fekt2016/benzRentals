@@ -791,11 +791,6 @@ const StatsGrid = styled.div`
     gap: 1.5rem;
     padding: 0 1rem;
   }
-
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
 `;
 
 const StatCard = styled.div`

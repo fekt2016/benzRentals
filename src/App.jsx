@@ -4,6 +4,7 @@ import { lightTheme, darkTheme } from "./styles/theme";
 import { ThemeProvider } from "styled-components";
 import { BrowserRouter } from "react-router-dom";
 import MainRoutes from "./routes/MainRoutes";
+import CookieConsent from "./components/CookieConsent";
 import { useState } from "react";
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
           }}
         >
           <MainRoutes toggleTheme={() => setIsDarkMode((prev) => !prev)} />
+          <CookieConsent />
         </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>
