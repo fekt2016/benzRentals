@@ -9,7 +9,7 @@ jobs:
         runs-on: ubuntu-latest
         environment:
             name: ftp_server
-            url: https://eazworld.com
+            url: https://benzflex.com
 
         steps:
             - name: 🚚 Checkout code
@@ -68,5 +68,5 @@ jobs:
             - name: 🌐 Verify deployment
               run: |
                   echo "Deployment completed successfully!"
-                  echo "View site: https:/benzflex"
-                  echo "FTP directory:/public_html/"
+                  echo "View site: https:/benzflex.com"
+                  echo "FTP directory:/public_html/benzflex"
