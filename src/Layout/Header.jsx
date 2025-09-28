@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCurrentUser, useLogout } from "../hooks/useAuth";
 import { jwtDecode } from "jwt-decode";
 import { PATHS } from "../routes/routePaths";
+import NotificationBell from "../components/NotificationBell";
 
 // Icons
 import {
@@ -17,6 +18,7 @@ import {
   FiMenu,
   FiX,
   FiChevronDown,
+  FiBell,
 } from "react-icons/fi";
 
 export default function Header() {
@@ -121,63 +123,75 @@ export default function Header() {
         {/* Right Section */}
         <RightSection>
           {user ? (
-            <UserSection ref={dropdownRef}>
-              <UserAvatar
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                {user.avatar ? (
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                ) : (
-                  <AvatarPlaceholder>
-                    <FiUser />
-                  </AvatarPlaceholder>
-                )}
-                <UserName>{user.name?.split(" ")[0]}</UserName>
-                <FiChevronDown
-                  className={`chevron ${dropdownOpen ? "open" : ""}`}
-                />
-              </UserAvatar>
+            <>
+              {/* Notification Bell - Only show for logged-in users */}
+              <NotificationBellWrapper>
+                <NotificationBell />
+              </NotificationBellWrapper>
 
-              <AnimatePresence>
-                {dropdownOpen && (
-                  <DropdownMenu
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <DropdownHeader>
-                      <div>Signed in as</div>
-                      <div className="user-email">{user.email}</div>
-                    </DropdownHeader>
+              <UserSection ref={dropdownRef}>
+                <UserAvatar
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {user.avatar ? (
+                    <AvatarImage src={user.avatar} alt={user.name} />
+                  ) : (
+                    <AvatarPlaceholder>
+                      <FiUser />
+                    </AvatarPlaceholder>
+                  )}
+                  <UserName>{user.name?.split(" ")[0]}</UserName>
+                  <FiChevronDown
+                    className={`chevron ${dropdownOpen ? "open" : ""}`}
+                  />
+                </UserAvatar>
 
-                    <DropdownItem to="/bookings">
-                      <FiCalendar />
-                      My Bookings
-                    </DropdownItem>
+                <AnimatePresence>
+                  {dropdownOpen && (
+                    <DropdownMenu
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <DropdownHeader>
+                        <div>Signed in as</div>
+                        <div className="user-email">{user.email}</div>
+                      </DropdownHeader>
 
-                    <DropdownItem to="/reviews">
-                      <FiStar />
-                      My Reviews
-                    </DropdownItem>
+                      <DropdownItem to="/bookings">
+                        <FiCalendar />
+                        My Bookings
+                      </DropdownItem>
 
-                    <DropdownItem to="/profile">
-                      <FiSettings />
-                      Profile Settings
-                    </DropdownItem>
+                      <DropdownItem to="/reviews">
+                        <FiStar />
+                        My Reviews
+                      </DropdownItem>
 
-                    <DropdownDivider />
+                      <DropdownItem to="/notifications">
+                        <FiBell />
+                        Notifications
+                      </DropdownItem>
 
-                    <DropdownButton onClick={handleLogout}>
-                      <FiLogOut />
-                      Sign Out
-                    </DropdownButton>
-                  </DropdownMenu>
-                )}
-              </AnimatePresence>
-            </UserSection>
+                      <DropdownItem to="/profile">
+                        <FiSettings />
+                        Profile Settings
+                      </DropdownItem>
+
+                      <DropdownDivider />
+
+                      <DropdownButton onClick={handleLogout}>
+                        <FiLogOut />
+                        Sign Out
+                      </DropdownButton>
+                    </DropdownMenu>
+                  )}
+                </AnimatePresence>
+              </UserSection>
+            </>
           ) : (
             <AuthButtons>
               <LoginButton to={PATHS.LOGIN}>Sign In</LoginButton>
@@ -217,7 +231,51 @@ export default function Header() {
                 </MobileNavItem>
               ))}
 
-              {!user && (
+              {user ? (
+                <>
+                  {/* Mobile Notification Bell for logged-in users */}
+                  <MobileNavItem>
+                    <MobileNotificationSection>
+                      <NotificationBell mobileView={true} />
+                    </MobileNotificationSection>
+                  </MobileNavItem>
+
+                  <MobileNavItem>
+                    <MobileNavLink to="/bookings">
+                      <FiCalendar style={{ marginRight: "0.5rem" }} />
+                      My Bookings
+                    </MobileNavLink>
+                  </MobileNavItem>
+
+                  <MobileNavItem>
+                    <MobileNavLink to="/reviews">
+                      <FiStar style={{ marginRight: "0.5rem" }} />
+                      My Reviews
+                    </MobileNavLink>
+                  </MobileNavItem>
+
+                  <MobileNavItem>
+                    <MobileNavLink to="/notifications">
+                      <FiBell style={{ marginRight: "0.5rem" }} />
+                      Notifications
+                    </MobileNavLink>
+                  </MobileNavItem>
+
+                  <MobileNavItem>
+                    <MobileNavLink to="/profile">
+                      <FiSettings style={{ marginRight: "0.5rem" }} />
+                      Profile Settings
+                    </MobileNavLink>
+                  </MobileNavItem>
+
+                  <MobileNavItem>
+                    <MobileButtonLink as="button" onClick={handleLogout}>
+                      <FiLogOut style={{ marginRight: "0.5rem" }} />
+                      Sign Out
+                    </MobileButtonLink>
+                  </MobileNavItem>
+                </>
+              ) : (
                 <>
                   <MobileNavItem>
                     <MobileNavLink to={PATHS.LOGIN}>Sign In</MobileNavLink>
@@ -236,27 +294,6 @@ export default function Header() {
     </StyledHeader>
   );
 }
-
-// // Animations
-// const fadeIn = keyframes`
-//   from {
-//     opacity: 0;
-//     transform: translateY(-10px);
-//   }
-//   to {
-//     opacity: 1;
-//     transform: translateY(0);
-//   }
-// `;
-
-// const slideIn = keyframes`
-//   from {
-//     transform: translateX(-100%);
-//   }
-//   to {
-//     transform: translateX(0);
-//   }
-// `;
 
 const StyledHeader = styled(motion.header)`
   position: fixed;
@@ -393,6 +430,16 @@ const RightSection = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
+`;
+
+// New wrapper for NotificationBell
+const NotificationBellWrapper = styled.div`
+  display: flex;
+  align-items: center;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 const AuthButtons = styled.div`
@@ -631,6 +678,13 @@ const MobileNavLink = styled(Link)`
   }
 `;
 
+// New component for mobile notification section
+const MobileNotificationSection = styled.div`
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 0;
+`;
+
 const MobileButtonLink = styled(Link)`
   display: block;
   padding: 1rem 1.25rem;
@@ -641,6 +695,9 @@ const MobileButtonLink = styled(Link)`
   border-radius: 10px;
   text-align: center;
   transition: all 0.3s ease;
+  border: none;
+  width: 100%;
+  cursor: pointer;
 
   &:hover {
     transform: translateY(-2px);
