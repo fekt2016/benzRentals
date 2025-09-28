@@ -1,7 +1,7 @@
 // src/Layout/AdminLayout.jsx
 import React, { useState } from "react";
 import styled from "styled-components";
-import AdminSidebar from "./AdminSidebar";
+import AdminSidebar from "./AminSidebar";
 import AdminHeader from "./AdminHeader";
 import { Outlet } from "react-router-dom";
 
