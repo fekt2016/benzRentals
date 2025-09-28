@@ -19,7 +19,6 @@ const notificationApi = {
         queryString.toString() ? `?${queryString}` : ""
       }`;
 
-      console.log("📡 Making request to:", url);
       const response = await api.get(url);
       return response.data;
     } catch (error) {

@@ -18,6 +18,8 @@ const ConfirmationPage = lazy(() => import("../pages/ConfirmationPage"));
 const CheckoutPage = lazy(() => import("../pages/CheckoutPage"));
 const LoginPage = lazy(() => import("../Auth/Login"));
 const CarReviewsPage = lazy(() => import("../pages/CarReviewPage"));
+const NotificationPage = lazy(() => import("../pages/NotificatioPage"));
+
 // Layouts
 const MainLayout = lazy(() => import("../Layout/MainLayout"));
 const AdminLayout = lazy(() => import("../Layout/AdminLayout"));
@@ -31,9 +33,6 @@ const EditCar = lazy(() => import("../pages/adminPages/EditCar"));
 const AdminBookings = lazy(() => import("../pages/adminPages/AdminBookings"));
 const AdminUsers = lazy(() => import("../pages/adminPages/AdminUser"));
 const AdminReports = lazy(() => import("../pages/adminPages/AdminReports"));
-const NotificationPage = lazy(() =>
-  import("../pages/adminPages/NotificationPage")
-);
 
 // 🔹 Loaders
 const Loader = () => (
@@ -75,6 +74,7 @@ const MainRoutes = () => (
           <Route path={PATHS.BOOKINGS} element={<BookingsPage />} />
           <Route path={PATHS.BOOKING} element={<BookingDetailPage />} />
           <Route path={PATHS.REVIEWS} element={<CarReviewsPage />} />
+          <Route path={PATHS.NOTIFICATIONS} element={<NotificationPage />} />
         </Route>
       </Route>
 

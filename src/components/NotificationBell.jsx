@@ -32,16 +32,16 @@ const NotificationBell = ({ mobileView = false }) => {
   const notifications = useMemo(() => {
     return notificationData?.data;
   }, [notificationData]);
-
-  const { data: unreadCount } = useUnreadCountData();
+  console.log("notifications", notifications);
+  const { data: unreadCountData } = useUnreadCountData();
+  const unreadCount = useMemo(() => {
+    return unreadCountData?.data?.count;
+  }, [unreadCountData]);
 
   // Mutations
   const { mutate: markAsRead } = useMarkAsRead();
   const { mutate: markAllAsRead } = useMarkAllAsRead();
   const { mutate: deleteNotification } = useDeleteNotification();
-
-  console.log("notification", notificationData);
-  console.log("count", unreadCount);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -72,6 +72,7 @@ const NotificationBell = ({ mobileView = false }) => {
   };
 
   const handleMarkAllAsRead = () => {
+    console.log("Mark all as read");
     markAllAsRead();
   };
 

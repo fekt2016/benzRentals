@@ -8,7 +8,10 @@ export const useGetUserNotification = (options = {}) => {
 
   return useQuery({
     queryKey: ["notifications", options], // Include options in query key for caching
-    queryFn: () => notificationApi.getNotifications(options),
+    queryFn: async () => {
+      const response = await notificationApi.getNotifications(options);
+      return response;
+    },
     enabled: !!userData?.user?._id,
     refetchInterval: 30000,
   });
@@ -17,15 +20,15 @@ export const useGetUserNotification = (options = {}) => {
 // Get unread count
 export const useUnreadCountData = () => {
   const { data: userData } = useCurrentUser();
-
+  console.log("unread count");
   return useQuery({
     queryKey: ["notifications", "unread-count"],
     queryFn: async () => {
       const response = await notificationApi.getUnreadCount();
       return response;
     },
-    enabled: !!userData?.user?.id,
-    select: (data) => data.count || 0,
+    enabled: !!userData?.user?._id,
+    // select: (data) => data.count || 0,
     refetchInterval: 30000,
   });
 };
@@ -33,9 +36,11 @@ export const useUnreadCountData = () => {
 // Mark as read mutation
 export const useMarkAsRead = () => {
   const queryClient = useQueryClient();
+  console.log("1 mark as read");
 
   return useMutation({
     mutationFn: async (notificationId) => {
+      console.log("notificationId", notificationId);
       const response = await notificationApi.markAsRead(notificationId);
       return response;
     },
@@ -52,6 +57,7 @@ export const useMarkAsRead = () => {
 // Mark all as read mutation
 export const useMarkAllAsRead = () => {
   const queryClient = useQueryClient();
+  console.log("mark all as read");
 
   return useMutation({
     mutationFn: async () => {

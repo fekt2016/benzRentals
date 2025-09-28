@@ -84,6 +84,7 @@ export default function Header() {
     { path: PATHS.MODELS, label: "Our Fleet" },
     { path: PATHS.ABOUT, label: "About" },
     { path: PATHS.CONTACT, label: "Contact" },
+    { path: PATHS.NOTIFICATIONS, label: "Notifications" },
   ];
 
   return (
