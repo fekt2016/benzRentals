@@ -1,8 +1,15 @@
 // src/Layout/AdminHeader.jsx
 import React, { useState } from "react";
 import styled from "styled-components";
-import { FaBell, FaUserCircle, FaBars } from "react-icons/fa";
+import {
+  FaBell,
+  FaUserCircle,
+  FaBars,
+  FaCog,
+  FaSignOutAlt,
+} from "react-icons/fa";
 import { useLogout } from "../hooks/useAuth";
+import { GhostButton, SecondaryButton } from "../components/ui/Buttons";
 
 const HeaderContainer = styled.header`
   width: 100%;
@@ -29,16 +36,17 @@ const RightSection = styled.div`
   gap: 1.5rem;
 `;
 
-const IconButton = styled.button`
-  background: none;
-  border: none;
+const IconButton = styled(GhostButton)`
   position: relative;
-  cursor: pointer;
   font-size: 1.8rem;
   color: ${({ theme }) => theme.colors.text};
+  padding: 0.5rem;
+  border-radius: 50%;
+  border: 1px solid transparent;
 
   &:hover {
-    opacity: 0.7;
+    border-color: ${({ theme }) => theme.colors.gray[300]};
+    background: ${({ theme }) => theme.colors.gray[50]};
   }
 `;
 
@@ -48,9 +56,14 @@ const NotificationBadge = styled.span`
   right: -6px;
   background: ${({ theme }) => theme.colors.danger};
   color: white;
-  font-size: 1rem;
+  font-size: 0.75rem;
   padding: 0.2rem 0.4rem;
   border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const ProfileMenu = styled.div`
@@ -63,11 +76,12 @@ const Dropdown = styled.div`
   top: 3rem;
   background: ${({ theme }) => theme.colors.white};
   border: 1px solid ${({ theme }) => theme.colors.gray};
-  border-radius: var(--radius-md);
+  border-radius: ${({ theme }) => theme.borderRadius.md};
   box-shadow: ${({ theme }) => theme.shadows.md};
-  min-width: 150px;
+  min-width: 200px;
   display: ${({ open }) => (open ? "block" : "none")};
   z-index: 200;
+  overflow: hidden;
 `;
 
 const DropdownItem = styled.button`
@@ -78,9 +92,29 @@ const DropdownItem = styled.button`
   border: none;
   cursor: pointer;
   color: ${({ theme }) => theme.colors.text};
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all ${({ theme }) => theme.transitions.fast};
+  font-size: 0.9rem;
 
   &:hover {
     background: ${({ theme }) => theme.colors.grayLight};
+  }
+
+  &:not(:last-child) {
+    border-bottom: 1px solid ${({ theme }) => theme.colors.gray[200]};
+  }
+`;
+
+const DashboardTitle = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme.colors.text};
+  margin: 0;
+
+  @media (max-width: 768px) {
+    font-size: 1.25rem;
   }
 `;
 
@@ -89,17 +123,41 @@ const AdminHeader = ({ toggleSidebar }) => {
   const [profileOpen, setProfileOpen] = useState(false);
   const notifications = 3; // Example
 
+  const handleLogout = () => {
+    logout();
+    setProfileOpen(false);
+  };
+
+  const handleProfileClick = () => {
+    // Handle profile navigation
+    setProfileOpen(false);
+  };
+
+  const handleSettingsClick = () => {
+    // Handle settings navigation
+    setProfileOpen(false);
+  };
+
   return (
     <HeaderContainer>
       <LeftSection>
-        <IconButton onClick={toggleSidebar}>
+        <IconButton
+          onClick={toggleSidebar}
+          $size="sm"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
           <FaBars />
         </IconButton>
-        <h2>Admin Dashboard</h2>
+        <DashboardTitle>Admin Dashboard</DashboardTitle>
       </LeftSection>
 
       <RightSection>
-        <IconButton>
+        <IconButton
+          $size="sm"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
           <FaBell />
           {notifications > 0 && (
             <NotificationBadge>{notifications}</NotificationBadge>
@@ -107,13 +165,27 @@ const AdminHeader = ({ toggleSidebar }) => {
         </IconButton>
 
         <ProfileMenu>
-          <IconButton onClick={() => setProfileOpen(!profileOpen)}>
+          <IconButton
+            onClick={() => setProfileOpen(!profileOpen)}
+            $size="sm"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
             <FaUserCircle />
           </IconButton>
           <Dropdown open={profileOpen}>
-            <DropdownItem>Profile</DropdownItem>
-            <DropdownItem>Settings</DropdownItem>
-            <DropdownItem onClick={logout}>Logout</DropdownItem>
+            <DropdownItem onClick={handleProfileClick}>
+              <FaUserCircle />
+              Profile
+            </DropdownItem>
+            <DropdownItem onClick={handleSettingsClick}>
+              <FaCog />
+              Settings
+            </DropdownItem>
+            <DropdownItem onClick={handleLogout}>
+              <FaSignOutAlt />
+              Logout
+            </DropdownItem>
           </Dropdown>
         </ProfileMenu>
       </RightSection>

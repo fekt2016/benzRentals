@@ -8,6 +8,15 @@ import { jwtDecode } from "jwt-decode";
 import { PATHS } from "../routes/routePaths";
 import NotificationBell from "../components/NotificationBell";
 
+// Import reusable buttons
+import {
+  PrimaryButton,
+  SecondaryButton,
+  GhostButton,
+  ButtonLink,
+  SecondaryButtonLink,
+} from "../components/Button";
+
 // Icons
 import {
   FiUser,
@@ -84,7 +93,6 @@ export default function Header() {
     { path: PATHS.MODELS, label: "Our Fleet" },
     { path: PATHS.ABOUT, label: "About" },
     { path: PATHS.CONTACT, label: "Contact" },
-    { path: PATHS.NOTIFICATIONS, label: "Notifications" },
   ];
 
   return (
@@ -104,111 +112,114 @@ export default function Header() {
           </LogoText>
         </Logo>
 
-        {/* Desktop Navigation */}
-        <Nav>
-          {navItems.map((item) => (
-            <NavItem key={item.path}>
-              <NavLink
-                to={item.path}
-                $isActive={location.pathname === item.path}
-              >
-                {item.label}
-                {location.pathname === item.path && (
-                  <ActiveIndicator layoutId="activeIndicator" />
-                )}
-              </NavLink>
-            </NavItem>
-          ))}
-        </Nav>
-
-        {/* Right Section */}
-        <RightSection>
-          {user ? (
-            <>
-              {/* Notification Bell - Only show for logged-in users */}
-              <NotificationBellWrapper>
-                <NotificationBell />
-              </NotificationBellWrapper>
-
-              <UserSection ref={dropdownRef}>
-                <UserAvatar
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+        {/* Desktop Navigation - Moved closer to right section */}
+        <NavContainer>
+          <Nav>
+            {navItems.map((item) => (
+              <NavItem key={item.path}>
+                <NavLink
+                  to={item.path}
+                  $isActive={location.pathname === item.path}
                 >
-                  {user.avatar ? (
-                    <AvatarImage src={user.avatar} alt={user.name} />
-                  ) : (
-                    <AvatarPlaceholder>
-                      <FiUser />
-                    </AvatarPlaceholder>
+                  {item.label}
+                  {location.pathname === item.path && (
+                    <ActiveIndicator layoutId="activeIndicator" />
                   )}
-                  <UserName>{user.name?.split(" ")[0]}</UserName>
-                  <FiChevronDown
-                    className={`chevron ${dropdownOpen ? "open" : ""}`}
-                  />
-                </UserAvatar>
+                </NavLink>
+              </NavItem>
+            ))}
+          </Nav>
 
-                <AnimatePresence>
-                  {dropdownOpen && (
-                    <DropdownMenu
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <DropdownHeader>
-                        <div>Signed in as</div>
-                        <div className="user-email">{user.email}</div>
-                      </DropdownHeader>
+          {/* Right Section - Now part of the same container */}
+          <RightSection>
+            {user ? (
+              <>
+                {/* Notification Bell - Only show for logged-in users */}
+                <NotificationBellWrapper>
+                  <NotificationBell />
+                </NotificationBellWrapper>
 
-                      <DropdownItem to="/bookings">
-                        <FiCalendar />
-                        My Bookings
-                      </DropdownItem>
+                <UserSection ref={dropdownRef}>
+                  <UserAvatar
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {user.avatar ? (
+                      <AvatarImage src={user.avatar} alt={user.name} />
+                    ) : (
+                      <AvatarPlaceholder>
+                        <FiUser />
+                      </AvatarPlaceholder>
+                    )}
+                    <UserName>{user.name?.split(" ")[0]}</UserName>
+                    <FiChevronDown
+                      className={`chevron ${dropdownOpen ? "open" : ""}`}
+                    />
+                  </UserAvatar>
 
-                      <DropdownItem to="/reviews">
-                        <FiStar />
-                        My Reviews
-                      </DropdownItem>
+                  <AnimatePresence>
+                    {dropdownOpen && (
+                      <DropdownMenu
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <DropdownHeader>
+                          <div>Signed in as</div>
+                          <div className="user-email">{user.email}</div>
+                        </DropdownHeader>
 
-                      <DropdownItem to="/notifications">
-                        <FiBell />
-                        Notifications
-                      </DropdownItem>
+                        <DropdownItem to="/bookings">
+                          <FiCalendar />
+                          My Bookings
+                        </DropdownItem>
 
-                      <DropdownItem to="/profile">
-                        <FiSettings />
-                        Profile Settings
-                      </DropdownItem>
+                        <DropdownItem to="/reviews">
+                          <FiStar />
+                          My Reviews
+                        </DropdownItem>
 
-                      <DropdownDivider />
+                        <DropdownItem to="/notifications">
+                          <FiBell />
+                          Notifications
+                        </DropdownItem>
 
-                      <DropdownButton onClick={handleLogout}>
-                        <FiLogOut />
-                        Sign Out
-                      </DropdownButton>
-                    </DropdownMenu>
-                  )}
-                </AnimatePresence>
-              </UserSection>
-            </>
-          ) : (
-            <AuthButtons>
-              <LoginButton to={PATHS.LOGIN}>Sign In</LoginButton>
-              <SignUpButton to={PATHS.REGISTER}>Get Started</SignUpButton>
-            </AuthButtons>
-          )}
+                        <DropdownItem to="/profile">
+                          <FiSettings />
+                          Profile Settings
+                        </DropdownItem>
 
-          {/* Mobile Menu Button */}
-          <MobileMenuButton
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            {mobileMenuOpen ? <FiX /> : <FiMenu />}
-          </MobileMenuButton>
-        </RightSection>
+                        <DropdownDivider />
+
+                        <LogoutButton onClick={handleLogout}>
+                          <FiLogOut />
+                          Sign Out
+                        </LogoutButton>
+                      </DropdownMenu>
+                    )}
+                  </AnimatePresence>
+                </UserSection>
+              </>
+            ) : (
+              <AuthButton to={PATHS.LOGIN} $size="md">
+                <FiUser style={{ marginRight: "0.5rem" }} />
+                Account
+              </AuthButton>
+            )}
+
+            {/* Mobile Menu Button */}
+            <MobileMenuButton
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              $size="sm"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {mobileMenuOpen ? <FiX /> : <FiMenu />}
+            </MobileMenuButton>
+          </RightSection>
+        </NavContainer>
       </HeaderContainer>
 
       {/* Mobile Menu */}
@@ -270,23 +281,19 @@ export default function Header() {
                   </MobileNavItem>
 
                   <MobileNavItem>
-                    <MobileButtonLink as="button" onClick={handleLogout}>
+                    <MobileLogoutButton onClick={handleLogout} $size="sm">
                       <FiLogOut style={{ marginRight: "0.5rem" }} />
                       Sign Out
-                    </MobileButtonLink>
+                    </MobileLogoutButton>
                   </MobileNavItem>
                 </>
               ) : (
-                <>
-                  <MobileNavItem>
-                    <MobileNavLink to={PATHS.LOGIN}>Sign In</MobileNavLink>
-                  </MobileNavItem>
-                  <MobileNavItem>
-                    <MobileButtonLink to={PATHS.REGISTER}>
-                      Get Started
-                    </MobileButtonLink>
-                  </MobileNavItem>
-                </>
+                <MobileNavItem>
+                  <MobileAuthButton to={PATHS.LOGIN} $size="sm">
+                    <FiUser style={{ marginRight: "0.5rem" }} />
+                    Account
+                  </MobileAuthButton>
+                </MobileNavItem>
               )}
             </MobileNav>
           </MobileMenu>
@@ -296,6 +303,7 @@ export default function Header() {
   );
 }
 
+// Styled Components
 const StyledHeader = styled(motion.header)`
   position: fixed;
   top: 0;
@@ -368,6 +376,20 @@ const LogoText = styled.div`
   }
 `;
 
+// New container that groups nav and right section
+const NavContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex: 1;
+  justify-content: flex-end;
+
+  @media (max-width: 768px) {
+    justify-content: flex-end;
+    gap: 1rem;
+  }
+`;
+
 const Nav = styled.nav`
   display: flex;
   align-items: center;
@@ -433,51 +455,36 @@ const RightSection = styled.div`
   gap: 1rem;
 `;
 
-// New wrapper for NotificationBell
 const NotificationBellWrapper = styled.div`
   display: flex;
   align-items: center;
+`;
 
-  @media (max-width: 768px) {
+const AuthButton = styled(ButtonLink)`
+  && {
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+  }
+`;
+
+const MobileMenuButton = styled(PrimaryButton)`
+  && {
     display: none;
-  }
-`;
+    padding: 0.75rem;
+    border-radius: 10px;
+    font-size: 1.25rem;
+    min-width: auto;
+    width: 48px;
+    height: 48px;
 
-const AuthButtons = styled.div`
-  display: flex;
-  gap: 0.75rem;
-
-  @media (max-width: 768px) {
-    display: none;
-  }
-`;
-
-const AuthButton = styled(Link)`
-  padding: 0.75rem 1.5rem;
-  border-radius: 10px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
-`;
-
-const LoginButton = styled(AuthButton)`
-  color: #64748b;
-  background: transparent;
-
-  &:hover {
-    color: #3b82f6;
-    background: rgba(59, 130, 246, 0.1);
-  }
-`;
-
-const SignUpButton = styled(AuthButton)`
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+    @media (max-width: 768px) {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
   }
 `;
 
@@ -600,45 +607,31 @@ const DropdownDivider = styled.div`
   margin: 0.5rem 0;
 `;
 
-const DropdownButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  padding: 1rem 1.25rem;
-  background: none;
-  border: none;
-  color: #ef4444;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border-left: 3px solid transparent;
-
-  &:hover {
-    background: #fef2f2;
-    border-left-color: #ef4444;
-  }
-
-  svg {
-    width: 18px;
-    height: 18px;
-  }
-`;
-
-const MobileMenuButton = styled(motion.button)`
-  display: none;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  padding: 0.75rem;
-  cursor: pointer;
-  font-size: 1.25rem;
-
-  @media (max-width: 768px) {
+const LogoutButton = styled(SecondaryButton)`
+  && {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 1rem 1.25rem;
+    border: none;
+    border-radius: 0;
+    color: #ef4444;
+    border-color: #ef4444;
+    background: transparent;
+    font-weight: 500;
+    border-left: 3px solid transparent;
+
+    &:hover {
+      background: #fef2f2;
+      border-left-color: #ef4444;
+      color: #ef4444;
+    }
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
   }
 `;
 
@@ -679,29 +672,44 @@ const MobileNavLink = styled(Link)`
   }
 `;
 
-// New component for mobile notification section
 const MobileNotificationSection = styled.div`
   display: flex;
   justify-content: center;
   padding: 0.5rem 0;
 `;
 
-const MobileButtonLink = styled(Link)`
-  display: block;
-  padding: 1rem 1.25rem;
-  text-decoration: none;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
-  font-weight: 600;
-  border-radius: 10px;
-  text-align: center;
-  transition: all 0.3s ease;
-  border: none;
-  width: 100%;
-  cursor: pointer;
+const MobileAuthButton = styled(ButtonLink)`
+  && {
+    display: block;
+    padding: 1rem 1.25rem;
+    text-decoration: none;
+    font-weight: 600;
+    border-radius: 10px;
+    text-align: center;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+`;
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+const MobileLogoutButton = styled(SecondaryButton)`
+  && {
+    display: block;
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+    border-radius: 10px;
+    text-align: center;
+    width: 100%;
+    border: 2px solid #ef4444;
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background: #fef2f2;
+      color: #ef4444;
+    }
   }
 `;
