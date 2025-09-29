@@ -1,11 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import GlobalStyles from "./styles/GlobalStyles";
-import { lightTheme, darkTheme } from "./styles/theme";
+import { theme } from "./styles/theme";
 import { ThemeProvider } from "styled-components";
 import { BrowserRouter } from "react-router-dom";
 import MainRoutes from "./routes/MainRoutes";
-import CookieConsent from "./components/CookieConsent";
-import { useState } from "react";
 
 function App() {
   const queryClient = new QueryClient({
@@ -17,11 +15,11 @@ function App() {
     },
   });
 
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // const [isDarkMode, setIsDarkMode] = useState(false);
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={isDarkMode ? darkTheme : lightTheme}>
+      <ThemeProvider theme={theme}>
         <GlobalStyles />
         <BrowserRouter
           future={{
@@ -29,8 +27,7 @@ function App() {
             v7_relativeSplatPath: true,
           }}
         >
-          <MainRoutes toggleTheme={() => setIsDarkMode((prev) => !prev)} />
-          <CookieConsent />
+          <MainRoutes />
         </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>

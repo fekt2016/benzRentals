@@ -153,7 +153,8 @@ const HomePage = () => {
             </motion.div>
 
             <motion.h1 variants={heroItemVariants}>
-              Experience <GradientText>Mercedes-Benz</GradientText> Excellence
+              <spn>Experience</spn> <GradientText>Mercedes-Benz</GradientText>
+              <spn>Excellence</spn>
             </motion.h1>
 
             <motion.p variants={heroItemVariants}>
