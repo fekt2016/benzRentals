@@ -59,7 +59,7 @@ jobs:
             .gitignore
             README.md
             node_modules/
-            *.log
+            *.logus
             .env*
             *.md
           log-level: verbose
