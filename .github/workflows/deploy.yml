@@ -52,7 +52,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./dist/ # Now this directory exists
-          server-dir: /public_html/benzflex.com/
+          server-dir: /home2/eazworld/benzflex.com
           exclude: |
             .git/
             .github/
