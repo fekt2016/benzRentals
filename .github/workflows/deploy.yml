@@ -75,7 +75,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./${{ steps.set-dir.outputs.directory }}/
-          server-dir: ./public_html/benzflex.com/ # Adjusted path
+          server-dir: ./benzflex.com/ # Adjusted path
           exclude: |
             **/.git*
             **/.github/**
