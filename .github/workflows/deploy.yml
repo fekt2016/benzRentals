@@ -52,7 +52,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./dist/ # Now this directory exists
-          server-dir: "benzflex.com"
+          server-dir: "benzflex.com/"
           log-level: verbose
           exclude: |
             .git/
