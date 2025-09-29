@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import styled, { keyframes, css } from "styled-components";
 import OtpModal from "../components/Modal/OtpModal";
-import Button from "../components/Button";
+import { PrimaryButton } from "../components/Button";
 import { useSendOtp, useRegister } from "../hooks/useAuth";
 
 // Enhanced Animations

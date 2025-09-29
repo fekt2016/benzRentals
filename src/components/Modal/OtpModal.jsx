@@ -1,7 +1,7 @@
 // src/components/OtpModal.jsx
 import React, { useState, useEffect, useRef } from "react";
 import styled, { keyframes } from "styled-components";
-import Button from "../Button";
+import { PrimaryButton } from "../Button";
 import { useVerifyOtp } from "../../hooks/useAuth";
 
 const OtpModal = ({ isOpen, onClose, phone }) => {
@@ -193,14 +193,14 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
           </ResendButton>
 
           <Actions>
-            <Button
+            <PrimaryButton
               onClick={onClose}
               variant="secondary"
               size="small"
               style={{ minWidth: "100px" }}
             >
               Cancel
-            </Button>
+            </PrimaryButton>
             <Button
               variant="primary"
               size="small"
@@ -243,17 +243,17 @@ const slideUp = keyframes`
   }
 `;
 
-const pulse = keyframes`
-  0% {
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-  }
-`;
+// const pulse = keyframes`
+//   0% {
+//     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+//   }
+//   70% {
+//     box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+//   }
+//   100% {
+//     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+//   }
+// `;
 
 const bounce = keyframes`
   0%, 20%, 53%, 80%, 100% {
@@ -448,14 +448,4 @@ const LoadingSpinner = styled.div`
   border-radius: 50%;
   animation: ${rotate} 0.8s linear infinite;
   margin: 0 auto;
-`;
-
-// Add pulse animation to Button component (you might need to update your Button component)
-// This is a temporary solution - ideally you'd update the Button component itself
-const PulseButton = styled(Button)`
-  ${(props) =>
-    props.$pulse &&
-    `
-    animation: ${pulse} 2s infinite;
-  `}
 `;

@@ -1,144 +1,100 @@
-// src/components/Button.jsx
-import React from "react";
-import styled, { css } from "styled-components";
+// src/components/ui/Buttons.jsx
+import styled from "styled-components";
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 
-const Button = ({
-  children,
-  onClick,
-  type = "button",
-  disabled,
-  variant = "primary",
-  size = "auto", // width: "auto" | "full" | "small" | "medium"
-  height = "medium", // height: "small" | "medium" | "large" | "auto"
-}) => {
-  return (
-    <StyledButton
-      type={type}
-      onClick={onClick}
-      disabled={disabled}
-      $variant={variant}
-      $size={size}
-      $height={height}
-    >
-      {children}
-    </StyledButton>
-  );
-};
-
-export default Button;
-
-const StyledButton = styled.button`
-  padding: 0.875rem 1.25rem;
-  border: none;
-  border-radius: ${({ theme }) => theme.radius.md || "8px"};
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  justify-content: center;
+export const Button = styled(motion.button)`
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
+  gap: ${({ theme }) => theme.spacing.sm};
+  padding: ${({ $size }) => {
+    switch ($size) {
+      case "sm":
+        return "0.75rem 1.5rem";
+      case "lg":
+        return "1.25rem 2.5rem";
+      default:
+        return "1rem 2rem";
+    }
+  }};
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  font-family: ${({ theme }) => theme.typography.fonts.accent};
+  font-weight: ${({ theme }) =>
+    theme.typography.fontWeights["Plus Jakarta Sans"].semibold};
+  font-size: ${({ $size }) => {
+    switch ($size) {
+      case "sm":
+        return "0.875rem";
+      case "lg":
+        return "1.125rem";
+      default:
+        return "1rem";
+    }
+  }};
+  border: none;
+  cursor: pointer;
+  transition: all ${({ theme }) => theme.transitions.normal};
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
 
-  /* ----- width / size variations ----- */
-  ${({ $size }) =>
-    $size === "full" &&
-    css`
-      width: 100%;
-    `}
-  ${({ $size }) =>
-    $size === "small" &&
-    css`
-      width: 120px;
-    `}
-  ${({ $size }) =>
-    $size === "medium" &&
-    css`
-      width: 200px;
-    `}
-  ${({ $size }) =>
-    $size === "auto" &&
-    css`
-      width: auto;
-    `}
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
 
-  /* ----- height variations ----- */
-  ${({ $height }) =>
-    $height === "small" &&
-    css`
-      height: 36px;
-      font-size: 0.85rem;
-      padding: 0.5rem 1rem;
-    `}
-  ${({ $height }) =>
-    $height === "medium" &&
-    css`
-      height: 48px;
-    `}
-  ${({ $height }) =>
-    $height === "large" &&
-    css`
-      height: 56px;
-      font-size: 1.1rem;
-      padding: 1rem 1.5rem;
-    `}
-  ${({ $height }) =>
-    $height === "auto" &&
-    css`
-      height: auto;
-    `}
-
-  /* ----- variant styles ----- */
-  ${({ $variant, theme }) =>
-    $variant === "primary" &&
-    css`
-      background: ${theme.colors.primary};
-      color: ${theme.colors.onPrimary};
-
-      &:hover:not(:disabled) {
-        background: ${theme.colors.primaryHover};
-      }
-    `}
-
-  ${({ $variant, theme }) =>
-    $variant === "secondary" &&
-    css`
-      background: ${theme.colors.surface};
-      color: ${theme.colors.text};
-      border: 1px solid ${theme.colors.border};
-
-      &:hover:not(:disabled) {
-        background: ${theme.colors.surfaceHover};
-      }
-    `}
-
-  ${({ $variant, theme }) =>
-    $variant === "link" &&
-    css`
-      background: none;
-      border: none;
-      padding: 0;
-      height: auto;
-      font-size: 0.9rem;
-      color: ${theme.colors.primary};
-      font-weight: 600;
-
-      &:hover:not(:disabled) {
-        text-decoration: underline;
-      }
-
-      &:disabled {
-        color: ${theme.colors.textMuted || "#999"};
-        cursor: not-allowed;
-        text-decoration: none;
-      }
-    `}
-
-  /* ----- disabled style fallback ----- */
-  ${({ disabled, theme }) =>
-    disabled &&
-    css`
-      background: ${theme.colors.disabledBg};
-      color: ${theme.colors.textMuted};
-      cursor: not-allowed;
-    `}
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+  }
 `;
+
+export const PrimaryButton = styled(Button)`
+  background: ${({ theme }) => theme.gradients.primary};
+  color: white;
+  box-shadow: ${({ theme }) => theme.shadows.md};
+
+  &:hover:not(:disabled) {
+    box-shadow: ${({ theme }) => theme.shadows.lg};
+  }
+`;
+
+export const SecondaryButton = styled(Button)`
+  background: transparent;
+  color: ${({ theme }) => theme.colors.primary};
+  border: 2px solid ${({ theme }) => theme.colors.primary};
+
+  &:hover:not(:disabled) {
+    background: ${({ theme }) => theme.colors.primary};
+    color: white;
+  }
+`;
+
+export const AccentButton = styled(Button)`
+  background: ${({ theme }) => theme.gradients.accent};
+  color: ${({ theme }) => theme.colors.secondary};
+  font-weight: ${({ theme }) =>
+    theme.typography.fontWeights["Plus Jakarta Sans"].bold};
+
+  &:hover:not(:disabled) {
+    box-shadow: ${({ theme }) => theme.shadows.gold};
+  }
+`;
+
+export const GhostButton = styled(Button)`
+  background: transparent;
+  color: ${({ theme }) => theme.colors.text.secondary};
+  border: 1px solid ${({ theme }) => theme.colors.gray[300]};
+
+  &:hover:not(:disabled) {
+    background: ${({ theme }) => theme.colors.gray[50]};
+    border-color: ${({ theme }) => theme.colors.gray[400]};
+  }
+`;
+
+// Link variant of buttons
+export const ButtonLink = styled(PrimaryButton).attrs({ as: Link })``;
+export const SecondaryButtonLink = styled(SecondaryButton).attrs({
+  as: Link,
+})``;
