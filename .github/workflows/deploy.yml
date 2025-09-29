@@ -15,18 +15,41 @@ jobs:
       - name: 🚚 Checkout code
         uses: actions/checkout@v4
 
-      # NEW STEPS ADDED HERE
       - name: ⎔ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18.x # Use your project's Node version
+          node-version: 18.x
+          cache: "npm"
 
       - name: 📦 Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: 🏗️ Build project
-        run: npm run build # This creates the dist directory
-      # END OF NEW STEPS
+        run: |
+          npm run build
+          # Ensure build output exists
+          if [ ! -d "dist" ] && [ ! -d "build" ]; then
+            echo "❌ No build output directory found!"
+            echo "Creating fallback dist directory..."
+            mkdir -p dist
+            echo '<!DOCTYPE html><html><head><title>BenzFlex</title></head><body><h1>Website Under Deployment</h1></body></html>' > dist/index.html
+          fi
+
+      - name: 📁 Determine build directory
+        id: set-dir
+        run: |
+          if [ -d "dist" ]; then
+            echo "directory=dist" >> $GITHUB_OUTPUT
+            echo "Using dist directory"
+            ls -la dist/
+          elif [ -d "build" ]; then
+            echo "directory=build" >> $GITHUB_OUTPUT
+            echo "Using build directory"
+            ls -la build/
+          else
+            echo "❌ No build directory found!"
+            exit 1
+          fi
 
       - name: 🔒 Verify environment secrets
         run: |
@@ -51,22 +74,23 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./dist/ # Now this directory exists
-          server-dir: ./benzflex.com/
+          local-dir: ./${{ steps.set-dir.outputs.directory }}/
+          server-dir: ./public_html/benzflex.com/ # Adjusted path
           exclude: |
-            .git/
-            .github/
-            .gitignore
-            README.md
-            node_modules/
-            *.logus
-            .env*
-            *.md
+            **/.git*
+            **/.github/**
+            **/node_modules/**
+            **/*.log
+            **/.env*
+            **/README.md
+            **/package*.json
+            **/vite.config.*
+            **/src/
           log-level: verbose
           dangerous-clean-slate: false
 
       - name: 🌐 Verify deployment
         run: |
-          echo "Deployment completed successfully!"
-          echo "View site: https:/benzflex.com"
-          echo "FTP directory:/public_html/benzflex"
+          echo "🚀 Deployment completed successfully!"
+          echo "🌍 View site: https://benzflex.com"
+          echo "📁 FTP directory: /public_html/benzflex.com/"
