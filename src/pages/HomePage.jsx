@@ -6,6 +6,15 @@ import { motion, useInView, useAnimation } from "framer-motion";
 import { useGetCars } from "../hooks/useCar";
 import { getRandomItems } from "../utils/helper";
 
+// Import reusable buttons
+import {
+  PrimaryButton,
+  SecondaryButton,
+  AccentButton,
+  ButtonLink,
+  SecondaryButtonLink,
+} from "../components/Button";
+
 // Icons
 import {
   FaCar,
@@ -153,8 +162,8 @@ const HomePage = () => {
             </motion.div>
 
             <motion.h1 variants={heroItemVariants}>
-              <spn>Experience</spn> <GradientText>Mercedes-Benz</GradientText>
-              <spn>Excellence</spn>
+              <span>Experience</span> <GradientText>Mercedes-Benz</GradientText>
+              <span>Excellence</span>
             </motion.h1>
 
             <motion.p variants={heroItemVariants}>
@@ -165,11 +174,11 @@ const HomePage = () => {
 
             <motion.div variants={heroItemVariants}>
               <HeroButtons>
-                <PrimaryButton to="/models">
+                <ButtonLink to="/models" $size="lg">
                   Explore Our Fleet
                   <FaArrowRight />
-                </PrimaryButton>
-                <SecondaryButton>
+                </ButtonLink>
+                <SecondaryButton $size="lg">
                   <FaPlay />
                   Watch Story
                 </SecondaryButton>
@@ -395,20 +404,19 @@ const HomePage = () => {
                 </DiscountFeatures>
 
                 <DiscountActions>
-                  <DiscountButton to="/models" primary>
+                  <ButtonLink to="/models" $size="lg">
                     <FaCar />
                     Claim Your 15% Off
-                  </DiscountButton>
-                  <DiscountButton
-                    as="button"
-                    secondary
+                  </ButtonLink>
+                  <SecondaryButton
+                    $size="lg"
                     onClick={() =>
                       alert("Contact us at 1-800-MERCEDES for details")
                     }
                   >
                     <FaClock />
                     Limited Time Offer
-                  </DiscountButton>
+                  </SecondaryButton>
                 </DiscountActions>
 
                 <DiscountTerms>
@@ -463,10 +471,10 @@ const HomePage = () => {
                   for their premium mobility needs
                 </p>
                 <CTAButtons>
-                  <PrimaryButton to="/models" $large>
+                  <ButtonLink to="/models" $size="lg">
                     Book Your Mercedes Now
-                  </PrimaryButton>
-                  <SecondaryButton $large>Contact Our Team</SecondaryButton>
+                  </ButtonLink>
+                  <SecondaryButton $size="lg">Contact Our Team</SecondaryButton>
                 </CTAButtons>
               </CTAContent>
               <CTAIllustration>
@@ -480,7 +488,7 @@ const HomePage = () => {
   );
 };
 
-// Animation variants
+// Animation variants (keep the same)
 const heroVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -561,7 +569,7 @@ const ctaVariants = {
   },
 };
 
-// Styled Components
+// Styled Components (keep the same, but remove old button styles)
 const Wrapper = styled.div`
   margin-top: 4rem;
   overflow-x: hidden;
@@ -577,7 +585,7 @@ const Container = styled.div`
   }
 `;
 
-// Hero Section
+// Hero Section (keep the same, but update button styles)
 const HeroSection = styled.section`
   height: 90vh;
   min-height: 600px;
@@ -698,66 +706,6 @@ const HeroButtons = styled.div`
   }
 `;
 
-const Button = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: ${(props) => (props.$large ? "1.25rem 2.5rem" : "1rem 2rem")};
-  border-radius: 12px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  font-size: ${(props) => (props.$large ? "1.1rem" : "1rem")};
-  border: none;
-  cursor: pointer;
-  justify-content: center;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
-
-  @media (max-width: 480px) {
-    width: 100%;
-    max-width: 280px;
-  }
-`;
-
-const PrimaryButton = styled(Button)`
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
-
-  &:hover {
-    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
-  }
-`;
-
-const SecondaryButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: ${(props) => (props.$large ? "1.25rem 2.5rem" : "1rem 2rem")};
-  background: transparent;
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: ${(props) => (props.$large ? "1.1rem" : "1rem")};
-  justify-content: center;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.5);
-    transform: translateY(-2px);
-  }
-
-  @media (max-width: 480px) {
-    width: 100%;
-    max-width: 280px;
-  }
-`;
-
 const ScrollIndicator = styled.div`
   position: absolute;
   bottom: 2rem;
@@ -773,7 +721,7 @@ const ScrollIndicator = styled.div`
   }
 `;
 
-// Stats Section
+// Stats Section (keep the same)
 const StatsSection = styled.section`
   padding: 4rem 0;
   background: #f8fafc;
@@ -844,7 +792,7 @@ const StatLabel = styled.div`
   font-size: 0.9rem;
 `;
 
-// Features Section
+// Features Section (keep the same)
 const FeaturesSection = styled.section`
   padding: 6rem 0;
   background: white;
@@ -953,7 +901,7 @@ const FeatureContent = styled.div`
   }
 `;
 
-// Showcase Section
+// Showcase Section (update buttons)
 const ShowcaseSection = styled.section`
   padding: 6rem 0;
   background: #f8fafc;
@@ -1028,18 +976,21 @@ const CarOverlay = styled.div`
   }
 `;
 
-const ViewDetailsButton = styled(Link)`
-  background: #3b82f6;
-  color: white;
-  padding: 1rem 2rem;
-  border-radius: 10px;
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.2s;
+// Updated buttons for car cards
+const ViewDetailsButton = styled(ButtonLink)`
+  && {
+    background: #3b82f6;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s;
 
-  &:hover {
-    background: #2563eb;
-    transform: scale(1.05);
+    &:hover {
+      background: #2563eb;
+      transform: scale(1.05);
+    }
   }
 `;
 
@@ -1104,46 +1055,52 @@ const FeatureTag = styled.span`
   font-weight: 500;
 `;
 
-const BookButton = styled(Link)`
-  display: block;
-  width: 100%;
-  background: #10b981;
-  color: white;
-  text-align: center;
-  padding: 1rem;
-  border-radius: 10px;
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.2s;
+// Updated BookButton with AccentButton
+const BookButton = styled(AccentButton).attrs({ as: Link })`
+  && {
+    display: block;
+    width: 100%;
+    background: #10b981;
+    color: white;
+    text-align: center;
+    padding: 1rem;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s;
 
-  &:hover {
-    background: #059669;
-    transform: translateY(-2px);
+    &:hover {
+      background: #059669;
+      transform: translateY(-2px);
+    }
   }
 `;
 
-const ViewAllButton = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #3b82f6;
-  color: white;
-  padding: 1rem 2rem;
-  border-radius: 10px;
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.2s;
-  margin: 0 auto;
-  display: block;
-  width: fit-content;
+// Updated ViewAllButton
+const ViewAllButton = styled(ButtonLink)`
+  && {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #3b82f6;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s;
+    margin: 0 auto;
+    display: block;
+    width: fit-content;
 
-  &:hover {
-    background: #2563eb;
-    transform: translateY(-2px);
+    &:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
+    }
   }
 `;
 
-// Discount Section
+// Discount Section (update buttons)
 const DiscountSection = styled.section`
   padding: 6rem 0;
   background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
@@ -1262,47 +1219,6 @@ const DiscountActions = styled.div`
   }
 `;
 
-const DiscountButton = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 1rem 2rem;
-  border-radius: 12px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  border: none;
-  cursor: pointer;
-  justify-content: center;
-
-  ${(props) =>
-    props.primary
-      ? `
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    color: white;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
-    }
-  `
-      : `
-    background: transparent;
-    color: #3b82f6;
-    border: 2px solid #3b82f6;
-
-    &:hover {
-      background: #3b82f6;
-      color: white;
-      transform: translateY(-2px);
-    }
-  `}
-
-  @media (max-width: 480px) {
-    width: 100%;
-  }
-`;
-
 const DiscountTerms = styled.p`
   font-size: 0.8rem;
   color: #94a3b8;
@@ -1374,7 +1290,7 @@ const StatValue = styled.div`
   }
 `;
 
-// CTA Section
+// CTA Section (update buttons)
 const CTASection = styled.section`
   padding: 6rem 0;
   background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
