@@ -9,7 +9,7 @@ import {
   FaSignOutAlt,
 } from "react-icons/fa";
 import { useLogout } from "../hooks/useAuth";
-import { GhostButton, SecondaryButton } from "../components/ui/Buttons";
+import { GhostButton, SecondaryButton } from "../components/Button";
 
 const HeaderContainer = styled.header`
   width: 100%;
