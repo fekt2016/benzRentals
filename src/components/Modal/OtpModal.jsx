@@ -1,8 +1,8 @@
 // src/components/OtpModal.jsx
 import React, { useState, useEffect, useRef } from "react";
 import styled, { keyframes } from "styled-components";
-import { PrimaryButton } from "../Button";
 import { useVerifyOtp } from "../../hooks/useAuth";
+import { PrimaryButton, SecondaryButton } from "../Button";
 
 const OtpModal = ({ isOpen, onClose, phone }) => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -193,24 +193,22 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
           </ResendButton>
 
           <Actions>
-            <PrimaryButton
+            <SecondaryButton
+              $size="sm"
               onClick={onClose}
-              variant="secondary"
-              size="small"
               style={{ minWidth: "100px" }}
             >
               Cancel
-            </PrimaryButton>
-            <Button
-              variant="primary"
-              size="small"
-              disabled={!isOtpComplete}
+            </SecondaryButton>
+            <PrimaryButton
+              $size="sm"
+              disabled={!isOtpComplete || verifyOtpMutation.isPending}
               onClick={handleVerifyOtp}
               style={{ minWidth: "100px" }}
-              $pulse={isOtpComplete}
+              $pulse={isOtpComplete && !verifyOtpMutation.isPending}
             >
               {verifyOtpMutation.isPending ? <LoadingSpinner /> : "Verify"}
-            </Button>
+            </PrimaryButton>
           </Actions>
         </ModalContent>
       </ModalContainer>
@@ -243,17 +241,17 @@ const slideUp = keyframes`
   }
 `;
 
-// const pulse = keyframes`
-//   0% {
-//     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
-//   }
-//   70% {
-//     box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
-//   }
-//   100% {
-//     box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-//   }
-// `;
+const pulse = keyframes`
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+`;
 
 const bounce = keyframes`
   0%, 20%, 53%, 80%, 100% {
@@ -438,6 +436,15 @@ const Actions = styled.div`
   margin-top: 2rem;
   padding-top: 2rem;
   border-top: 1px solid #f1f5f9;
+`;
+
+// Enhanced PrimaryButton with pulse animation
+const PulsePrimaryButton = styled(PrimaryButton)`
+  ${(props) =>
+    props.$pulse &&
+    `
+    animation: ${pulse} 2s infinite;
+  `}
 `;
 
 const LoadingSpinner = styled.div`

@@ -6,15 +6,6 @@ import { motion, useInView, useAnimation } from "framer-motion";
 import { useGetCars } from "../hooks/useCar";
 import { getRandomItems } from "../utils/helper";
 
-// Import reusable buttons
-import {
-  PrimaryButton,
-  SecondaryButton,
-  AccentButton,
-  ButtonLink,
-  // SecondaryButtonLink,
-} from "../components/Button";
-
 // Icons
 import {
   FaCar,
@@ -144,7 +135,14 @@ const HomePage = () => {
       {/* Hero Section */}
       <HeroSection ref={heroRef}>
         <HeroBackground>
-          <BackgroundImage src="/images/ben1.jpg" alt="Mercedes-Benz Fleet" />
+          <BackgroundImage
+            src="/images/ben1.jpg"
+            alt="Mercedes-Benz Fleet"
+            onError={(e) => {
+              e.target.src =
+                "https://images.unsplash.com/photo-1563720223182-8e41e09c2396?auto=format&fit=crop&w=1600&q=80";
+            }}
+          />
           <Overlay />
         </HeroBackground>
 
@@ -174,11 +172,11 @@ const HomePage = () => {
 
             <motion.div variants={heroItemVariants}>
               <HeroButtons>
-                <ButtonLink to="/models" $size="lg">
+                <PrimaryButton to="/models" $large={false}>
                   Explore Our Fleet
                   <FaArrowRight />
-                </ButtonLink>
-                <SecondaryButton $size="lg">
+                </PrimaryButton>
+                <SecondaryButton as="button" $large={false}>
                   <FaPlay />
                   Watch Story
                 </SecondaryButton>
@@ -404,12 +402,13 @@ const HomePage = () => {
                 </DiscountFeatures>
 
                 <DiscountActions>
-                  <ButtonLink to="/models" $size="lg">
+                  <PrimaryButton to="/models" $large={false}>
                     <FaCar />
                     Claim Your 15% Off
-                  </ButtonLink>
+                  </PrimaryButton>
                   <SecondaryButton
-                    $size="lg"
+                    as="button"
+                    $large={false}
                     onClick={() =>
                       alert("Contact us at 1-800-MERCEDES for details")
                     }
@@ -471,10 +470,12 @@ const HomePage = () => {
                   for their premium mobility needs
                 </p>
                 <CTAButtons>
-                  <ButtonLink to="/models" $size="lg">
+                  <PrimaryButton to="/models" $large={true}>
                     Book Your Mercedes Now
-                  </ButtonLink>
-                  <SecondaryButton $size="lg">Contact Our Team</SecondaryButton>
+                  </PrimaryButton>
+                  <SecondaryButton as="button" $large={true}>
+                    Contact Our Team
+                  </SecondaryButton>
                 </CTAButtons>
               </CTAContent>
               <CTAIllustration>
@@ -488,7 +489,7 @@ const HomePage = () => {
   );
 };
 
-// Animation variants (keep the same)
+// Animation variants
 const heroVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -569,7 +570,7 @@ const ctaVariants = {
   },
 };
 
-// Styled Components (keep the same, but remove old button styles)
+// Styled Components
 const Wrapper = styled.div`
   margin-top: 4rem;
   overflow-x: hidden;
@@ -585,7 +586,7 @@ const Container = styled.div`
   }
 `;
 
-// Hero Section (keep the same, but update button styles)
+// Hero Section - Fixed background
 const HeroSection = styled.section`
   height: 90vh;
   min-height: 600px;
@@ -614,6 +615,7 @@ const BackgroundImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
 `;
 
 const Overlay = styled.div`
@@ -706,6 +708,56 @@ const HeroButtons = styled.div`
   }
 `;
 
+// Refactored Button Components
+const BaseButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: ${(props) => (props.$large ? "1.25rem 2.5rem" : "1rem 2rem")};
+  border-radius: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  font-size: ${(props) => (props.$large ? "1.1rem" : "1rem")};
+  border: none;
+  cursor: pointer;
+  justify-content: center;
+  font-family: inherit;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 480px) {
+    width: 100%;
+    max-width: 280px;
+  }
+`;
+
+const PrimaryButton = styled(BaseButton).attrs((props) => ({
+  as: props.to ? Link : "button",
+}))`
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+
+  &:hover {
+    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+  }
+`;
+
+const SecondaryButton = styled(BaseButton).attrs((props) => ({
+  as: props.to ? Link : "button",
+}))`
+  background: transparent;
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+`;
+
 const ScrollIndicator = styled.div`
   position: absolute;
   bottom: 2rem;
@@ -721,7 +773,7 @@ const ScrollIndicator = styled.div`
   }
 `;
 
-// Stats Section (keep the same)
+// Stats Section
 const StatsSection = styled.section`
   padding: 4rem 0;
   background: #f8fafc;
@@ -792,7 +844,7 @@ const StatLabel = styled.div`
   font-size: 0.9rem;
 `;
 
-// Features Section (keep the same)
+// Features Section
 const FeaturesSection = styled.section`
   padding: 6rem 0;
   background: white;
@@ -901,7 +953,7 @@ const FeatureContent = styled.div`
   }
 `;
 
-// Showcase Section (update buttons)
+// Showcase Section
 const ShowcaseSection = styled.section`
   padding: 6rem 0;
   background: #f8fafc;
@@ -976,21 +1028,18 @@ const CarOverlay = styled.div`
   }
 `;
 
-// Updated buttons for car cards
-const ViewDetailsButton = styled(ButtonLink)`
-  && {
-    background: #3b82f6;
-    color: white;
-    padding: 1rem 2rem;
-    border-radius: 10px;
-    text-decoration: none;
-    font-weight: 600;
-    transition: all 0.2s;
+const ViewDetailsButton = styled(Link)`
+  background: #3b82f6;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s;
 
-    &:hover {
-      background: #2563eb;
-      transform: scale(1.05);
-    }
+  &:hover {
+    background: #2563eb;
+    transform: scale(1.05);
   }
 `;
 
@@ -1055,52 +1104,46 @@ const FeatureTag = styled.span`
   font-weight: 500;
 `;
 
-// Updated BookButton with AccentButton
-const BookButton = styled(AccentButton).attrs({ as: Link })`
-  && {
-    display: block;
-    width: 100%;
-    background: #10b981;
-    color: white;
-    text-align: center;
-    padding: 1rem;
-    border-radius: 10px;
-    text-decoration: none;
-    font-weight: 600;
-    transition: all 0.2s;
+const BookButton = styled(Link)`
+  display: block;
+  width: 100%;
+  background: #10b981;
+  color: white;
+  text-align: center;
+  padding: 1rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s;
 
-    &:hover {
-      background: #059669;
-      transform: translateY(-2px);
-    }
+  &:hover {
+    background: #059669;
+    transform: translateY(-2px);
   }
 `;
 
-// Updated ViewAllButton
-const ViewAllButton = styled(ButtonLink)`
-  && {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: #3b82f6;
-    color: white;
-    padding: 1rem 2rem;
-    border-radius: 10px;
-    text-decoration: none;
-    font-weight: 600;
-    transition: all 0.2s;
-    margin: 0 auto;
-    display: block;
-    width: fit-content;
+const ViewAllButton = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #3b82f6;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s;
+  margin: 0 auto;
+  display: block;
+  width: fit-content;
 
-    &:hover {
-      background: #2563eb;
-      transform: translateY(-2px);
-    }
+  &:hover {
+    background: #2563eb;
+    transform: translateY(-2px);
   }
 `;
 
-// Discount Section (update buttons)
+// Discount Section
 const DiscountSection = styled.section`
   padding: 6rem 0;
   background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
@@ -1290,7 +1333,12 @@ const StatValue = styled.div`
   }
 `;
 
-// CTA Section (update buttons)
+// const StatLabel = styled.div`
+//   font-size: 0.9rem;
+//   opacity: 0.9;
+// `;
+
+// CTA Section
 const CTASection = styled.section`
   padding: 6rem 0;
   background: linear-gradient(135deg, #1e293b 0%, #374151 100%);

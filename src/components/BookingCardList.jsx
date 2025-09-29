@@ -10,8 +10,21 @@ import {
   FaDollarSign,
 } from "react-icons/fa";
 
-const BookingCardList = ({ bookings, onEdit }) => {
+// Import reusable buttons
+import { GhostButton, SecondaryButton } from "../components/Button";
+
+const BookingCardList = ({ bookings, onEdit, onDelete }) => {
   const formatDate = (dateString) => new Date(dateString).toLocaleDateString();
+
+  const handleDelete = (booking) => {
+    if (
+      window.confirm(
+        `Are you sure you want to delete booking #BF-${booking._id.slice(18)}?`
+      )
+    ) {
+      onDelete(booking._id);
+    }
+  };
 
   return (
     <>
@@ -22,21 +35,33 @@ const BookingCardList = ({ bookings, onEdit }) => {
               <strong>#BF-{booking._id.slice(18)}</strong>
               <Status status={booking.status}>{booking.status}</Status>
             </div>
-            <div>
-              <ActionButton color="#f59e0b" onClick={() => onEdit(booking)}>
+            <ActionButtons>
+              <EditButton
+                onClick={() => onEdit(booking)}
+                $size="sm"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <FaEdit />
-              </ActionButton>
-              <ActionButton color="#ef4444">
+                Edit
+              </EditButton>
+              <DeleteButton
+                onClick={() => handleDelete(booking)}
+                $size="sm"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <FaTrash />
-              </ActionButton>
-            </div>
+                Delete
+              </DeleteButton>
+            </ActionButtons>
           </CardHeader>
 
           <CardRow>
             <FaUser />
             <div>
               <div className="label">Customer</div>
-              <div className="value">{booking.user.fullName}</div>
+              <div className="value">{booking.user?.fullName || "N/A"}</div>
             </div>
           </CardRow>
 
@@ -44,7 +69,7 @@ const BookingCardList = ({ bookings, onEdit }) => {
             <FaCar />
             <div>
               <div className="label">Vehicle</div>
-              <div className="value">{booking.car.model}</div>
+              <div className="value">{booking.car?.model || "N/A"}</div>
             </div>
           </CardRow>
 
@@ -53,7 +78,8 @@ const BookingCardList = ({ bookings, onEdit }) => {
             <div>
               <div className="label">Pickup</div>
               <div className="value">
-                {formatDate(booking.pickupDate)} at {booking.pickupTime}
+                {formatDate(booking.pickupDate)} at{" "}
+                {booking.pickupTime || "N/A"}
               </div>
             </div>
           </CardRow>
@@ -62,7 +88,7 @@ const BookingCardList = ({ bookings, onEdit }) => {
             <FaMapMarkerAlt />
             <div>
               <div className="label">Location</div>
-              <div className="value">{booking.pickupLocation}</div>
+              <div className="value">{booking.pickupLocation || "N/A"}</div>
             </div>
           </CardRow>
 
@@ -70,7 +96,7 @@ const BookingCardList = ({ bookings, onEdit }) => {
             <FaDollarSign />
             <div>
               <div className="label">Total</div>
-              <div className="value">${booking.totalPrice}</div>
+              <div className="value">${booking.totalPrice || "0"}</div>
             </div>
           </CardRow>
 
@@ -103,6 +129,13 @@ const Card = styled.div`
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 1rem;
   display: none;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
 
   @media (max-width: 1024px) {
     display: block;
@@ -112,24 +145,82 @@ const Card = styled.div`
 const CardHeader = styled.div`
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+`;
+
+const ActionButtons = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+`;
+
+const EditButton = styled(GhostButton)`
+  && {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid #f59e0b;
+    color: #f59e0b;
+
+    &:hover {
+      background: #fef3c7;
+      border-color: #d97706;
+      color: #d97706;
+    }
+  }
+`;
+
+const DeleteButton = styled(SecondaryButton)`
+  && {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid #ef4444;
+    color: #ef4444;
+    background: transparent;
+
+    &:hover {
+      background: #fef2f2;
+      border-color: #dc2626;
+      color: #dc2626;
+    }
+  }
 `;
 
 const CardRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   margin-bottom: 0.75rem;
+  padding: 0.5rem 0;
 
   .label {
     font-weight: 600;
     color: #64748b;
     font-size: 0.875rem;
+    min-width: 100px;
   }
 
   .value {
     color: #334155;
     font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  svg {
+    color: #3b82f6;
+    flex-shrink: 0;
   }
 `;
 
@@ -157,26 +248,13 @@ const Status = styled.span`
   }}
 `;
 
-const ActionButton = styled.button`
-  padding: 0.5rem;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  background: ${({ color }) => color || "#3b82f6"};
-  color: white;
-  margin-left: 0.5rem;
-
-  &:hover {
-    opacity: 0.8;
-  }
-`;
-
 const Badge = styled.span`
   display: inline-flex;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.75rem;
   background: ${({ verified }) => (verified ? "#d1fae5" : "#fef3c7")};
   color: ${({ verified }) => (verified ? "#065f46" : "#92400e")};
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 600;
+  text-transform: uppercase;
 `;
