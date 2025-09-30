@@ -5,95 +5,43 @@ import OtpModal from "../components/Modal/OtpModal";
 import { PrimaryButton } from "../components/Button";
 import { useSendOtp, useRegister } from "../hooks/useAuth";
 
-// Enhanced Animations
-const gradient = keyframes`
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+// Optimized Animations - Only essential ones remain
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
 `;
 
-const float = keyframes`
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(5deg); }
-`;
-
-const bounceIn = keyframes`
-  0% { 
+const slideUp = keyframes`
+  from {
     opacity: 0;
-    transform: scale(0.3) translateY(100px);
+    transform: translateY(20px);
   }
-  50% { 
-    opacity: 0.9;
-    transform: scale(1.05) translateY(-10px);
-  }
-  80% { 
+  to {
     opacity: 1;
-    transform: scale(0.95) translateY(5px);
-  }
-  100% { 
-    opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: translateY(0);
   }
 `;
 
 const slideInRight = keyframes`
-  0% {
+  from {
     opacity: 0;
-    transform: translateX(100px) rotateY(90deg);
+    transform: translateX(30px);
   }
-  100% {
+  to {
     opacity: 1;
-    transform: translateX(0) rotateY(0deg);
+    transform: translateX(0);
   }
-`;
-
-const slideInLeft = keyframes`
-  0% {
-    opacity: 0;
-    transform: translateX(-100px) rotateY(-90deg);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0) rotateY(0deg);
-  }
-`;
-
-const typewriter = keyframes`
-  from { width: 0; }
-  to { width: 100%; }
-`;
-
-// const blink = keyframes`
-//   0%, 100% { opacity: 1; }
-//   50% { opacity: 0; }
-// `;
-
-const shake = keyframes`
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-  20%, 40%, 60%, 80% { transform: translateX(5px); }
 `;
 
 const pulse = keyframes`
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.7); }
-  70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(79, 70, 229, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
 `;
 
-const glow = keyframes`
-  0%, 100% { box-shadow: 0 0 5px rgba(79, 70, 229, 0.5); }
-  50% { box-shadow: 0 0 20px rgba(79, 70, 229, 0.8); }
-`;
-
-const ripple = keyframes`
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(4);
-    opacity: 0;
-  }
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 `;
 
 const LoginPage = () => {
@@ -106,26 +54,10 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const [isOtpOpen, setOtpOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
   const [activeInput, setActiveInput] = useState(null);
 
   const sendOtp = useSendOtp();
   const register = useRegister();
-
-  // Trigger animation when mode changes
-  useEffect(() => {
-    setIsAnimating(true);
-    const timer = setTimeout(() => setIsAnimating(false), 800);
-    return () => clearTimeout(timer);
-  }, [isRegistering]);
-
-  // Auto-focus first input on mode change
-  useEffect(() => {
-    if (isRegistering) {
-      const firstInput = document.getElementById("fullName");
-      if (firstInput) firstInput.focus();
-    }
-  }, [isRegistering]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -136,11 +68,6 @@ const LoginPage = () => {
       if (password !== passwordConfirm) {
         setError("Passwords do not match");
         setIsLoading(false);
-        // Add shake animation to error
-        document.querySelector("form").style.animation = `${shake} 0.5s ease`;
-        setTimeout(() => {
-          document.querySelector("form").style.animation = "";
-        }, 500);
         return;
       }
       if (password.length < 6) {
@@ -203,91 +130,39 @@ const LoginPage = () => {
 
   return (
     <PageWrapper>
-      {/* Animated Background Elements */}
-      <BackgroundDecoration>
-        <FloatingShape
-          type="circle"
-          size="80px"
-          top="10%"
-          left="5%"
-          delay="0s"
-          color="#ff6b6b"
-        />
-        <FloatingShape
-          type="triangle"
-          size="120px"
-          top="60%"
-          left="10%"
-          delay="2s"
-          color="#4ecdc4"
-        />
-        <FloatingShape
-          type="square"
-          size="60px"
-          top="30%"
-          right="8%"
-          delay="1s"
-          color="#45b7d1"
-        />
-        <FloatingShape
-          type="circle"
-          size="100px"
-          bottom="15%"
-          right="15%"
-          delay="3s"
-          color="#96ceb4"
-        />
-
-        {/* Floating particles */}
-        {[...Array(20)].map((_, i) => (
-          <Particle key={i} index={i} />
-        ))}
-      </BackgroundDecoration>
+      {/* Simplified Background */}
+      <BackgroundOverlay />
 
       <Container>
         <LeftSection>
           <HeroContent>
-            <AnimatedTitle>
-              <TypewriterText>Drive Your </TypewriterText>
-              <GradientText delay="1.5s">Dream Car</GradientText>
-              <TypewriterText delay="3s"> Today</TypewriterText>
-            </AnimatedTitle>
+            <Title>
+              Drive Your <GradientText>Dream Car</GradientText> Today
+            </Title>
 
-            <HeroSubtitle>
-              <AnimatedSubtitle>
-                Join thousands of satisfied customers who trust us for their car
-                rental needs. Experience luxury, reliability, and exceptional
-                service.
-              </AnimatedSubtitle>
-            </HeroSubtitle>
+            <Subtitle>
+              Join thousands of satisfied customers who trust us for their car
+              rental needs. Experience luxury, reliability, and exceptional
+              service.
+            </Subtitle>
 
             <FeaturesList>
-              <Feature delay="0.2s">🚗 1000+ Luxury Vehicles</Feature>
-              <Feature delay="0.4s">⭐ 4.8/5 Customer Rating</Feature>
-              <Feature delay="0.6s">🔐 Secure & Insured</Feature>
-              <Feature delay="0.8s">📱 Easy Booking Process</Feature>
+              <Feature>🚗 1000+ Luxury Vehicles</Feature>
+              <Feature>⭐ 4.8/5 Customer Rating</Feature>
+              <Feature>🔐 Secure & Insured</Feature>
+              <Feature>📱 Easy Booking Process</Feature>
             </FeaturesList>
-
-            <CarAnimation>
-              <CarIcon>🚗</CarIcon>
-              <RoadLine />
-            </CarAnimation>
           </HeroContent>
         </LeftSection>
 
         <RightSection>
-          <FormCard
-            $isAnimating={isAnimating}
-            $mode={isRegistering ? "register" : "login"}
-          >
+          <FormCard>
             <FormHeader>
-              <AnimatedIcon $mode={isRegistering ? "register" : "login"}>
-                {isRegistering ? "👋" : "🔑"}
-              </AnimatedIcon>
-              <FormTitle $isAnimating={isAnimating}>
+              <Icon>{isRegistering ? "👋" : "🔑"}</Icon>
+              <FormTitle>
                 {isRegistering ? "Create Account" : "Welcome Back"}
               </FormTitle>
-              <FormSubtitle $isAnimating={isAnimating}>
+              <FormSubtitle>
                 {isRegistering
                   ? "Join our community today"
                   : "Sign in to your account"}
@@ -295,17 +170,17 @@ const LoginPage = () => {
             </FormHeader>
 
             {error && (
-              <ErrorMessage $show={!!error}>
+              <ErrorMessage>
                 <ErrorIcon>⚠️</ErrorIcon>
                 {error}
               </ErrorMessage>
             )}
 
-            <Form onSubmit={handleSubmit} $isAnimating={isAnimating}>
+            <Form onSubmit={handleSubmit}>
               {isRegistering && (
                 <>
                   <InputGroup>
-                    <AnimatedInput
+                    <Input
                       id="fullName"
                       type="text"
                       value={fullName}
@@ -315,13 +190,12 @@ const LoginPage = () => {
                       placeholder="Full Name"
                       required
                       $active={activeInput === "fullName"}
-                      delay="0.1s"
                     />
                     <InputIcon>👤</InputIcon>
                   </InputGroup>
 
                   <InputGroup>
-                    <AnimatedInput
+                    <Input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -330,7 +204,6 @@ const LoginPage = () => {
                       placeholder="Email Address"
                       required
                       $active={activeInput === "email"}
-                      delay="0.2s"
                     />
                     <InputIcon>📧</InputIcon>
                   </InputGroup>
@@ -338,7 +211,7 @@ const LoginPage = () => {
               )}
 
               <InputGroup>
-                <AnimatedInput
+                <Input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -347,13 +220,12 @@ const LoginPage = () => {
                   placeholder="Phone Number"
                   required
                   $active={activeInput === "phone"}
-                  delay={isRegistering ? "0.3s" : "0.1s"}
                 />
                 <InputIcon>📱</InputIcon>
               </InputGroup>
 
               <InputGroup>
-                <AnimatedInput
+                <Input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -364,14 +236,13 @@ const LoginPage = () => {
                   }
                   required
                   $active={activeInput === "password"}
-                  delay={isRegistering ? "0.4s" : "0.2s"}
                 />
                 <InputIcon>🔒</InputIcon>
               </InputGroup>
 
               {isRegistering && (
                 <InputGroup>
-                  <AnimatedInput
+                  <Input
                     type="password"
                     value={passwordConfirm}
                     onChange={(e) => setPasswordConfirm(e.target.value)}
@@ -380,7 +251,6 @@ const LoginPage = () => {
                     placeholder="Confirm Password"
                     required
                     $active={activeInput === "passwordConfirm"}
-                    delay="0.5s"
                   />
                   <InputIcon>✅</InputIcon>
                 </InputGroup>
@@ -389,32 +259,26 @@ const LoginPage = () => {
               <SubmitButton
                 type="submit"
                 disabled={isLoading}
-                isLoading={isLoading}
-                $pulse={!isLoading}
+                $isLoading={isLoading}
               >
                 {isLoading ? (
                   <>
                     <Spinner />
-                    <RippleContainer>
-                      <Ripple />
-                      <Ripple delay="0.3s" />
-                      <Ripple delay="0.6s" />
-                    </RippleContainer>
                     {isRegistering ? "Creating Account..." : "Signing In..."}
                   </>
                 ) : (
-                  <>{isRegistering ? "🚀 Create Account" : "🔑 Sign In"}</>
+                  <>{isRegistering ? "Create Account" : "Sign In"}</>
                 )}
               </SubmitButton>
             </Form>
 
-            <ToggleSection $isAnimating={isAnimating}>
+            <ToggleSection>
               <ToggleText>
                 {isRegistering
                   ? "Already have an account?"
                   : "Don't have an account?"}
               </ToggleText>
-              <ToggleButton onClick={toggleMode} type="button" $glow>
+              <ToggleButton onClick={toggleMode} type="button">
                 {isRegistering ? "Sign In" : "Sign Up"}
               </ToggleButton>
             </ToggleSection>
@@ -438,116 +302,67 @@ const LoginPage = () => {
 
 export default LoginPage;
 
-// Enhanced Styled Components with Animations
+// Optimized Styled Components
 const PageWrapper = styled.div`
   min-height: 100vh;
-  background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-  background-size: 400% 400%;
-  animation: ${gradient} 15s ease infinite;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
   position: relative;
-  overflow: hidden;
 `;
 
-const BackgroundDecoration = styled.div`
+const BackgroundOverlay = styled.div`
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-`;
-
-const FloatingShape = styled.div`
-  position: absolute;
-  width: ${(props) => props.size};
-  height: ${(props) => props.size};
-  background: ${(props) => props.color}20;
-  border: 2px solid ${(props) => props.color};
-  border-radius: ${(props) =>
-    props.type === "circle"
-      ? "50%"
-      : props.type === "triangle"
-      ? "50% 50% 0 50%"
-      : "20%"};
-  animation: ${float} 6s ease-in-out infinite;
-  animation-delay: ${(props) => props.delay};
-  top: ${(props) => props.top};
-  left: ${(props) => props.left};
-  right: ${(props) => props.right};
-  bottom: ${(props) => props.bottom};
-  filter: blur(${(props) => (props.type === "circle" ? "0px" : "1px")});
-`;
-
-const Particle = styled.div`
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
-  top: ${() => Math.random() * 100}%;
-  left: ${() => Math.random() * 100}%;
-  animation: ${float} ${() => 3 + Math.random() * 4}s ease-in-out infinite;
-  animation-delay: ${() => Math.random() * 5}s;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.1);
 `;
 
 const Container = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  max-width: 1200px;
+  max-width: 1000px;
   width: 100%;
   background: rgba(255, 255, 255, 0.95);
-  border-radius: 24px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(20px);
-  animation: ${bounceIn} 1s ease-out;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  animation: ${fadeIn} 0.5s ease-out;
 
-  @media (max-width: 968px) {
+  @media (max-width: 768px) {
     grid-template-columns: 1fr;
-    max-width: 450px;
+    max-width: 400px;
   }
 `;
 
 const LeftSection = styled.div`
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 4rem 3rem;
+  padding: 3rem 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  position: relative;
-  overflow: hidden;
 
-  @media (max-width: 968px) {
-    padding: 3rem 2rem;
+  @media (max-width: 768px) {
+    padding: 2rem 1.5rem;
     display: none;
   }
 `;
 
 const HeroContent = styled.div`
-  position: relative;
-  z-index: 2;
   text-align: center;
 `;
 
-const AnimatedTitle = styled.h1`
-  font-size: 2.5rem;
+const Title = styled.h1`
+  font-size: 2rem;
   font-weight: 700;
-  margin-bottom: 1.5rem;
-  line-height: 1.2;
-  overflow: hidden;
-`;
-
-const TypewriterText = styled.span`
-  display: inline-block;
-  overflow: hidden;
-  white-space: nowrap;
-  animation: ${typewriter} 2s steps(40, end) ${(props) => props.delay || "0s"}
-    both;
+  margin-bottom: 1rem;
+  line-height: 1.3;
 `;
 
 const GradientText = styled.span`
@@ -555,87 +370,42 @@ const GradientText = styled.span`
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  display: inline-block;
-  animation: ${pulse} 2s infinite ${(props) => props.delay || "0s"};
 `;
 
-const HeroSubtitle = styled.div`
-  margin-bottom: 2rem;
-`;
-
-const AnimatedSubtitle = styled.p`
-  font-size: 1.1rem;
-  opacity: 0;
+const Subtitle = styled.p`
+  font-size: 1rem;
   line-height: 1.6;
-  animation: ${slideInLeft} 1s ease-out 2s forwards;
+  margin-bottom: 2rem;
+  opacity: 0.9;
 `;
 
 const FeaturesList = styled.div`
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
   text-align: left;
-  margin-bottom: 2rem;
 `;
 
 const Feature = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 1rem;
-  opacity: 0;
-  transform: translateX(-50px);
-  animation: ${slideInLeft} 0.6s ease-out ${(props) => props.delay} forwards;
-`;
-
-const CarAnimation = styled.div`
-  position: relative;
-  margin-top: 2rem;
-`;
-
-const CarIcon = styled.div`
-  font-size: 3rem;
-  animation: ${float} 3s ease-in-out infinite;
-`;
-
-const RoadLine = styled.div`
-  width: 100%;
-  height: 2px;
-  background: rgba(255, 255, 255, 0.5);
-  position: relative;
-  overflow: hidden;
-
-  &::after {
-    content: "";
-    position: absolute;
-    width: 50px;
-    height: 2px;
-    background: white;
-    animation: ${typewriter} 2s linear infinite;
-  }
+  gap: 0.5rem;
+  font-size: 0.9rem;
 `;
 
 const RightSection = styled.div`
-  padding: 3rem;
+  padding: 2rem;
   display: flex;
   align-items: center;
   justify-content: center;
 
   @media (max-width: 768px) {
-    padding: 2rem 1.5rem;
+    padding: 1.5rem;
   }
 `;
 
 const FormCard = styled.div`
   width: 100%;
-  max-width: 400px;
-  animation: ${(props) =>
-    props.$isAnimating
-      ? css`
-          ${slideInRight} 0.8s ease-out
-        `
-      : "none"};
-  transform-style: preserve-3d;
-  perspective: 1000px;
+  max-width: 350px;
 `;
 
 const FormHeader = styled.div`
@@ -643,103 +413,66 @@ const FormHeader = styled.div`
   margin-bottom: 2rem;
 `;
 
-const AnimatedIcon = styled.div`
-  font-size: 3rem;
+const Icon = styled.div`
+  font-size: 2.5rem;
   margin-bottom: 1rem;
-  animation: ${bounceIn} 0.8s ease-out,
-    ${(props) =>
-      props.$mode === "register"
-        ? css`
-            ${pulse} 2s infinite 1s
-          `
-        : "none"};
 `;
 
 const FormTitle = styled.h2`
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: #1f2937;
   margin-bottom: 0.5rem;
-  animation: ${(props) =>
-    props.$isAnimating
-      ? css`
-          ${bounceIn} 0.6s ease-out
-        `
-      : "none"};
 `;
 
 const FormSubtitle = styled.p`
   color: #6b7280;
-  font-size: 1rem;
-  animation: ${(props) =>
-    props.$isAnimating
-      ? css`
-          ${slideInRight} 0.8s ease-out
-        `
-      : "none"};
+  font-size: 0.9rem;
 `;
 
 const ErrorMessage = styled.div`
   background: #fef2f2;
   border: 1px solid #fecaca;
   color: #dc2626;
-  padding: 1rem;
-  border-radius: 12px;
+  padding: 0.75rem;
+  border-radius: 8px;
   margin-bottom: 1.5rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-weight: 500;
-  animation: ${(props) =>
-    props.$show
-      ? css`
-          ${bounceIn} 0.5s ease-out, ${shake} 0.5s ease-out
-        `
-      : "none"};
+  font-size: 0.9rem;
+  animation: ${slideUp} 0.3s ease-out;
 `;
 
 const ErrorIcon = styled.span`
-  font-size: 1.2rem;
-  animation: ${pulse} 1s infinite;
+  font-size: 1rem;
 `;
 
 const Form = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  animation: ${(props) =>
-    props.$isAnimating
-      ? css`
-          ${bounceIn} 0.6s ease-out
-        `
-      : "none"};
+  gap: 1rem;
 `;
 
 const InputGroup = styled.div`
   position: relative;
 `;
 
-const AnimatedInput = styled.input`
+const Input = styled.input`
   width: 100%;
-  padding: 1rem 1rem 1rem 3rem;
+  padding: 0.875rem 0.875rem 0.875rem 2.5rem;
   border: 2px solid ${(props) => (props.$active ? "#4f46e5" : "#e5e7eb")};
-  border-radius: 12px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
   background: white;
   color: #1f2937;
-  animation: ${slideInRight} 0.6s ease-out ${(props) => props.delay} both;
-  transform-origin: left;
 
   &:focus {
     outline: none;
     border-color: #4f46e5;
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-
-    + span {
-      color: #4f46e5;
-      transform: scale(1.2);
-    }
   }
 
   &::placeholder {
@@ -749,45 +482,36 @@ const AnimatedInput = styled.input`
 
 const InputIcon = styled.span`
   position: absolute;
-  left: 1rem;
+  left: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 1.2rem;
+  font-size: 1rem;
   color: #6b7280;
-  transition: all 0.3s ease;
 `;
 
 const SubmitButton = styled.button`
   width: 100%;
-  padding: 1rem 2rem;
+  padding: 0.875rem 2rem;
   background: ${(props) =>
-    props.isLoading
+    props.$isLoading
       ? "#9ca3af"
       : "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)"};
   color: white;
   border: none;
-  border-radius: 12px;
-  font-size: 1.1rem;
+  border-radius: 8px;
+  font-size: 1rem;
   font-weight: 600;
-  cursor: ${(props) => (props.isLoading ? "not-allowed" : "pointer")};
-  transition: all 0.3s ease;
+  cursor: ${(props) => (props.$isLoading ? "not-allowed" : "pointer")};
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   margin-top: 0.5rem;
-  position: relative;
-  overflow: hidden;
-  animation: ${(props) =>
-    props.$pulse
-      ? css`
-          ${pulse} 2s infinite
-        `
-      : "none"};
 
   &:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 15px 30px rgba(79, 70, 229, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(79, 70, 229, 0.3);
   }
 
   &:disabled {
@@ -796,60 +520,24 @@ const SubmitButton = styled.button`
 `;
 
 const Spinner = styled.div`
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border: 2px solid transparent;
   border-top: 2px solid white;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-`;
-
-const RippleContainer = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-`;
-
-const Ripple = styled.div`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 20px;
-  height: 20px;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  animation: ${ripple} 1.5s linear infinite;
-  animation-delay: ${(props) => props.delay || "0s"};
+  animation: ${spin} 1s linear infinite;
 `;
 
 const ToggleSection = styled.div`
   text-align: center;
-  margin: 2rem 0 1rem;
-  padding: 1.5rem 0;
+  margin: 1.5rem 0 1rem;
+  padding: 1rem 0;
   border-top: 1px solid #e5e7eb;
-  animation: ${(props) =>
-    props.$isAnimating
-      ? css`
-          ${slideInRight} 0.8s ease-out
-        `
-      : "none"};
 `;
 
 const ToggleText = styled.span`
   color: #6b7280;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 `;
 
 const ToggleButton = styled.button`
@@ -859,34 +547,18 @@ const ToggleButton = styled.button`
   font-weight: 600;
   cursor: pointer;
   margin-left: 0.5rem;
-  font-size: 0.95rem;
-  transition: all 0.3s ease;
-  animation: ${(props) =>
-    props.$glow
-      ? css`
-          ${glow} 2s infinite
-        `
-      : "none"};
+  font-size: 0.9rem;
+  transition: color 0.2s ease;
 
   &:hover {
     color: #3730a3;
-    transform: scale(1.1);
-  }
-`;
-const fadeIn = keyframes`
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
   }
 `;
 
 const PrivacyNote = styled.p`
   text-align: center;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #9ca3af;
   margin-top: 1rem;
   line-height: 1.4;
-  animation: ${fadeIn} 1s ease-out 3s both;
 `;
