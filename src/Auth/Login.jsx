@@ -1,6 +1,6 @@
 // src/pages/LoginPage.jsx
-import React, { useState, useEffect } from "react";
-import styled, { keyframes, css } from "styled-components";
+import React, { useState } from "react";
+import styled, { keyframes } from "styled-components";
 import OtpModal from "../components/Modal/OtpModal";
 import { PrimaryButton } from "../components/Button";
 import { useSendOtp, useRegister } from "../hooks/useAuth";
@@ -20,23 +20,6 @@ const slideUp = keyframes`
     opacity: 1;
     transform: translateY(0);
   }
-`;
-
-const slideInRight = keyframes`
-  from {
-    opacity: 0;
-    transform: translateX(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-`;
-
-const pulse = keyframes`
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
 `;
 
 const spin = keyframes`
