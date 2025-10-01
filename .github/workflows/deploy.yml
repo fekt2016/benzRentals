@@ -9,7 +9,7 @@ jobs:
     name: 🎉 Deploy to Production
     runs-on: ubuntu-latest
     environment:
-      name: server
+      name: ftp_server
       url: https://benzflex.com
 
     steps:
@@ -72,7 +72,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./
-          server-dir: /public_html/
+          server-dir: ./public_html/
           exclude: |
             **/.git*
             **/.github*
