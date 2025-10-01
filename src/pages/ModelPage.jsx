@@ -19,11 +19,57 @@ import { useGetCarById } from "../hooks/useCar";
 import { useMyDrivers } from "../hooks/useDriver";
 import { useCurrentUser } from "../hooks/useAuth";
 
+// Component Imports
 import BookingForm from "../components/forms/BookingForm";
 import ReviewSection from "../components/ReviewSection";
 import ModelSideTab from "../components/ModelSideTab";
+// import HeroSection from "../components/Sections/HeroSection";
+import CarCard from "../components/Cards/CarCard";
+import { PrimaryButton, SecondaryButton } from "../components/ui/Button";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner";
+
+// Global Styles
+import { devices } from "../styles/GlobalStyles";
 
 // Modern animations
+const fadeInUp = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
+const scaleIn = keyframes`
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+`;
+
+const pulse = keyframes`
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+`;
+
+const slideUp = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
 
 const ModelPage = () => {
   const { modelId } = useParams();
@@ -36,7 +82,6 @@ const ModelPage = () => {
   const user = useMemo(() => userData?.user || null, [userData]);
 
   const [thumbsSwiper, setThumbsSwiper] = useState(null);
-
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isMobileExpanded, setIsMobileExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 968);
@@ -79,11 +124,37 @@ const ModelPage = () => {
     }
   };
 
+  // Transform car data for similar cars display
+  const transformCarForCard = (carData, variant = "similar") => {
+    const baseFeatures = [
+      carData.transmission || "Automatic",
+      carData.fuel || "Premium",
+      `${carData.seats || 5} Seats`,
+    ].filter(Boolean);
+
+    const features = [...(carData.features || []), ...baseFeatures];
+
+    return {
+      id: carData._id,
+      image: carData.images?.[0] || "/default-car.jpg",
+      model:
+        variant === "premium"
+          ? `Premium ${carData.name}`
+          : `Similar ${carData.name}`,
+      price:
+        variant === "premium"
+          ? carData.pricePerDay + 25
+          : carData.pricePerDay - 15,
+      series: variant === "premium" ? "Luxury Edition" : "Economy Option",
+      features: features.slice(0, 4), // Limit features for similar cards
+    };
+  };
+
   if (isLoading) {
     return (
       <LoadingWrapper>
         <LoadingSpinner />
-        <p>Loading car details...</p>
+        <LoadingText>Loading car details...</LoadingText>
       </LoadingWrapper>
     );
   }
@@ -95,11 +166,11 @@ const ModelPage = () => {
     <>
       <BookingHeader
         onClick={isMobile ? toggleMobileExpand : undefined}
-        isMobile={isMobile}
-        isMobileExpanded={isMobileExpanded}
+        $isMobile={isMobile}
+        $isMobileExpanded={isMobileExpanded}
       >
         <div>
-          <h3>🚗 Book This Car</h3>
+          <BookingTitle>🚗 Book This Car</BookingTitle>
           <PriceHighlight>${car.pricePerDay}/day</PriceHighlight>
         </div>
         {isMobile && (
@@ -109,7 +180,7 @@ const ModelPage = () => {
 
       {car.status === "available" ? (
         <>
-          <AvailabilityBadge available={true}>
+          <AvailabilityBadge $available={true}>
             ✅ Available for booking
           </AvailabilityBadge>
           <BookingForm car={car} drivers={drivers} />
@@ -120,15 +191,21 @@ const ModelPage = () => {
       ) : (
         <NotAvailable>
           <NotAvailableIcon>⏸️</NotAvailableIcon>
-          <h3>Currently Unavailable</h3>
-          <p>
+          <NotAvailableTitle>Currently Unavailable</NotAvailableTitle>
+          <NotAvailableText>
             This car is <strong>{car.status}</strong>. Check back later!
-          </p>
+          </NotAvailableText>
           <NotifyButton>🔔 Notify me when available</NotifyButton>
         </NotAvailable>
       )}
     </>
   );
+
+  // Create similar cars data
+  const similarCars = [
+    transformCarForCard(car, "similar"),
+    transformCarForCard(car, "premium"),
+  ];
 
   return (
     <PageWrapper>
@@ -137,15 +214,15 @@ const ModelPage = () => {
         <TitleWrapper>
           <Title>{car.name}</Title>
           <CarBadges>
-            <StatusBadge status={car.status}>
-              {car.status.toUpperCase()}
+            <StatusBadge $status={car.status}>
+              {car.status?.toUpperCase() || "UNAVAILABLE"}
             </StatusBadge>
             <RatingBadge>⭐ {car.rating || "4.8"} / 5</RatingBadge>
           </CarBadges>
         </TitleWrapper>
 
         <ActionButtons>
-          <BookmarkButton onClick={handleBookmark} isBookmarked={isBookmarked}>
+          <BookmarkButton onClick={handleBookmark} $isBookmarked={isBookmarked}>
             {isBookmarked ? "❤️ Bookmarked" : "🤍 Bookmark"}
           </BookmarkButton>
           <ShareButton>📤 Share</ShareButton>
@@ -192,7 +269,7 @@ const ModelPage = () => {
               loop={true}
               className="main-swiper"
             >
-              {car.images.map((img, i) => (
+              {car.images?.map((img, i) => (
                 <SwiperSlide key={i}>
                   <MainImage
                     src={img}
@@ -216,7 +293,7 @@ const ModelPage = () => {
                 freeMode={true}
                 className="thumbs-swiper"
               >
-                {car.images.map((img, i) => (
+                {car.images?.map((img, i) => (
                   <SwiperSlide key={i}>
                     <ThumbImage
                       src={img}
@@ -230,11 +307,12 @@ const ModelPage = () => {
               </Swiper>
             </ThumbsWrapper>
           </SliderWrapper>
+
           {/* Enhanced Booking Card - Sticky on desktop, bottom sheet on mobile */}
           {isMobile ? (
-            <MobileStickyContainer isExpanded={isMobileExpanded}>
+            <MobileStickyContainer $isExpanded={isMobileExpanded}>
               <MobileBookingCard
-                isExpanded={isMobileExpanded}
+                $isExpanded={isMobileExpanded}
                 onClick={toggleMobileExpand}
               >
                 <BookingCardContent />
@@ -257,27 +335,22 @@ const ModelPage = () => {
         <ReviewSection modelId={modelId} userId={user?._id} />
       </Section>
 
-      {/* Similar Cars Section */}
+      {/* Similar Cars Section using CarCard Component */}
       <Section>
         <SectionTitle>🔍 Similar Vehicles</SectionTitle>
         <SimilarCarsGrid>
-          <SimilarCarCard>
-            <SimilarCarImage src={car.images[0]} />
-            <SimilarCarInfo>
-              <h4>Similar {car.name}</h4>
-              <p>${car.pricePerDay - 15}/day</p>
-              <SmallBadge>Popular</SmallBadge>
-            </SimilarCarInfo>
-          </SimilarCarCard>
-
-          <SimilarCarCard>
-            <SimilarCarImage src={car.images[1] || car.images[0]} />
-            <SimilarCarInfo>
-              <h4>Premium {car.name}</h4>
-              <p>${car.pricePerDay + 25}/day</p>
-              <SmallBadge>Luxury</SmallBadge>
-            </SimilarCarInfo>
-          </SimilarCarCard>
+          {similarCars.map((similarCar) => {
+            console.log("sim", similarCar);
+            return (
+              <CarCard
+                key={similarCar._id}
+                car={similarCar}
+                showOverlay={true}
+                showBookButton={true}
+                className="similar-car-card"
+              />
+            );
+          })}
         </SimilarCarsGrid>
       </Section>
     </PageWrapper>
@@ -285,55 +358,27 @@ const ModelPage = () => {
 };
 
 export default ModelPage;
-const fadeInUp = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
 
-const scaleIn = keyframes`
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-`;
-
-const pulse = keyframes`
-  0% { transform: scale(1); }
-  50% { transform: scale(1.02); }
-  100% { transform: scale(1); }
-`;
-
-const slideUp = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
-
-// Modern Styled Components
+// Modern Styled Components using CSS Variables from Global Styles
 const PageWrapper = styled.div`
   max-width: 1200px;
   margin: 2rem auto;
-  padding: 0 1rem;
+  padding: 0 var(--space-lg);
   animation: ${fadeInUp} 0.6s ease-out;
+  font-family: var(--font-body);
 
-  @media (max-width: 768px) {
-    margin: 1rem auto;
-    padding: 0 0.5rem;
+  @media ${devices.lg} {
+    margin: var(--space-xl) auto;
+  }
+
+  @media ${devices.md} {
+    margin: var(--space-lg) auto;
+    padding: 0 var(--space-md);
+  }
+
+  @media ${devices.sm} {
+    margin: var(--space-md) auto;
+    padding: 0 var(--space-sm);
     padding-bottom: 100px; /* Space for mobile sticky booking form */
   }
 `;
@@ -344,45 +389,36 @@ const LoadingWrapper = styled.div`
   align-items: center;
   justify-content: center;
   min-height: 50vh;
-  gap: 1rem;
+  gap: var(--space-lg);
 `;
 
-const LoadingSpinner = styled.div`
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f4f6;
-  border-top: 4px solid #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
-  }
+const LoadingText = styled.p`
+  color: var(--text-secondary);
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
+  font-family: var(--font-body);
 `;
 
 const NotFound = styled.div`
   text-align: center;
-  padding: 4rem 2rem;
-  font-size: 1.2rem;
-  color: #6b7280;
+  padding: var(--space-2xl) var(--space-xl);
+  font-size: var(--text-xl);
+  color: var(--text-muted);
+  font-family: var(--font-body);
 `;
 
 const HeaderSection = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-xl);
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: var(--space-lg);
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     flex-direction: column;
     text-align: center;
+    gap: var(--space-md);
   }
 `;
 
@@ -391,113 +427,142 @@ const TitleWrapper = styled.div`
 `;
 
 const Title = styled.h1`
-  font-size: clamp(2rem, 4vw, 3rem);
-  color: #1f2937;
-  margin: 0 0 0.5rem 0;
-  font-weight: 700;
+  font-size: clamp(var(--text-3xl), 4vw, var(--text-5xl));
+  color: var(--text-primary);
+  margin: 0 0 var(--space-sm) 0;
+  font-weight: var(--font-bold);
   line-height: 1.2;
+  font-family: var(--font-heading);
 `;
 
 const CarBadges = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
   flex-wrap: wrap;
+
+  @media ${devices.sm} {
+    justify-content: center;
+    gap: var(--space-sm);
+  }
 `;
 
 const StatusBadge = styled.span`
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
   background: ${(props) =>
-    props.status === "available"
-      ? "#dcfce7"
-      : props.status === "unavailable"
-      ? "#fecaca"
-      : "#e5e7eb"};
+    props.$status === "available"
+      ? "var(--success-light)"
+      : props.$status === "unavailable"
+      ? "var(--error-light)"
+      : "var(--gray-200)"};
   color: ${(props) =>
-    props.status === "available"
-      ? "#166534"
-      : props.status === "unavailable"
-      ? "#991b1b"
-      : "#6b7280"};
+    props.$status === "available"
+      ? "var(--success-dark)"
+      : props.$status === "unavailable"
+      ? "var(--error-dark)"
+      : "var(--text-muted)"};
 `;
 
 const RatingBadge = styled.span`
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  background: #fef3c7;
-  color: #92400e;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  background: var(--warning-light);
+  color: var(--warning-dark);
 `;
 
 const ActionButtons = styled.div`
   display: flex;
-  gap: 0.75rem;
-`;
+  gap: var(--space-md);
 
-const BookmarkButton = styled.button`
-  padding: 0.75rem 1.25rem;
-  border: 2px solid ${(props) => (props.isBookmarked ? "#ef4444" : "#d1d5db")};
-  background: ${(props) => (props.isBookmarked ? "#ef4444" : "white")};
-  color: ${(props) => (props.isBookmarked ? "white" : "#374151")};
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  @media ${devices.sm} {
+    width: 100%;
+    justify-content: center;
   }
 `;
 
-const ShareButton = styled.button`
-  padding: 0.75rem 1.25rem;
-  border: 2px solid #3b82f6;
-  background: white;
-  color: #3b82f6;
-  border-radius: 10px;
+const BookmarkButton = styled.button`
+  padding: var(--space-md) var(--space-lg);
+  border: 2px solid
+    ${(props) => (props.$isBookmarked ? "var(--error)" : "var(--gray-300)")};
+  background: ${(props) =>
+    props.$isBookmarked ? "var(--error)" : "var(--white)"};
+  color: ${(props) =>
+    props.$isBookmarked ? "var(--white)" : "var(--text-primary)"};
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
+  font-weight: var(--font-semibold);
+  transition: all var(--transition-normal);
   white-space: nowrap;
+  font-family: var(--font-body);
 
   &:hover {
-    background: #3b82f6;
-    color: white;
     transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  @media ${devices.sm} {
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-sm);
+  }
+`;
+
+const ShareButton = styled(SecondaryButton)`
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+
+  @media ${devices.sm} {
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-sm);
   }
 `;
 
 const StatsBar = styled.div`
   display: flex;
   align-items: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  color: white;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-2xl);
+  color: var(--white);
   animation: ${scaleIn} 0.6s ease-out;
+
+  @media ${devices.sm} {
+    padding: var(--space-lg);
+    margin-bottom: var(--space-xl);
+  }
 `;
 
 const StatItem = styled.div`
   flex: 1;
   text-align: center;
-  padding: 0 1rem;
+  padding: 0 var(--space-lg);
+
+  @media ${devices.sm} {
+    padding: 0 var(--space-sm);
+  }
 `;
 
 const StatValue = styled.div`
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 0.25rem;
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--space-xs);
+  font-family: var(--font-heading);
+
+  @media ${devices.sm} {
+    font-size: var(--text-xl);
+  }
 `;
 
 const StatLabel = styled.div`
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   opacity: 0.9;
+  font-family: var(--font-body);
 `;
 
 const StatDivider = styled.div`
@@ -509,55 +574,61 @@ const StatDivider = styled.div`
 const ContentWrapper = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 2rem;
-  margin-bottom: 3rem;
+  gap: var(--space-2xl);
+  margin-bottom: var(--space-2xl);
   align-items: flex-start;
   min-height: 100vh;
 
-  @media (max-width: 968px) {
+  @media ${devices.lg} {
+    gap: var(--space-xl);
+  }
+
+  @media ${devices.md} {
     flex-direction: column;
-    gap: 1.5rem;
+    gap: var(--space-lg);
     min-height: auto;
   }
 `;
+
 const LeftSection = styled.div`
   flex: 1 1 60%;
   min-width: 300px;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-xl);
   position: relative;
   animation: ${fadeInUp} 0.8s ease-out;
 
-  @media (max-width: 968px) {
+  @media ${devices.md} {
     order: 2;
+    gap: var(--space-lg);
   }
 `;
 
 const SliderWrapper = styled.div`
-  /* flex: 1 1 60%; */
   min-width: 300px;
   animation: ${fadeInUp} 0.8s ease-out;
 
-  @media (max-width: 968px) {
+  @media ${devices.md} {
     order: 1;
   }
 `;
 
 const MainSwiper = styled(Swiper)`
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-lg);
 
   .swiper-button-next,
   .swiper-button-prev {
-    color: white;
+    color: var(--white);
     background: rgba(0, 0, 0, 0.5);
     width: 50px;
     height: 50px;
     border-radius: 50%;
+
     &:after {
-      font-size: 1.2rem;
+      font-size: var(--text-lg);
     }
   }
 `;
@@ -568,67 +639,69 @@ const MainImage = styled.img`
   object-fit: cover;
   display: block;
 
-  @media (max-width: 768px) {
-    height: 350px;
+  @media ${devices.md} {
+    height: 400px;
+  }
+
+  @media ${devices.sm} {
+    height: 300px;
   }
 `;
 
 const ThumbsWrapper = styled.div`
-  margin-top: 1rem;
+  margin-top: var(--space-lg);
 `;
 
 const ThumbImage = styled.img`
   width: 100%;
   height: 80px;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   border: 3px solid transparent;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
 
   &:hover {
-    border-color: #3b82f6;
+    border-color: var(--primary);
     transform: scale(1.05);
   }
 
   .swiper-slide-thumb-active & {
-    border-color: #3b82f6;
+    border-color: var(--primary);
   }
 `;
 
 // Desktop Booking Card (Sticky)
 const DesktopBookingCard = styled.div`
   width: 100%;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 20px;
-  padding: 2rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  padding: var(--space-2xl);
+  box-shadow: var(--shadow-lg);
   animation: ${scaleIn} 0.6s ease-out 0.2s both;
   position: sticky;
-  top: 2rem;
+  top: var(--space-xl);
   z-index: 10;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
   flex: 1 1 35%;
   min-width: 280px;
   align-self: flex-start;
 
-  @media (max-width: 968px) {
+  @media ${devices.lg} {
     display: none;
   }
 `;
 
 // Mobile Booking Card (Bottom Sheet)
 const MobileStickyContainer = styled.div`
-  width: 100%;
-  background: red;
-  @media (max-width: 968px) {
+  @media ${devices.lg} {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    background: white;
-    border-top: 1px solid #e5e7eb;
+    background: var(--white);
+    border-top: 1px solid var(--gray-200);
     padding: 0;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
     z-index: 1000;
@@ -641,13 +714,14 @@ const MobileStickyContainer = styled.div`
 `;
 
 const MobileBookingCard = styled.div`
-  @media (max-width: 968px) {
-    background: white;
-    border-radius: 20px 20px 0 0;
-    padding: ${(props) => (props.isExpanded ? "1.5rem" : "1rem")};
-    max-height: ${(props) => (props.isExpanded ? "80vh" : "80px")};
-    overflow: ${(props) => (props.isExpanded ? "auto" : "hidden")};
-    transition: all 0.3s ease;
+  @media ${devices.lg} {
+    background: var(--white);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: ${(props) =>
+      props.$isExpanded ? "var(--space-xl)" : "var(--space-lg)"};
+    max-height: ${(props) => (props.$isExpanded ? "80vh" : "80px")};
+    overflow: ${(props) => (props.$isExpanded ? "auto" : "hidden")};
+    transition: all var(--transition-normal);
     cursor: pointer;
 
     /* Custom scrollbar for mobile */
@@ -656,11 +730,11 @@ const MobileBookingCard = styled.div`
     }
 
     &::-webkit-scrollbar-track {
-      background: #f1f1f1;
+      background: var(--gray-100);
     }
 
     &::-webkit-scrollbar-thumb {
-      background: #c1c1c1;
+      background: var(--gray-400);
       border-radius: 2px;
     }
   }
@@ -675,177 +749,148 @@ const BookingHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   margin-bottom: ${(props) =>
-    props.isMobile && !props.isMobileExpanded ? "0" : "1.5rem"};
-  cursor: ${(props) => (props.isMobile ? "pointer" : "default")};
+    props.$isMobile && !props.$isMobileExpanded ? "0" : "var(--space-xl)"};
+  cursor: ${(props) => (props.$isMobile ? "pointer" : "default")};
 
-  h3 {
-    margin: 0;
-    color: #1f2937;
-    font-size: 1.4rem;
-
-    @media (max-width: 968px) {
-      font-size: 1.2rem;
-    }
+  @media ${devices.sm} {
+    margin-bottom: ${(props) =>
+      props.$isMobile && !props.$isMobileExpanded ? "0" : "var(--space-lg)"};
   }
 
   div {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: var(--space-lg);
 
-    @media (max-width: 480px) {
+    @media ${devices.sm} {
       flex-direction: column;
       align-items: flex-start;
-      gap: 0.5rem;
+      gap: var(--space-sm);
     }
   }
 `;
 
+const BookingTitle = styled.h3`
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  font-family: var(--font-heading);
+
+  @media ${devices.lg} {
+    font-size: var(--text-lg);
+  }
+`;
+
 const MobileExpandIcon = styled.span`
-  font-size: 1.2rem;
-  color: #6b7280;
+  font-size: var(--text-lg);
+  color: var(--text-muted);
   margin-left: auto;
-  transition: transform 0.3s ease;
+  transition: transform var(--transition-normal);
 `;
 
 const PriceHighlight = styled.span`
-  font-size: 2rem;
-  font-weight: 700;
-  color: #3b82f6;
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  color: var(--primary);
   animation: ${pulse} 2s infinite;
+  font-family: var(--font-heading);
 
-  @media (max-width: 968px) {
-    font-size: 1.5rem;
+  @media ${devices.lg} {
+    font-size: var(--text-2xl);
   }
 `;
 
 const AvailabilityBadge = styled.div`
-  padding: 0.75rem 1rem;
-  background: ${(props) => (props.available ? "#dcfce7" : "#fecaca")};
-  color: ${(props) => (props.available ? "#166534" : "#991b1b")};
-  border-radius: 8px;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
+  padding: var(--space-md) var(--space-lg);
+  background: ${(props) =>
+    props.$available ? "var(--success-light)" : "var(--error-light)"};
+  color: ${(props) =>
+    props.$available ? "var(--success-dark)" : "var(--error-dark)"};
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-xl);
   text-align: center;
+  font-family: var(--font-body);
 `;
 
 const BookingNote = styled.div`
-  margin-top: 1rem;
-  padding: 1rem;
-  background: #f0f9ff;
-  border-radius: 8px;
-  color: #0369a1;
-  font-size: 0.9rem;
+  margin-top: var(--space-lg);
+  padding: var(--space-lg);
+  background: var(--info-light);
+  border-radius: var(--radius-lg);
+  color: var(--info-dark);
+  font-size: var(--text-sm);
   text-align: center;
+  font-family: var(--font-body);
 `;
 
 const NotAvailable = styled.div`
   text-align: center;
-  padding: 2rem 1rem;
-  color: #6b7280;
-
-  h3 {
-    margin: 1rem 0 0.5rem 0;
-    color: #ef4444;
-  }
+  padding: var(--space-2xl) var(--space-lg);
+  color: var(--text-muted);
+  font-family: var(--font-body);
 `;
 
 const NotAvailableIcon = styled.div`
   font-size: 3rem;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-lg);
 `;
 
-const NotifyButton = styled.button`
-  padding: 1rem 2rem;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 600;
-  margin-top: 1rem;
-  transition: all 0.3s ease;
+const NotAvailableTitle = styled.h3`
+  margin: var(--space-lg) 0 var(--space-sm) 0;
+  color: var(--error);
+  font-family: var(--font-heading);
+`;
 
-  &:hover {
-    background: #2563eb;
-    transform: translateY(-2px);
-  }
+const NotAvailableText = styled.p`
+  margin: 0 0 var(--space-lg) 0;
+  font-family: var(--font-body);
+`;
+
+const NotifyButton = styled(PrimaryButton)`
+  margin-top: var(--space-lg);
+  padding: var(--space-lg) var(--space-xl);
 `;
 
 const Section = styled.section`
-  margin: 4rem 0;
+  margin: var(--space-2xl) 0;
   animation: ${fadeInUp} 0.8s ease-out;
 
-  @media (max-width: 968px) {
-    margin: 3rem 0;
+  @media ${devices.lg} {
+    margin: var(--space-xl) 0;
   }
 `;
 
 const SectionTitle = styled.h2`
-  font-size: 2rem;
-  color: #1f2937;
-  margin-bottom: 2rem;
+  font-size: var(--text-3xl);
+  color: var(--text-primary);
+  margin-bottom: var(--space-2xl);
   text-align: center;
-  font-weight: 700;
+  font-weight: var(--font-bold);
+  font-family: var(--font-heading);
 
-  @media (max-width: 768px) {
-    font-size: 1.5rem;
-    margin-bottom: 1.5rem;
+  @media ${devices.md} {
+    font-size: var(--text-2xl);
+    margin-bottom: var(--space-xl);
   }
 `;
 
 const SimilarCarsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: var(--space-xl);
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-`;
-
-const SimilarCarCard = styled.div`
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-  }
-`;
-
-const SimilarCarImage = styled.img`
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-`;
-
-const SimilarCarInfo = styled.div`
-  padding: 1.5rem;
-
-  h4 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.2rem;
-    color: #1f2937;
+    gap: var(--space-lg);
   }
 
-  p {
-    margin: 0 0 1rem 0;
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #3b82f6;
-  }
-`;
+  .similar-car-card {
+    min-height: 500px;
 
-const SmallBadge = styled.span`
-  padding: 0.25rem 0.75rem;
-  background: #f0f9ff;
-  color: #0369a1;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
+    @media ${devices.sm} {
+      min-height: 450px;
+    }
+  }
 `;

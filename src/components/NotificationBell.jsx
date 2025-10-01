@@ -18,6 +18,11 @@ import {
   FiClock,
 } from "react-icons/fi";
 
+// Import UI Components
+import { PrimaryButton, SecondaryButton, GhostButton } from "./ui/Button";
+import { Card, LuxuryCard } from "./Cards/Card";
+import { LoadingSpinner, EmptyState, ErrorState } from "./ui/LoadingSpinner";
+
 const NotificationBell = ({ mobileView = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef();
@@ -84,15 +89,15 @@ const NotificationBell = ({ mobileView = false }) => {
   const getNotificationIcon = (type) => {
     switch (type) {
       case "booking_confirmed":
-        return <FiCheck style={{ color: "#10b981" }} />;
+        return <FiCheck style={{ color: "var(--success)" }} />;
       case "payment_success":
-        return <FiCheck style={{ color: "#10b981" }} />;
+        return <FiCheck style={{ color: "var(--success)" }} />;
       case "booking_created":
-        return <FiClock style={{ color: "#f59e0b" }} />;
+        return <FiClock style={{ color: "var(--warning)" }} />;
       case "booking_cancelled":
-        return <FiClock style={{ color: "#ef4444" }} />;
+        return <FiClock style={{ color: "var(--error)" }} />;
       default:
-        return <FiBell style={{ color: "#3b82f6" }} />;
+        return <FiBell style={{ color: "var(--primary)" }} />;
     }
   };
 
@@ -157,17 +162,17 @@ const NotificationBell = ({ mobileView = false }) => {
             <NotificationList>
               {isLoading ? (
                 <LoadingState>
-                  <LoadingSpinner />
+                  <LoadingSpinner size="sm" />
                   Loading notifications...
                 </LoadingState>
               ) : error ? (
                 <ErrorState>Failed to load notifications</ErrorState>
               ) : !hasNotifications ? (
-                <EmptyState>
-                  <FiBell size={32} />
-                  <span>No notifications yet</span>
-                  <p>We'll notify you when something arrives</p>
-                </EmptyState>
+                <EmptyState
+                  icon={<FiBell size={32} />}
+                  title="No notifications yet"
+                  message="We'll notify you when something arrives"
+                />
               ) : (
                 notifications.slice(0, 8).map((notification) => (
                   <NotificationItem
@@ -229,12 +234,13 @@ const NotificationBell = ({ mobileView = false }) => {
 
 export default NotificationBell;
 
-// Styled Components
+// Styled Components using Global Styles
 const BellContainer = styled.div`
   position: relative;
   display: flex;
   align-items: center;
-  margin-right: ${(props) => (props.$mobileView ? "0" : "0.5rem")};
+  margin-right: ${(props) => (props.$mobileView ? "0" : "var(--space-sm)")};
+  font-family: var(--font-body);
 `;
 
 const BellButton = styled(motion.button)`
@@ -245,11 +251,14 @@ const BellButton = styled(motion.button)`
     props.$hasUnread
       ? "1px solid rgba(239, 68, 68, 0.2)"
       : "1px solid transparent"};
-  border-radius: ${(props) => (props.$mobileView ? "8px" : "50%")};
-  padding: ${(props) => (props.$mobileView ? "0.75rem" : "0.5rem")};
+  border-radius: ${(props) =>
+    props.$mobileView ? "var(--radius-md)" : "var(--radius-full)"};
+  padding: ${(props) =>
+    props.$mobileView ? "var(--space-md)" : "var(--space-sm)"};
   cursor: pointer;
-  color: ${(props) => (props.$hasUnread ? "#ef4444" : "#64748b")};
-  transition: all 0.3s ease;
+  color: ${(props) =>
+    props.$hasUnread ? "var(--error)" : "var(--text-muted)"};
+  transition: all var(--transition-normal);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -257,34 +266,38 @@ const BellButton = styled(motion.button)`
   &:hover {
     background: ${(props) =>
       props.$hasUnread ? "rgba(239, 68, 68, 0.15)" : "rgba(59, 130, 246, 0.1)"};
-    color: ${(props) => (props.$hasUnread ? "#ef4444" : "#3b82f6")};
+    color: ${(props) => (props.$hasUnread ? "var(--error)" : "var(--primary)")};
   }
 `;
 
 const NotificationBadge = styled.span`
   position: absolute;
-  top: ${(props) => (props.$mobileView ? "8px" : "4px")};
-  right: ${(props) => (props.$mobileView ? "8px" : "4px")};
-  background: #ef4444;
-  color: white;
-  border-radius: 10px;
-  padding: 2px 6px;
-  font-size: ${(props) => (props.$mobileView ? "11px" : "10px")};
-  font-weight: 700;
+  top: ${(props) =>
+    props.$mobileView ? "var(--space-sm)" : "var(--space-xs)"};
+  right: ${(props) =>
+    props.$mobileView ? "var(--space-sm)" : "var(--space-xs)"};
+  background: var(--error);
+  color: var(--white);
+  border-radius: var(--radius-full);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: ${(props) =>
+    props.$mobileView ? "var(--text-xs)" : "var(--text-xs)"};
+  font-weight: var(--font-bold);
   min-width: 18px;
   text-align: center;
   line-height: 1;
+  font-family: var(--font-body);
 `;
 
 const DropdownMenu = styled(motion.div)`
   position: absolute;
   top: 100%;
   right: ${(props) => (props.$mobileView ? "0" : "0")};
-  margin-top: 0.5rem;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: var(--space-sm);
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--gray-200);
   backdrop-filter: blur(20px);
   width: ${(props) => (props.$mobileView ? "calc(100vw - 2rem)" : "380px")};
   max-height: 500px;
@@ -302,49 +315,52 @@ const DropdownHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #e2e8f0;
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--gray-200);
 `;
 
 const DropdownTitle = styled.h3`
   margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #1e293b;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  font-family: var(--font-heading);
 `;
 
 const HeaderActions = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
   align-items: center;
 `;
 
 const MarkAllReadButton = styled.button`
   background: none;
   border: none;
-  color: #3b82f6;
-  font-size: 0.875rem;
+  color: var(--primary);
+  font-size: var(--text-sm);
   cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-normal);
+  font-family: var(--font-body);
 
   &:hover {
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(211, 47, 47, 0.1);
   }
 `;
 
 const ViewAllLink = styled(Link)`
-  color: #64748b;
-  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
   text-decoration: none;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-normal);
+  font-family: var(--font-body);
 
   &:hover {
-    background: rgba(100, 116, 139, 0.1);
-    color: #475569;
+    background: var(--gray-100);
+    color: var(--text-secondary);
   }
 `;
 
@@ -357,76 +373,39 @@ const NotificationList = styled.div`
 const LoadingState = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 2rem;
-  color: #64748b;
+  gap: var(--space-md);
+  padding: var(--space-xl);
+  color: var(--text-muted);
   justify-content: center;
+  font-family: var(--font-body);
 `;
 
-const LoadingSpinner = styled.div`
-  width: 20px;
-  height: 20px;
-  border: 2px solid #e2e8f0;
-  border-top: 2px solid #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-`;
-
-const ErrorState = styled.div`
-  padding: 2rem;
-  text-align: center;
-  color: #ef4444;
-`;
-
-const EmptyState = styled.div`
-  padding: 3rem 2rem;
-  text-align: center;
-  color: #64748b;
-
-  svg {
-    margin-bottom: 1rem;
-    opacity: 0.5;
-  }
-
-  span {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-  }
-
-  p {
-    margin: 0;
-    font-size: 0.875rem;
-  }
-`;
+// const ErrorState = styled.div`
+//   padding: var(--space-xl);
+//   text-align: center;
+//   color: var(--error);
+//   font-family: var(--font-body);
+// `;
 
 const NotificationItem = styled(motion.div)`
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-xl);
   cursor: pointer;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--gray-100);
   position: relative;
   background: ${(props) =>
-    props.$unread ? "rgba(59, 130, 246, 0.02)" : "transparent"};
-  transition: background-color 0.2s;
+    props.$unread ? "rgba(211, 47, 47, 0.02)" : "transparent"};
+  transition: background-color var(--transition-normal);
+  font-family: var(--font-body);
 
   &:last-child {
     border-bottom: none;
   }
 
   &:hover {
-    background: rgba(59, 130, 246, 0.05);
+    background: rgba(211, 47, 47, 0.05);
   }
 `;
 
@@ -434,8 +413,8 @@ const NotificationIcon = styled.div`
   flex-shrink: 0;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  background: rgba(59, 130, 246, 0.1);
+  border-radius: var(--radius-md);
+  background: var(--gray-100);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -448,34 +427,39 @@ const NotificationContent = styled.div`
 `;
 
 const NotificationTitle = styled.div`
-  font-weight: ${(props) => (props.$unread ? "600" : "500")};
-  color: ${(props) => (props.$unread ? "#1e293b" : "#475569")};
-  margin-bottom: 0.25rem;
+  font-weight: ${(props) =>
+    props.$unread ? "var(--font-semibold)" : "var(--font-medium)"};
+  color: ${(props) =>
+    props.$unread ? "var(--text-primary)" : "var(--text-secondary)"};
+  margin-bottom: var(--space-xs);
   line-height: 1.4;
+  font-family: var(--font-body);
 `;
 
 const NotificationMessage = styled.div`
-  color: #64748b;
-  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
   line-height: 1.4;
-  margin-bottom: 0.25rem;
+  margin-bottom: var(--space-xs);
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  font-family: var(--font-body);
 `;
 
 const NotificationTime = styled.div`
-  color: #94a3b8;
-  font-size: 0.75rem;
+  color: var(--text-light);
+  font-size: var(--text-xs);
+  font-family: var(--font-body);
 `;
 
 const NotificationActions = styled.div`
   display: flex;
-  gap: 0.25rem;
+  gap: var(--space-xs);
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity var(--transition-normal);
 
   ${NotificationItem}:hover & {
     opacity: 1;
@@ -483,17 +467,18 @@ const NotificationActions = styled.div`
 `;
 
 const ActionButton = styled.button`
-  background: rgba(100, 116, 139, 0.1);
+  background: var(--gray-100);
   border: none;
-  border-radius: 4px;
-  padding: 0.375rem;
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
   cursor: pointer;
-  color: #64748b;
-  transition: all 0.2s;
+  color: var(--text-muted);
+  transition: all var(--transition-normal);
+  font-family: var(--font-body);
 
   &:hover {
-    background: rgba(100, 116, 139, 0.2);
-    color: #475569;
+    background: var(--gray-200);
+    color: var(--text-secondary);
   }
 `;
 
@@ -504,6 +489,6 @@ const UnreadIndicator = styled.div`
   transform: translateY(-50%);
   width: 4px;
   height: 20px;
-  background: #3b82f6;
-  border-radius: 0 2px 2px 0;
+  background: var(--primary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 `;

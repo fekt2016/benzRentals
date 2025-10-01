@@ -5,16 +5,57 @@ import { Link } from "react-router-dom";
 import { ButtonLink, PrimaryButton } from "../ui/Button";
 import { devices } from "../../styles/GlobalStyles";
 
+const getCarImage = (car) => {
+  if (!car) return null;
+
+  // If car.images exists and is an array with at least one image
+  if (Array.isArray(car.images) && car.images.length > 0) {
+    return car.images[0];
+  }
+
+  // If car.image exists as a string
+  if (typeof car.image === "string") {
+    return car.image;
+  }
+
+  // Fallback to a default image
+  return "/default-car-image.jpg";
+};
+
 const CarCard = ({
   car,
   className = "",
   showOverlay = true,
   showBookButton = true,
+  showStatus = true, // New prop to show status badge
 }) => {
+  console.log(car);
+  const image = getCarImage(car);
+
+  // Determine availability status
+  const isAvailable = car.status === "available";
+
+  const statusText = isAvailable ? "Available" : "Unavailable";
+  const statusColor = isAvailable ? "var(--success)" : "var(--error)";
+  const statusBg = isAvailable ? "#f0fdf4" : "#fef2f2";
+  const statusBorder = isAvailable ? "#bbf7d0" : "#fecaca";
+
   return (
     <CardWrapper className={`luxury-card ${className}`}>
       <CarImage>
-        <img src={car.images[0]} alt={car.model} />
+        <img src={image} alt={car.model} />
+
+        {/* Status Badge */}
+        {showStatus && (
+          <StatusBadge
+            $color={statusColor}
+            $bgColor={statusBg}
+            $borderColor={statusBorder}
+          >
+            {statusText}
+          </StatusBadge>
+        )}
+
         {showOverlay && (
           <CarOverlay>
             <ButtonLink to={`/model/${car._id}`} $size="md">
@@ -39,9 +80,17 @@ const CarCard = ({
         </CarFeatures>
         {showBookButton && (
           <BookButtonWrapper>
-            <PrimaryButton as={Link} to={`/model/${car.id}`} $size="md">
-              Book This Car
+            <PrimaryButton
+              as={Link}
+              to={`/model/${car._id}`}
+              $size="md"
+              disabled={!isAvailable}
+            >
+              {isAvailable ? "Book This Car" : "Unavailable"}
             </PrimaryButton>
+            {!isAvailable && (
+              <StatusMessage>Currently not available for booking</StatusMessage>
+            )}
           </BookButtonWrapper>
         )}
       </CarContent>
@@ -81,6 +130,25 @@ const CarImage = styled.div`
   &:hover img {
     transform: scale(1.05);
   }
+`;
+
+// Status Badge Component
+const StatusBadge = styled.div`
+  position: absolute;
+  top: var(--space-md);
+  left: var(--space-md);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: ${(props) => props.$bgColor};
+  color: ${(props) => props.$color};
+  border: 1px solid ${(props) => props.$borderColor};
+  font-family: var(--font-body);
+  z-index: 2;
+  backdrop-filter: blur(10px);
 `;
 
 const CarOverlay = styled.div`
@@ -183,10 +251,32 @@ const FeatureTag = styled.span`
 const BookButtonWrapper = styled.div`
   margin-top: auto; /* Push button to bottom */
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
 
   button {
     width: 100%;
+
+    &:disabled {
+      background: var(--gray-300);
+      cursor: not-allowed;
+
+      &:hover {
+        transform: none;
+        box-shadow: none;
+      }
+    }
   }
+`;
+
+const StatusMessage = styled.p`
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  text-align: center;
+  margin: 0;
+  font-family: var(--font-body);
+  font-style: italic;
 `;
 
 export default CarCard;

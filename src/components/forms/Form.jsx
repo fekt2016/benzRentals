@@ -4,6 +4,31 @@ import styled from "styled-components";
 import { motion } from "framer-motion";
 import { FaSearch, FaChevronDown, FaCheck } from "react-icons/fa";
 
+// Input Component
+export const Input = ({
+  type = "text",
+  placeholder = "",
+  value,
+  onChange,
+  disabled = false,
+  required = false,
+  ...props
+}) => {
+  return (
+    <InputWrapper>
+      <InputElement
+        type={type}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        required={required}
+        {...props}
+      />
+    </InputWrapper>
+  );
+};
+
 // SearchInput Component
 export const SearchInput = ({
   placeholder = "Search...",
@@ -115,29 +140,18 @@ export const RangeSlider = ({
 
 // Styled Components
 
-// Search Input Styles
-const SearchInputWrapper = styled.div`
+// Input Wrapper
+const InputWrapper = styled.div`
   position: relative;
   display: flex;
   align-items: center;
   width: 100%;
-  min-width: 280px;
 `;
 
-const SearchIcon = styled.div`
-  position: absolute;
-  left: var(--space-md);
-  color: var(--text-muted);
-  font-size: var(--text-base);
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
-
-const Input = styled.input`
+// Base Input Styles
+const InputElement = styled.input`
   width: 100%;
-  padding: var(--space-md) var(--space-md) var(--space-md) var(--space-2xl);
+  padding: var(--space-md);
   border: 1px solid var(--gray-300);
   border-radius: var(--radius-lg);
   background: var(--white);
@@ -167,6 +181,55 @@ const Input = styled.input`
     color: var(--text-muted);
     cursor: not-allowed;
   }
+
+  /* Specific styles for different input types */
+  &[type="password"] {
+    letter-spacing: 0.1em;
+  }
+
+  &[type="number"] {
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  }
+
+  &[type="date"],
+  &[type="time"],
+  &[type="datetime-local"] {
+    &::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      opacity: 0.6;
+      transition: opacity var(--transition-normal);
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+  }
+`;
+
+// Search Input Styles
+const SearchInputWrapper = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 280px;
+`;
+
+const SearchIcon = styled.div`
+  position: absolute;
+  left: var(--space-md);
+  color: var(--text-muted);
+  font-size: var(--text-base);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 // Select Styles
@@ -545,14 +608,80 @@ export const SuccessMessage = styled.span`
   font-weight: var(--font-medium);
 `;
 
+// File Input Component
+export const FileInput = ({ onChange, accept, multiple = false, ...props }) => {
+  return (
+    <FileInputWrapper>
+      <FileInputElement
+        type="file"
+        onChange={onChange}
+        accept={accept}
+        multiple={multiple}
+        {...props}
+      />
+      <FileInputLabel>
+        <FileInputIcon>📁</FileInputIcon>
+        <FileInputText>Choose file{multiple ? "s" : ""}</FileInputText>
+      </FileInputLabel>
+    </FileInputWrapper>
+  );
+};
+
+const FileInputWrapper = styled.div`
+  position: relative;
+  display: inline-block;
+  width: 100%;
+`;
+
+const FileInputElement = styled.input`
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+`;
+
+const FileInputLabel = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 2px dashed var(--gray-300);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  transition: all var(--transition-normal);
+  text-align: center;
+  justify-content: center;
+
+  ${FileInputWrapper}:hover & {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+`;
+
+const FileInputIcon = styled.span`
+  font-size: var(--text-lg);
+`;
+
+const FileInputText = styled.span`
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+`;
+
 // Export all components
 export default {
+  Input,
   SearchInput,
   Select,
   RangeSlider,
   TextArea,
   Checkbox,
   Radio,
+  FileInput,
   FormGroup,
   Label,
   ErrorMessage,

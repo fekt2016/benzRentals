@@ -9,11 +9,11 @@ import {
   FaImages,
 } from "react-icons/fa";
 import { useGetUserReviews, useCreateReview } from "../hooks/useReview";
-import { useGetBookings } from "../hooks/useBooking"; // Your actual hook
+import { useGetBookings } from "../hooks/useBooking";
+import { PrimaryButton, SecondaryButton } from "../components/ui/Button";
+import { devices } from "../styles/GlobalStyles";
 
 const ReviewSection = ({ modelId, userId }) => {
-  console.log("userId", userId);
-
   // State for UI controls
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -27,11 +27,7 @@ const ReviewSection = ({ modelId, userId }) => {
   // Custom hooks for data management
   const { data: reviewsData, isLoading: reviewsLoading } =
     useGetUserReviews(modelId);
-  const {
-    mutate: createReview,
-    isLoading: isSubmitting,
-    // isSuccess: submitSuccess,
-  } = useCreateReview();
+  const { mutate: createReview, isLoading: isSubmitting } = useCreateReview();
 
   // Use your actual hook for user bookings
   const { data: myBookings, isLoading: bookingsLoading } =
@@ -106,13 +102,11 @@ const ReviewSection = ({ modelId, userId }) => {
       },
       {
         onSuccess: () => {
-          // Reset form on successful submission
           setFormData({ rating: 5, comment: "", photos: [], features: [] });
           setShowForm(false);
         },
         onError: (error) => {
           console.error("Failed to submit review:", error);
-          // You might want to show an error message to the user
         },
       }
     );
@@ -152,6 +146,7 @@ const ReviewSection = ({ modelId, userId }) => {
           <AddReviewButton
             onClick={() => setShowForm(!showForm)}
             disabled={isSubmitting}
+            $variant="primary"
           >
             <FaEdit /> {showForm ? "Cancel Review" : "Write a Review"}
           </AddReviewButton>
@@ -163,7 +158,7 @@ const ReviewSection = ({ modelId, userId }) => {
           <RatingValue>{averageRating.toFixed(1)}</RatingValue>
           <Stars>
             {[1, 2, 3, 4, 5].map((star) => (
-              <Star key={star} filled={star <= Math.round(averageRating)} />
+              <Star key={star} $filled={star <= Math.round(averageRating)} />
             ))}
           </Stars>
           <RatingText>Based on {reviews.length} reviews</RatingText>
@@ -174,7 +169,7 @@ const ReviewSection = ({ modelId, userId }) => {
             <RatingBar key={stars}>
               <StarCount>{stars} ★</StarCount>
               <BarContainer>
-                <BarFill percentage={percentage} />
+                <BarFill $percentage={percentage} />
               </BarContainer>
               <BarCount>{count}</BarCount>
             </RatingBar>
@@ -186,19 +181,21 @@ const ReviewSection = ({ modelId, userId }) => {
       {showForm && userHasBooked && !userHasReviewed && (
         <ReviewForm onSubmit={handleSubmitReview}>
           <FormHeader>
-            <h3>Share Your Experience</h3>
-            <p>Tell others about your trip with this Mercedes-Benz</p>
+            <FormTitle>Share Your Experience</FormTitle>
+            <FormDescription>
+              Tell others about your trip with this Mercedes-Benz
+            </FormDescription>
           </FormHeader>
 
           <RatingSelection>
-            <label>Overall Rating *</label>
+            <FormLabel>Overall Rating *</FormLabel>
             <StarRating>
               {[1, 2, 3, 4, 5].map((star) => (
                 <StarButton
                   key={star}
                   type="button"
                   onClick={() => handleRatingClick(star)}
-                  active={star <= formData.rating}
+                  $active={star <= formData.rating}
                   disabled={isSubmitting}
                 >
                   <FaStar />
@@ -208,7 +205,7 @@ const ReviewSection = ({ modelId, userId }) => {
           </RatingSelection>
 
           <FeatureSelection>
-            <label>What stood out? (Select all that apply)</label>
+            <FormLabel>What stood out? (Select all that apply)</FormLabel>
             <FeatureGrid>
               {[
                 "Performance",
@@ -222,7 +219,7 @@ const ReviewSection = ({ modelId, userId }) => {
               ].map((feature) => (
                 <FeatureTag
                   key={feature}
-                  selected={formData.features.includes(feature)}
+                  $selected={formData.features.includes(feature)}
                   onClick={() => handleFeatureToggle(feature)}
                   disabled={isSubmitting}
                   type="button"
@@ -234,7 +231,7 @@ const ReviewSection = ({ modelId, userId }) => {
           </FeatureSelection>
 
           <CommentSection>
-            <label>Share details of your experience *</label>
+            <FormLabel>Share details of your experience *</FormLabel>
             <Textarea
               placeholder="What did you love about the car? Was there anything that could be improved? Your review will help other customers make better decisions..."
               value={formData.comment}
@@ -252,6 +249,7 @@ const ReviewSection = ({ modelId, userId }) => {
           <SubmitButton
             type="submit"
             disabled={isSubmitting || !formData.comment.trim()}
+            $variant="primary"
           >
             <FaCheckCircle />
             {isSubmitting ? "Submitting..." : "Submit Review"}
@@ -262,7 +260,7 @@ const ReviewSection = ({ modelId, userId }) => {
       {/* Review Filters */}
       <FilterTabs>
         <FilterTab
-          active={activeFilter === "all"}
+          $active={activeFilter === "all"}
           onClick={() => setActiveFilter("all")}
         >
           All Reviews ({reviews.length})
@@ -270,7 +268,7 @@ const ReviewSection = ({ modelId, userId }) => {
         {[5, 4, 3, 2, 1].map((rating) => (
           <FilterTab
             key={rating}
-            active={activeFilter === rating.toString()}
+            $active={activeFilter === rating.toString()}
             onClick={() => setActiveFilter(rating.toString())}
           >
             {rating} ★ ({reviews.filter((r) => r.rating === rating).length})
@@ -283,8 +281,10 @@ const ReviewSection = ({ modelId, userId }) => {
         {filteredReviews.length === 0 ? (
           <EmptyState>
             <NoReviewsIcon>💬</NoReviewsIcon>
-            <h3>No reviews yet</h3>
-            <p>Be the first to share your experience with this vehicle</p>
+            <EmptyTitle>No reviews yet</EmptyTitle>
+            <EmptyText>
+              Be the first to share your experience with this vehicle
+            </EmptyText>
           </EmptyState>
         ) : (
           filteredReviews.map((review) => (
@@ -292,14 +292,14 @@ const ReviewSection = ({ modelId, userId }) => {
               <ReviewHeader>
                 <UserInfo>
                   <UserAvatar>
-                    {review.user.avatar ? (
+                    {review.user?.avatar ? (
                       <img src={review.user.avatar} alt={review.user.name} />
                     ) : (
                       <FaUser />
                     )}
                   </UserAvatar>
                   <div>
-                    <UserName>{review.user.name}</UserName>
+                    <UserName>{review.user?.name || "Anonymous User"}</UserName>
                     <ReviewDate>
                       <FaCalendar />{" "}
                       {new Date(review.date).toLocaleDateString()}
@@ -313,7 +313,7 @@ const ReviewSection = ({ modelId, userId }) => {
                 </UserInfo>
                 <ReviewRating>
                   {[1, 2, 3, 4, 5].map((star) => (
-                    <Star key={star} filled={star <= review.rating} small />
+                    <Star key={star} $filled={star <= review.rating} $small />
                   ))}
                 </ReviewRating>
               </ReviewHeader>
@@ -355,10 +355,14 @@ const ReviewSection = ({ modelId, userId }) => {
           <CTACard>
             <CTAIcon>🚗</CTAIcon>
             <CTAContent>
-              <h3>Experience this Mercedes-Benz for yourself</h3>
-              <p>Book now and share your own review after your trip</p>
+              <CTATitle>Experience this Mercedes-Benz for yourself</CTATitle>
+              <CTADescription>
+                Book now and share your own review after your trip
+              </CTADescription>
             </CTAContent>
-            <CTAButton href={`/booking/${modelId}`}>Book This Car</CTAButton>
+            <CTAButton href={`/booking/${modelId}`} $variant="primary">
+              Book This Car
+            </CTAButton>
           </CTACard>
         </CTASection>
       )}
@@ -368,115 +372,45 @@ const ReviewSection = ({ modelId, userId }) => {
 
 export default ReviewSection;
 
-// Styled components (same as before)
-const LoadingState = styled.div`
-  text-align: center;
-  padding: 3rem;
-  color: #6b7280;
-  font-size: 1.1rem;
-`;
-
-const AddReviewButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 1rem 1.5rem;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  opacity: ${(props) => (props.disabled ? 0.6 : 1)};
-
-  &:hover {
-    transform: ${(props) => (props.disabled ? "none" : "translateY(-2px)")};
-    box-shadow: ${(props) =>
-      props.disabled ? "none" : "0 10px 25px rgba(59, 130, 246, 0.3)"};
+// Animations
+const fadeIn = keyframes`
+  from { 
+    opacity: 0; 
+    transform: translateY(20px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
   }
 `;
 
-// const StarButton = styled.button`
-//   background: none;
-//   border: none;
-//   cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
-//   font-size: 2rem;
-//   color: ${(props) => (props.active ? "#fbbf24" : "#d1d5db")};
-//   transition: all 0.2s ease;
-//   padding: 0.5rem;
-//   opacity: ${(props) => (props.disabled ? 0.6 : 1)};
-
-//   &:hover {
-//     transform: ${(props) => (props.disabled ? "none" : "scale(1.2)")};
-//   }
-// `;
-
-// const FeatureTag = styled.button`
-//   padding: 0.5rem 1rem;
-//   border: 2px solid ${(props) => (props.selected ? "#3b82f6" : "#e5e7eb")};
-//   background: ${(props) => (props.selected ? "#3b82f6" : "white")};
-//   color: ${(props) => (props.selected ? "white" : "#374151")};
-//   border-radius: 20px;
-//   cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
-//   transition: all 0.3s ease;
-//   font-size: 0.9rem;
-//   opacity: ${(props) => (props.disabled ? 0.6 : 1)};
-
-//   &:hover {
-//     border-color: ${(props) => (props.disabled ? "#e5e7eb" : "#3b82f6")};
-//   }
-// `;
-
-// const SubmitButton = styled.button`
-//   display: flex;
-//   align-items: center;
-//   gap: 0.5rem;
-//   padding: 1rem 2rem;
-//   background: ${(props) =>
-//     props.disabled
-//       ? "#9ca3af"
-//       : "linear-gradient(135deg, #10b981 0%, #059669 100%)"};
-//   color: white;
-//   border: none;
-//   border-radius: 12px;
-//   font-weight: 600;
-//   cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
-//   transition: all 0.3s ease;
-//   opacity: ${(props) => (props.disabled ? 0.6 : 1)};
-
-//   &:hover {
-//     transform: ${(props) => (props.disabled ? "none" : "translateY(-2px)")};
-//     box-shadow: ${(props) =>
-//       props.disabled ? "none" : "0 10px 25px rgba(16, 185, 129, 0.3)"};
-//   }
-// `;
-
-// Keep all the other existing styled components exactly as they were
-const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-`;
-
 const slideIn = keyframes`
-  from { transform: translateX(-10px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from { 
+    transform: translateX(-10px); 
+    opacity: 0; 
+  }
+  to { 
+    transform: translateX(0); 
+    opacity: 1; 
+  }
 `;
 
+// Styled Components using Global Styles
 const ReviewSectionWrapper = styled.section`
-  margin: 4rem 0;
+  margin: var(--space-2xl) 0;
   animation: ${fadeIn} 0.6s ease-out;
+  font-family: var(--font-body);
 `;
 
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-xl);
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: var(--space-lg);
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     flex-direction: column;
     align-items: flex-start;
   }
@@ -485,107 +419,58 @@ const Header = styled.div`
 const Title = styled.h2`
   display: flex;
   align-items: center;
-  gap: 1rem;
-  font-size: 2rem;
-  color: #1f2937;
+  gap: var(--space-md);
+  font-size: var(--text-3xl);
+  color: var(--text-primary);
   margin: 0;
+  font-weight: var(--font-bold);
+  font-family: var(--font-heading);
+
+  @media ${devices.sm} {
+    font-size: var(--text-2xl);
+  }
 `;
 
 const StarIcon = styled(FaStar)`
-  color: #fbbf24;
-  font-size: 1.8rem;
+  color: var(--warning);
+  font-size: var(--text-2xl);
 `;
 
 const ReviewCount = styled.span`
-  font-size: 1rem;
-  color: #6b7280;
-  font-weight: normal;
+  font-size: var(--text-lg);
+  color: var(--text-muted);
+  font-weight: var(--font-normal);
 `;
 
-// ... (all other styled components remain exactly the same)
+const AddReviewButton = styled(PrimaryButton)`
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  white-space: nowrap;
 
-// Animations
-// const fadeIn = keyframes`
-//   from { opacity: 0; transform: translateY(20px); }
-//   to { opacity: 1; transform: translateY(0); }
-// `;
-
-// const slideIn = keyframes`
-//   from { transform: translateX(-10px); opacity: 0; }
-//   to { transform: translateX(0); opacity: 1; }
-// `;
-
-// Styled Components
-// const ReviewSectionWrapper = styled.section`
-//   margin: 4rem 0;
-//   animation: ${fadeIn} 0.6s ease-out;
-// `;
-
-// const Header = styled.div`
-//   display: flex;
-//   justify-content: space-between;
-//   align-items: center;
-//   margin-bottom: 2rem;
-//   flex-wrap: wrap;
-//   gap: 1rem;
-
-//   @media (max-width: 768px) {
-//     flex-direction: column;
-//     align-items: flex-start;
-//   }
-// `;
-
-// const Title = styled.h2`
-//   display: flex;
-//   align-items: center;
-//   gap: 1rem;
-//   font-size: 2rem;
-//   color: #1f2937;
-//   margin: 0;
-// `;
-
-// const StarIcon = styled(FaStar)`
-//   color: #fbbf24;
-//   font-size: 1.8rem;
-// `;
-
-// const ReviewCount = styled.span`
-//   font-size: 1rem;
-//   color: #6b7280;
-//   font-weight: normal;
-// `;
-
-// const AddReviewButton = styled.button`
-//   display: flex;
-//   align-items: center;
-//   gap: 0.5rem;
-//   padding: 1rem 1.5rem;
-//   background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-//   color: white;
-//   border: none;
-//   border-radius: 12px;
-//   font-weight: 600;
-//   cursor: pointer;
-//   transition: all 0.3s ease;
-
-//   &:hover {
-//     transform: translateY(-2px);
-//     box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
-//   }
-// `;
+  @media ${devices.sm} {
+    width: 100%;
+    justify-content: center;
+  }
+`;
 
 const ReviewStats = styled.div`
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 3rem;
-  background: #f8fafc;
-  padding: 2rem;
-  border-radius: 16px;
-  margin-bottom: 2rem;
+  gap: var(--space-2xl);
+  background: var(--gray-50);
+  padding: var(--space-2xl);
+  border-radius: var(--radius-xl);
+  margin-bottom: var(--space-xl);
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: var(--space-xl);
+    padding: var(--space-xl);
+  }
+
+  @media ${devices.sm} {
+    padding: var(--space-lg);
   }
 `;
 
@@ -594,369 +479,417 @@ const AverageRating = styled.div`
 `;
 
 const RatingValue = styled.div`
-  font-size: 3rem;
-  font-weight: 700;
-  color: #1f2937;
+  font-size: var(--text-5xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
   line-height: 1;
+  font-family: var(--font-heading);
+
+  @media ${devices.sm} {
+    font-size: var(--text-4xl);
+  }
 `;
 
 const Stars = styled.div`
   display: flex;
-  gap: 0.25rem;
+  gap: var(--space-xs);
   justify-content: center;
-  margin: 0.5rem 0;
+  margin: var(--space-md) 0;
 `;
 
 const Star = styled.div`
-  color: ${(props) => (props.filled ? "#fbbf24" : "#d1d5db")};
-  font-size: ${(props) => (props.small ? "1rem" : "1.5rem")};
+  color: ${(props) => (props.$filled ? "var(--warning)" : "var(--gray-300)")};
+  font-size: ${(props) =>
+    props.$small ? "var(--text-base)" : "var(--text-xl)"};
 `;
 
 const RatingText = styled.div`
-  color: #6b7280;
-  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
 `;
 
 const RatingBars = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-sm);
   justify-content: center;
 `;
 
 const RatingBar = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-md);
 `;
 
 const StarCount = styled.span`
-  font-size: 0.9rem;
-  color: #6b7280;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
   width: 40px;
 `;
 
 const BarContainer = styled.div`
   flex: 1;
-  background: #e5e7eb;
+  background: var(--gray-200);
   height: 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 `;
 
 const BarFill = styled.div`
-  background: #fbbf24;
+  background: var(--warning);
   height: 100%;
-  width: ${(props) => props.percentage}%;
-  transition: width 0.3s ease;
+  width: ${(props) => props.$percentage}%;
+  transition: width var(--transition-normal);
 `;
 
 const BarCount = styled.span`
-  font-size: 0.9rem;
-  color: #6b7280;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
   width: 30px;
   text-align: right;
 `;
 
 const ReviewForm = styled.form`
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl);
+  padding: var(--space-2xl);
+  margin-bottom: var(--space-xl);
+  box-shadow: var(--shadow-md);
   animation: ${slideIn} 0.3s ease-out;
+
+  @media ${devices.sm} {
+    padding: var(--space-xl);
+  }
 `;
 
 const FormHeader = styled.div`
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-xl);
+`;
 
-  h3 {
-    margin: 0 0 0.5rem 0;
-    color: #1f2937;
-  }
+const FormTitle = styled.h3`
+  margin: 0 0 var(--space-sm) 0;
+  color: var(--text-primary);
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  font-family: var(--font-heading);
+`;
 
-  p {
-    margin: 0;
-    color: #6b7280;
-  }
+const FormDescription = styled.p`
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-base);
+`;
+
+const FormLabel = styled.label`
+  display: block;
+  margin-bottom: var(--space-md);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  font-family: var(--font-body);
 `;
 
 const RatingSelection = styled.div`
-  margin-bottom: 2rem;
-
-  label {
-    display: block;
-    margin-bottom: 1rem;
-    font-weight: 600;
-    color: #374151;
-  }
+  margin-bottom: var(--space-xl);
 `;
 
 const StarRating = styled.div`
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 `;
 
 const StarButton = styled.button`
   background: none;
   border: none;
-  cursor: pointer;
-  font-size: 2rem;
-  color: ${(props) => (props.active ? "#fbbf24" : "#d1d5db")};
-  transition: all 0.2s ease;
-  padding: 0.5rem;
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  font-size: var(--text-2xl);
+  color: ${(props) => (props.$active ? "var(--warning)" : "var(--gray-300)")};
+  transition: all var(--transition-fast);
+  padding: var(--space-sm);
+  opacity: ${(props) => (props.disabled ? 0.6 : 1)};
 
   &:hover {
-    transform: scale(1.2);
+    transform: ${(props) => (props.disabled ? "none" : "scale(1.2)")};
   }
 `;
 
 const FeatureSelection = styled.div`
-  margin-bottom: 2rem;
-
-  label {
-    display: block;
-    margin-bottom: 1rem;
-    font-weight: 600;
-    color: #374151;
-  }
+  margin-bottom: var(--space-xl);
 `;
 
 const FeatureGrid = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 `;
 
 const FeatureTag = styled.button`
-  padding: 0.5rem 1rem;
-  border: 2px solid ${(props) => (props.selected ? "#3b82f6" : "#e5e7eb")};
-  background: ${(props) => (props.selected ? "#3b82f6" : "white")};
-  color: ${(props) => (props.selected ? "white" : "#374151")};
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid
+    ${(props) => (props.$selected ? "var(--primary)" : "var(--gray-200)")};
+  background: ${(props) =>
+    props.$selected ? "var(--primary)" : "var(--white)"};
+  color: ${(props) =>
+    props.$selected ? "var(--white)" : "var(--text-primary)"};
+  border-radius: var(--radius-full);
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  transition: all var(--transition-normal);
+  font-size: var(--text-sm);
+  opacity: ${(props) => (props.disabled ? 0.6 : 1)};
+  font-family: var(--font-body);
 
   &:hover {
-    border-color: #3b82f6;
+    border-color: ${(props) =>
+      props.disabled ? "var(--gray-200)" : "var(--primary)"};
   }
 `;
 
 const CommentSection = styled.div`
-  margin-bottom: 2rem;
-
-  label {
-    display: block;
-    margin-bottom: 1rem;
-    font-weight: 600;
-    color: #374151;
-  }
+  margin-bottom: var(--space-xl);
 `;
 
 const Textarea = styled.textarea`
   width: 100%;
-  padding: 1rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: var(--space-md);
+  border: 2px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-base);
   resize: vertical;
-  transition: border-color 0.3s ease;
+  transition: border-color var(--transition-normal);
+  font-family: var(--font-body);
 
   &:focus {
     outline: none;
-    border-color: #3b82f6;
+    border-color: var(--primary);
+  }
+
+  &:disabled {
+    background-color: var(--gray-50);
+    cursor: not-allowed;
   }
 `;
 
 const CharCount = styled.div`
   text-align: right;
-  color: #6b7280;
-  font-size: 0.8rem;
-  margin-top: 0.5rem;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  margin-top: var(--space-sm);
 `;
 
-const SubmitButton = styled.button`
+const SubmitButton = styled(PrimaryButton)`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem 2rem;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
-  }
+  gap: var(--space-sm);
+  width: 100%;
+  justify-content: center;
 `;
 
 const FilterTabs = styled.div`
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 2rem;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
   flex-wrap: wrap;
 `;
 
 const FilterTab = styled.button`
-  padding: 0.75rem 1.5rem;
-  border: 2px solid ${(props) => (props.active ? "#3b82f6" : "#e5e7eb")};
-  background: ${(props) => (props.active ? "#3b82f6" : "white")};
-  color: ${(props) => (props.active ? "white" : "#6b7280")};
-  border-radius: 25px;
+  padding: var(--space-md) var(--space-lg);
+  border: 2px solid
+    ${(props) => (props.$active ? "var(--primary)" : "var(--gray-200)")};
+  background: ${(props) => (props.$active ? "var(--primary)" : "var(--white)")};
+  color: ${(props) => (props.$active ? "var(--white)" : "var(--text-muted)")};
+  border-radius: var(--radius-full);
   cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
+  transition: all var(--transition-normal);
+  font-weight: var(--font-medium);
+  font-family: var(--font-body);
 
   &:hover {
-    border-color: #3b82f6;
+    border-color: var(--primary);
+  }
+
+  @media ${devices.sm} {
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-sm);
   }
 `;
 
 const ReviewsList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-lg);
 `;
 
 const ReviewCard = styled.article`
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 1.5rem;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
   animation: ${fadeIn} 0.5s ease-out;
+
+  @media ${devices.sm} {
+    padding: var(--space-lg);
+  }
 `;
 
 const ReviewHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 
-  @media (max-width: 768px) {
+  @media ${devices.sm} {
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--space-md);
   }
 `;
 
 const UserInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-md);
 `;
 
 const UserAvatar = styled.div`
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: #f3f4f6;
+  background: var(--gray-100);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6b7280;
-  font-size: 1.2rem;
+  color: var(--text-muted);
+  font-size: var(--text-lg);
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+  }
 `;
 
 const UserName = styled.div`
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 0.25rem;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+  font-family: var(--font-body);
 `;
 
 const ReviewDate = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  color: #6b7280;
-  font-size: 0.9rem;
+  gap: var(--space-sm);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
 `;
 
 const VerifiedBadge = styled.span`
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  background: #d1fae5;
-  color: #065f46;
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  margin-left: 0.5rem;
+  gap: var(--space-xs);
+  background: var(--success-light);
+  color: var(--success-dark);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  margin-left: var(--space-sm);
+  font-family: var(--font-body);
 `;
 
 const ReviewRating = styled.div`
   display: flex;
-  gap: 0.25rem;
+  gap: var(--space-xs);
 `;
 
 const ReviewComment = styled.p`
-  color: #374151;
+  color: var(--text-primary);
   line-height: 1.6;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
+  font-family: var(--font-body);
 `;
 
 const ReviewFeatures = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
 `;
 
 const FeatureBadge = styled.span`
-  background: #f0f9ff;
-  color: #0369a1;
-  padding: 0.25rem 0.75rem;
-  border-radius: 15px;
-  font-size: 0.8rem;
-  font-weight: 500;
+  background: var(--info-light);
+  color: var(--info-dark);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  font-family: var(--font-body);
 `;
 
 const ReviewPhotos = styled.div`
-  margin-top: 1rem;
+  margin-top: var(--space-md);
 `;
 
 const PhotoLabel = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 0.5rem;
+  gap: var(--space-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-body);
 `;
 
 const PhotoGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 0.5rem;
+  gap: var(--space-sm);
 `;
 
 const Photo = styled.img`
   width: 100%;
   height: 100px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
 `;
 
 const EmptyState = styled.div`
   text-align: center;
-  padding: 3rem;
-  color: #6b7280;
+  padding: var(--space-2xl);
+  color: var(--text-muted);
 `;
 
 const NoReviewsIcon = styled.div`
   font-size: 3rem;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-lg);
+`;
+
+const EmptyTitle = styled.h3`
+  margin: 0 0 var(--space-sm) 0;
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+`;
+
+const EmptyText = styled.p`
+  margin: 0;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+`;
+
+const LoadingState = styled.div`
+  text-align: center;
+  padding: var(--space-2xl);
+  color: var(--text-muted);
+  font-size: var(--text-lg);
+  font-family: var(--font-body);
 `;
 
 const CTASection = styled.div`
-  margin-top: 3rem;
-  padding: 2rem;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border-radius: 16px;
+  margin-top: var(--space-2xl);
+  padding: var(--space-2xl);
+  background: var(--gradient-subtle);
+  border-radius: var(--radius-xl);
   text-align: center;
 `;
 
@@ -967,9 +900,9 @@ const CTACard = styled.div`
   max-width: 600px;
   margin: 0 auto;
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     flex-direction: column;
-    gap: 1.5rem;
+    gap: var(--space-xl);
   }
 `;
 
@@ -980,35 +913,34 @@ const CTAIcon = styled.div`
 const CTAContent = styled.div`
   flex: 1;
   text-align: left;
-  margin: 0 2rem;
+  margin: 0 var(--space-xl);
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     text-align: center;
     margin: 0;
   }
-
-  h3 {
-    margin: 0 0 0.5rem 0;
-    color: #1f2937;
-  }
-
-  p {
-    margin: 0;
-    color: #6b7280;
-  }
 `;
 
-const CTAButton = styled.a`
-  padding: 1rem 2rem;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
-  text-decoration: none;
-  border-radius: 12px;
-  font-weight: 600;
-  transition: all 0.3s ease;
+const CTATitle = styled.h3`
+  margin: 0 0 var(--space-sm) 0;
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+`;
 
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+const CTADescription = styled.p`
+  margin: 0;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+`;
+
+const CTAButton = styled(PrimaryButton)`
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  @media ${devices.sm} {
+    width: 100%;
   }
 `;

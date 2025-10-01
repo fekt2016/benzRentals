@@ -21,7 +21,7 @@ export const devices = {
 
 const GlobalStyles = createGlobalStyle`
   /* Import Google Fonts - Ultra Modern Luxury */
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap');
 
   :root {
     // Mercedes-Benz Luxury Color Palette
@@ -124,6 +124,11 @@ const GlobalStyles = createGlobalStyle`
     --transition-normal: 0.3s ease;
     --transition-slow: 0.5s ease;
     --transition-bounce: 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  /* Ensure fonts are loaded and applied */
+  html {
+    font-family: var(--font-body);
   }
 
   /* Reset + box model */

@@ -1,7 +1,27 @@
+// src/components/booking/BookingForm.jsx
 import React, { useState, useEffect } from "react";
 import styled, { keyframes } from "styled-components";
 import { useCreateBooking } from "../../hooks/useBooking";
 import { useNavigate } from "react-router-dom";
+
+// Import UI Components
+import {
+  FormGroup,
+  Label,
+  ErrorMessage as ErrorMessageBase,
+  SuccessMessage,
+  Select,
+  Checkbox,
+  Radio as RadioBase,
+} from "../forms/Form";
+import { PrimaryButton } from "../ui/Button";
+import { Card } from "../Cards/Card";
+import {
+  LoadingSpinner,
+  EmptyState,
+  ErrorState,
+  SuccessState,
+} from "../ui/LoadingSpinner";
 
 const MISSOURI_CITIES = [
   "Kansas City",
@@ -87,7 +107,6 @@ const BookingForm = ({ car, licenses, drivers }) => {
     if (form.pickupDate && form.returnDate) {
       const pickup = new Date(form.pickupDate);
       const returnDate = new Date(form.returnDate);
-      // const todayDate = new Date(today);
 
       if (form.pickupDate < today) {
         errors.pickupDate = "Pickup date cannot be in the past";
@@ -235,7 +254,6 @@ const BookingForm = ({ car, licenses, drivers }) => {
       navigate("/checkout", { state: { bookingId: bookingId } });
     } catch (error) {
       console.error("Booking failed:", error);
-      // Error is handled by the hook and will be displayed via isError
     } finally {
       setIsSubmitting(false);
     }
@@ -509,7 +527,7 @@ const BookingForm = ({ car, licenses, drivers }) => {
       {/* Submit Button */}
       <SubmitButton
         type="submit"
-        disabled={!isFormValid}
+        disabled={!isFormValid || isSubmitting}
         $isValid={isFormValid}
         $submitting={isSubmitting}
       >
@@ -542,69 +560,31 @@ const BookingForm = ({ car, licenses, drivers }) => {
 
 export default BookingForm;
 
-// Enhanced Styled Components with Error States
+// Enhanced Styled Components with Global Styles
 const FormContainer = styled.form`
   width: 100%;
-  background: white;
-  border-radius: 20px;
-  padding: 1.5rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-lg);
   animation: ${slideUp} 0.6s ease-out;
-`;
-
-const ErrorBox = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 12px;
-  margin-bottom: 1.5rem;
-  animation: ${(props) => (props.$shake ? shake : "none")} 0.5s ease-in-out;
-`;
-
-const ErrorIcon = styled.div`
-  font-size: 1.2rem;
-`;
-
-const ErrorText = styled.span`
-  color: #dc2626;
-  font-weight: 500;
-  flex: 1;
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: #dc2626;
-  cursor: pointer;
-  padding: 0;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background: #fecaca;
-    border-radius: 50%;
-  }
+  border: 1px solid var(--gray-200);
 `;
 
 const FormHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 2px solid #f0f4f8;
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 2px solid var(--gray-100);
 
   h2 {
     margin: 0;
-    color: #1f2937;
-    font-size: 1.5rem;
+    color: var(--text-primary);
+    font-size: var(--text-2xl);
+    font-family: var(--font-heading);
+    font-weight: var(--font-semibold);
   }
 `;
 
@@ -613,194 +593,173 @@ const PriceDisplay = styled.div`
 `;
 
 const Price = styled.span`
-  font-size: 2rem;
-  font-weight: 700;
-  color: #3b82f6;
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  color: var(--primary);
+  font-family: var(--font-heading);
 `;
 
 const PriceLabel = styled.span`
-  font-size: 1rem;
-  color: #6b7280;
-  margin-left: 0.25rem;
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  margin-left: var(--space-xs);
 `;
 
-const FormSection = styled.div`
-  margin-bottom: 1.5rem;
-  padding: 1.5rem;
-  background: #f8fafc;
-  border-radius: 16px;
-  border: 1px solid #e5e7eb;
+const FormSection = styled(Card)`
+  margin-bottom: var(--space-lg);
+  padding: var(--space-lg);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-200);
 `;
 
 const SectionTitle = styled.h3`
-  margin: 0 0 1rem 0;
-  color: #1f2937;
-  font-size: 1.2rem;
+  margin: 0 0 var(--space-md) 0;
+  color: var(--text-primary);
+  font-size: var(--text-xl);
+  font-family: var(--font-heading);
+  font-weight: var(--font-semibold);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-xs);
 `;
 
 const DateGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 1rem;
+  gap: var(--space-md);
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  position: relative;
-`;
-
-const Label = styled.label`
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-`;
-
 const Input = styled.input`
-  padding: 0.75rem 1rem;
-  border: 2px solid ${(props) => (props.$error ? "#dc2626" : "#e5e7eb")};
-  border-radius: 10px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  background: white;
+  padding: var(--space-md);
+  border: 2px solid
+    ${(props) => (props.$error ? "var(--error)" : "var(--gray-300)")};
+  border-radius: var(--radius-lg);
+  font-size: var(--text-base);
+  transition: all var(--transition-normal);
+  background: var(--white);
+  font-family: var(--font-body);
 
   &:focus {
     outline: none;
-    border-color: ${(props) => (props.$error ? "#dc2626" : "#3b82f6")};
+    border-color: ${(props) =>
+      props.$error ? "var(--error)" : "var(--primary)"};
     box-shadow: 0 0 0 3px
       ${(props) =>
-        props.$error ? "rgba(220, 38, 38, 0.1)" : "rgba(59, 130, 246, 0.1)"};
+        props.$error ? "rgba(239, 68, 68, 0.1)" : "rgba(211, 47, 47, 0.1)"};
   }
 
   &:disabled {
-    background: #f9fafb;
-    color: #6b7280;
+    background: var(--gray-100);
+    color: var(--text-muted);
     cursor: not-allowed;
   }
 `;
 
-const Select = styled.select`
-  padding: 0.75rem 1rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  background: white;
-  cursor: pointer;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-`;
-
-const FieldError = styled.span`
-  color: #dc2626;
-  font-size: 0.8rem;
-  margin-top: 0.25rem;
-  font-weight: 500;
+const FieldError = styled(ErrorMessageBase)`
+  margin-top: var(--space-xs);
+  font-size: var(--text-sm);
 `;
 
 const PriceSummary = styled.div`
-  margin-top: 1rem;
-  padding: 1rem;
-  background: white;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-200);
 `;
 
 const SummaryItem = styled.div`
   display: flex;
   justify-content: space-between;
-  padding: 0.5rem 0;
-  color: #6b7280;
+  padding: var(--space-sm) 0;
+  color: var(--text-muted);
+  font-family: var(--font-body);
 
   &:not(:last-child) {
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid var(--gray-100);
   }
 `;
 
 const TotalPrice = styled.div`
   display: flex;
   justify-content: space-between;
-  padding: 1rem 0 0 0;
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: #1f2937;
-  border-top: 2px solid #e5e7eb;
+  padding: var(--space-md) 0 0 0;
+  font-weight: var(--font-bold);
+  font-size: var(--text-lg);
+  color: var(--text-primary);
+  border-top: 2px solid var(--gray-200);
+  font-family: var(--font-body);
 `;
 
 const CardsContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-md);
 `;
 
-const DriverCard = styled.div`
+const DriverCard = styled(Card)`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
-  background: white;
-  border: 2px solid ${(props) => (props.selected ? "#3b82f6" : "#e5e7eb")};
-  border-radius: 12px;
+  padding: var(--space-md);
+  border: 2px solid
+    ${(props) => (props.selected ? "var(--primary)" : "var(--gray-300)")};
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
   animation: ${slideUp} 0.4s ease-out;
 
   &:hover {
-    border-color: #3b82f6;
+    border-color: var(--primary);
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
   }
 `;
 
 const DriverInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-md);
 `;
 
 const DriverAvatar = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-weight: 700;
-  font-size: 1.1rem;
+  color: var(--white);
+  font-weight: var(--font-bold);
+  font-size: var(--text-lg);
 `;
 
 const DriverDetails = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--space-xs);
 `;
 
 const DriverName = styled.strong`
-  font-size: 1.1rem;
-  color: #1f2937;
+  font-size: var(--text-lg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
 `;
 
 const DriverBadge = styled.span`
-  font-size: 0.8rem;
-  color: #059669;
-  background: #d1fae5;
-  padding: 0.2rem 0.5rem;
-  border-radius: 12px;
+  font-size: var(--text-sm);
+  color: var(--success);
+  background: var(--gray-100);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
   width: fit-content;
+  font-family: var(--font-body);
 `;
 
 const LicenseCard = styled(DriverCard)``;
@@ -808,59 +767,60 @@ const LicenseCard = styled(DriverCard)``;
 const LicenseInfo = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 `;
 
 const LicenseNumber = styled.strong`
-  font-size: 1.1rem;
-  color: #1f2937;
+  font-size: var(--text-lg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
 `;
 
 const LicenseDetails = styled.div`
   display: flex;
-  gap: 1rem;
-  font-size: 0.9rem;
-  color: #6b7280;
+  gap: var(--space-md);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-family: var(--font-body);
 
   @media (max-width: 480px) {
     flex-direction: column;
-    gap: 0.25rem;
+    gap: var(--space-xs);
   }
 `;
 
 const Radio = styled.div`
   width: 20px;
   height: 20px;
-  border: 2px solid ${(props) => (props.selected ? "#3b82f6" : "#d1d5db")};
+  border: 2px solid
+    ${(props) => (props.selected ? "var(--primary)" : "var(--gray-400)")};
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: ${(props) => (props.selected ? "#3b82f6" : "white")};
-  transition: all 0.3s ease;
+  background: ${(props) =>
+    props.selected ? "var(--primary)" : "var(--white)"};
+  transition: all var(--transition-normal);
 `;
 
 const RadioDot = styled.div`
   width: 8px;
   height: 8px;
-  background: white;
+  background: var(--white);
   border-radius: 50%;
 `;
 
 const FileUploadGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: var(--space-md);
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const FileUploadGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-`;
+const FileUploadGroup = styled(FormGroup)``;
 
 const FileLabel = styled.label`
   cursor: pointer;
@@ -871,45 +831,49 @@ const FileInput = styled.input`
 `;
 
 const FileUploadBox = styled.div`
-  padding: 1.5rem;
-  border: 2px dashed ${(props) => (props.$error ? "#dc2626" : "#d1d5db")};
-  border-radius: 12px;
+  padding: var(--space-lg);
+  border: 2px dashed
+    ${(props) => (props.$error ? "var(--error)" : "var(--gray-400)")};
+  border-radius: var(--radius-lg);
   text-align: center;
-  transition: all 0.3s ease;
-  background: white;
+  transition: all var(--transition-normal);
+  background: var(--white);
   cursor: pointer;
 
   &:hover {
-    border-color: ${(props) => (props.$error ? "#dc2626" : "#3b82f6")};
-    background: #f0f9ff;
+    border-color: ${(props) =>
+      props.$error ? "var(--error)" : "var(--primary)"};
+    background: var(--gray-50);
   }
 `;
 
 const FileIcon = styled.div`
   font-size: 2rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-sm);
 `;
 
 const FileText = styled.div`
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 0.2rem;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+  font-family: var(--font-body);
 `;
 
 const FileHint = styled.div`
-  font-size: 0.8rem;
-  color: #6b7280;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-family: var(--font-body);
 `;
 
 const NoticeBox = styled.div`
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
-  padding: 1.5rem;
-  background: #f0f9ff;
-  border-radius: 12px;
-  border-left: 4px solid #3b82f6;
-  margin: 1.5rem 0;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--gray-50);
+  border-radius: var(--radius-lg);
+  border-left: 4px solid var(--primary);
+  margin: var(--space-lg) 0;
 `;
 
 const NoticeIcon = styled.div`
@@ -918,31 +882,32 @@ const NoticeIcon = styled.div`
 
 const NoticeText = styled.p`
   margin: 0;
-  color: #1e40af;
-  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
   line-height: 1.5;
+  font-family: var(--font-body);
 `;
 
-const SubmitButton = styled.button`
+const SubmitButton = styled(PrimaryButton)`
   width: 100%;
-  padding: 1.25rem 2rem;
+  padding: var(--space-lg) var(--space-2xl);
   background: ${(props) => {
-    if (props.$submitting) return "#9ca3af";
-    if (!props.$isValid) return "#d1d5db";
-    return "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)";
+    if (props.$submitting) return "var(--gray-400)";
+    if (!props.$isValid) return "var(--gray-300)";
+    return "var(--gradient-primary)";
   }};
-  color: white;
+  color: var(--white);
   border: none;
-  border-radius: 12px;
-  font-size: 1.1rem;
-  font-weight: 700;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
   cursor: ${(props) =>
     props.$submitting || !props.$isValid ? "not-allowed" : "pointer"};
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: var(--space-sm);
   animation: ${(props) =>
       props.$isValid && !props.$submitting ? pulse : "none"}
     2s infinite;
@@ -951,41 +916,72 @@ const SubmitButton = styled.button`
     transform: ${(props) =>
       props.$isValid && !props.$submitting ? "translateY(-2px)" : "none"};
     box-shadow: ${(props) =>
-      props.$isValid && !props.$submitting
-        ? "0 10px 25px rgba(59, 130, 246, 0.3)"
-        : "none"};
+      props.$isValid && !props.$submitting ? "var(--shadow-lg)" : "none"};
   }
 `;
 
-const Spinner = styled.div`
+const Spinner = styled(LoadingSpinner)`
   width: 20px;
   height: 20px;
   border: 2px solid transparent;
-  border-top: 2px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
-  }
+  border-top: 2px solid var(--white);
 `;
 
 const FormStatus = styled.div`
   display: flex;
   justify-content: center;
-  margin-top: 1rem;
+  margin-top: var(--space-md);
 `;
 
 const StatusIndicator = styled.div`
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  background: ${(props) => (props.$valid ? "#d1fae5" : "#fef3c7")};
-  color: ${(props) => (props.$valid ? "#065f46" : "#92400e")};
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  background: ${(props) =>
+    props.$valid ? "var(--gray-100)" : "var(--gray-100)"};
+  color: ${(props) => (props.$valid ? "var(--success)" : "var(--warning)")};
+  font-family: var(--font-body);
+`;
+
+const ErrorBox = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--gray-50);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-lg);
+  animation: ${(props) => (props.$shake ? shake : "none")} 0.5s ease-in-out;
+`;
+
+const ErrorIcon = styled.div`
+  font-size: var(--text-lg);
+`;
+
+const ErrorText = styled.span`
+  color: var(--error);
+  font-weight: var(--font-medium);
+  flex: 1;
+  font-family: var(--font-body);
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: var(--text-xl);
+  color: var(--error);
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+
+  &:hover {
+    background: var(--gray-200);
+  }
 `;

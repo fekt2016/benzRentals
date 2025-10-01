@@ -17,6 +17,22 @@ import {
   useGetUserReviews,
 } from "../hooks/useReview";
 
+// Import UI Components
+import {
+  PrimaryButton,
+  SecondaryButton,
+  GhostButton,
+  ErrorButton,
+} from "../components/ui/Button";
+import { Card } from "../components/Cards/Card";
+import { EmptyState } from "../components/ui/LoadingSpinner";
+import {
+  FormGroup,
+  Label,
+  TextArea as TextAreaBase,
+  ErrorMessage,
+} from "../components/forms/Form";
+
 const UserReviews = () => {
   const { data: userData } = useCurrentUser();
   const user = userData?.user || null;
@@ -109,9 +125,9 @@ const UserReviews = () => {
           <PromptContent>
             <h3>Please Log In</h3>
             <p>You need to be logged in to view and manage your reviews.</p>
-            <ActionButton onClick={() => (window.location.href = "/login")}>
+            <PrimaryButton onClick={() => (window.location.href = "/login")}>
               Log In
-            </ActionButton>
+            </PrimaryButton>
           </PromptContent>
         </LoginPrompt>
       </ModernReviewsWrapper>
@@ -181,7 +197,7 @@ const UserReviews = () => {
         {/* User's Reviews */}
         <ReviewsGrid>
           {filteredReviews.map((review) => (
-            <ReviewCard key={review._id} highlight>
+            <ReviewCard key={review._id} $highlight>
               <ReviewHeader>
                 <CarInfo>
                   <CarIcon>
@@ -210,42 +226,48 @@ const UserReviews = () => {
 
               {editingReview && editingReview._id === review._id ? (
                 <EditForm onSubmit={handleUpdateReview}>
-                  <RatingSelection>
-                    <StarRating>
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <StarButton
-                          key={star}
-                          type="button"
-                          onClick={() =>
-                            setEditingReview((prev) => ({
-                              ...prev,
-                              rating: star,
-                            }))
-                          }
-                          active={star <= editingReview.rating}
-                        >
-                          <Star size={20} />
-                        </StarButton>
-                      ))}
-                    </StarRating>
-                  </RatingSelection>
-                  <TextArea
-                    value={editingReview.comment}
-                    onChange={(e) =>
-                      setEditingReview((prev) => ({
-                        ...prev,
-                        comment: e.target.value,
-                      }))
-                    }
-                    rows={3}
-                  />
+                  <FormGroup>
+                    <Label>Rating</Label>
+                    <RatingSelection>
+                      <StarRating>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <StarButton
+                            key={star}
+                            type="button"
+                            onClick={() =>
+                              setEditingReview((prev) => ({
+                                ...prev,
+                                rating: star,
+                              }))
+                            }
+                            $active={star <= editingReview.rating}
+                          >
+                            <Star size={20} />
+                          </StarButton>
+                        ))}
+                      </StarRating>
+                    </RatingSelection>
+                  </FormGroup>
+                  <FormGroup>
+                    <Label>Review Comment</Label>
+                    <TextArea
+                      value={editingReview.comment}
+                      onChange={(e) =>
+                        setEditingReview((prev) => ({
+                          ...prev,
+                          comment: e.target.value,
+                        }))
+                      }
+                      rows={3}
+                    />
+                  </FormGroup>
                   <EditActions>
-                    <CancelButton type="button" onClick={cancelEditing}>
+                    <SecondaryButton type="button" onClick={cancelEditing}>
                       Cancel
-                    </CancelButton>
-                    <UpdateButton type="submit" disabled={isUpdating}>
+                    </SecondaryButton>
+                    <PrimaryButton type="submit" disabled={isUpdating}>
                       {isUpdating ? "Updating..." : "Update Review"}
-                    </UpdateButton>
+                    </PrimaryButton>
                   </EditActions>
                 </EditForm>
               ) : (
@@ -274,26 +296,22 @@ const UserReviews = () => {
         </ReviewsGrid>
 
         {reviews.length === 0 ? (
-          <EmptyState>
-            <EmptyIcon>💬</EmptyIcon>
-            <h4>No Reviews Yet</h4>
-            <p>
-              You haven't written any reviews yet. Start reviewing cars you've
-              rented!
-            </p>
-            <ActionButton
-              primary
-              onClick={() => (window.location.href = "/cars")}
-            >
-              Browse Cars
-            </ActionButton>
-          </EmptyState>
+          <EmptyState
+            icon="💬"
+            title="No Reviews Yet"
+            message="You haven't written any reviews yet. Start reviewing cars you've rented!"
+            action={
+              <PrimaryButton onClick={() => (window.location.href = "/models")}>
+                Browse Cars
+              </PrimaryButton>
+            }
+          />
         ) : filteredReviews.length === 0 ? (
-          <EmptyState>
-            <EmptyIcon>🔍</EmptyIcon>
-            <h4>No reviews match your filter</h4>
-            <p>Try selecting a different rating filter</p>
-          </EmptyState>
+          <EmptyState
+            icon="🔍"
+            title="No reviews match your filter"
+            message="Try selecting a different rating filter"
+          />
         ) : null}
       </ManagementSection>
     </ModernReviewsWrapper>
@@ -302,7 +320,7 @@ const UserReviews = () => {
 
 export default UserReviews;
 
-// Styled Components (mostly reused from CarReviews with some additions)
+// Styled Components using Global Styles
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
@@ -314,16 +332,17 @@ const slideIn = keyframes`
 `;
 
 const ModernReviewsWrapper = styled.section`
-  margin: 3rem 0;
-  animation: ${fadeIn} 0.6s ease-out;
+  margin: var(--space-2xl) 0;
+  animation: ${fadeIn} var(--transition-normal) ease-out;
+  font-family: var(--font-body);
 `;
 
 const HeaderSection = styled.div`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 20px;
-  padding: 2.5rem;
-  margin-bottom: 2rem;
-  color: white;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-2xl);
+  margin-bottom: var(--space-xl);
+  color: var(--white);
   position: relative;
   overflow: hidden;
 
@@ -348,122 +367,124 @@ const HeaderContent = styled.div`
 const Title = styled.h2`
   display: flex;
   align-items: center;
-  gap: 1rem;
-  font-size: 2.2rem;
-  font-weight: 700;
-  margin: 0 0 2rem 0;
+  gap: var(--space-md);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  margin: 0 0 var(--space-xl) 0;
+  font-family: var(--font-heading);
 `;
 
 const StarIcon = styled(Star)`
-  color: #ffd700;
+  color: var(--accent);
   width: 32px;
   height: 32px;
 `;
 
 const ReviewCount = styled.span`
   background: rgba(255, 255, 255, 0.2);
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 1rem;
-  font-weight: 600;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-full);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
   backdrop-filter: blur(10px);
+  font-family: var(--font-body);
 `;
 
 const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 3rem;
+  gap: var(--space-xl);
   align-items: center;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: var(--space-lg);
   }
 `;
 
 const AverageRatingCard = styled.div`
   text-align: center;
   background: rgba(255, 255, 255, 0.15);
-  padding: 1.5rem;
-  border-radius: 16px;
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
   backdrop-filter: blur(10px);
 `;
 
 const RatingValue = styled.div`
-  font-size: 3.5rem;
-  font-weight: 800;
+  font-size: var(--text-4xl);
+  font-weight: var(--font-extrabold);
   line-height: 1;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-heading);
 `;
 
 const RatingText = styled.div`
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   opacity: 0.9;
-  margin-top: 0.5rem;
+  margin-top: var(--space-sm);
+  font-family: var(--font-body);
 `;
 
 const RatingBars = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-md);
 `;
 
 const RatingBar = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-md);
 `;
 
 const StarLabel = styled.span`
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   width: 40px;
   opacity: 0.9;
+  font-family: var(--font-body);
 `;
 
 const BarContainer = styled.div`
   flex: 1;
   background: rgba(255, 255, 255, 0.2);
   height: 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 `;
 
 const BarFill = styled.div`
-  background: #ffd700;
+  background: var(--accent);
   height: 100%;
   width: ${(props) => props.percentage}%;
-  transition: width 0.3s ease;
-  border-radius: 4px;
+  transition: width var(--transition-normal) ease;
+  border-radius: var(--radius-sm);
 `;
 
 const BarCount = styled.span`
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   width: 30px;
   text-align: right;
   opacity: 0.9;
+  font-family: var(--font-body);
 `;
 
 const ManagementSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-lg);
 `;
 
-const ReviewCard = styled.div`
-  background: white;
-  border: 1px solid ${(props) => (props.highlight ? "#e0f2fe" : "#e2e8f0")};
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: ${(props) =>
-    props.highlight
-      ? "0 4px 25px rgba(56, 189, 248, 0.15)"
-      : "0 2px 10px rgba(0, 0, 0, 0.04)"};
-  animation: ${slideIn} 0.3s ease-out;
+const ReviewCard = styled(Card)`
+  border: 1px solid
+    ${(props) => (props.$highlight ? "var(--gray-300)" : "var(--gray-200)")};
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  animation: ${slideIn} var(--transition-normal) ease-out;
   ${(props) =>
-    props.highlight &&
+    props.$highlight &&
     `
-    border-left: 4px solid #3b82f6;
-    background: #f8fafc;
+    border-left: 4px solid var(--primary);
+    background: var(--surface);
   `}
 `;
 
@@ -471,46 +492,48 @@ const ReviewHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-md);
 `;
 
 const CarInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-md);
   flex: 1;
 `;
 
 const CarIcon = styled.div`
-  color: #3b82f6;
-  background: #eff6ff;
-  padding: 0.75rem;
-  border-radius: 12px;
+  color: var(--primary);
+  background: var(--gray-100);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
 `;
 
 const CarName = styled.div`
-  font-weight: 700;
-  color: #1e293b;
-  font-size: 1.2rem;
-  margin-bottom: 0.25rem;
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-xs);
+  font-family: var(--font-heading);
 `;
 
 const CarDetails = styled.div`
-  color: #64748b;
-  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
 `;
 
 const ReviewMeta = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
 `;
 
 const StarsContainer = styled.div`
   display: flex;
   gap: 2px;
-  color: #fbbf24;
+  color: var(--accent);
 `;
 
 const StyledStar = styled(Star)`
@@ -531,260 +554,178 @@ const StyledStarOutline = styled(StarOutline)`
 const ReviewDate = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  color: #64748b;
-  font-size: 0.9rem;
+  gap: var(--space-xs);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
 `;
 
 const UpdatedBadge = styled.span`
-  background: #fef3c7;
-  color: #92400e;
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
+  background: var(--gray-100);
+  color: var(--text-secondary);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-family: var(--font-body);
 `;
 
 const ReviewComment = styled.p`
-  color: #374151;
+  color: var(--text-primary);
   line-height: 1.6;
   margin: 0;
   white-space: pre-wrap;
+  font-family: var(--font-body);
 `;
 
 const ActionButtons = styled.div`
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 `;
 
-const EditButton = styled.button`
+const EditButton = styled(GhostButton)`
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.5rem 1rem;
-  background: #eff6ff;
-  color: #3b82f6;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #dbeafe;
-    transform: translateY(-1px);
-  }
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--text-sm);
 `;
 
-const DeleteButton = styled.button`
+const DeleteButton = styled(ErrorButton)`
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.5rem 1rem;
-  background: #fef2f2;
-  color: #ef4444;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #fee2e2;
-    transform: translateY(-1px);
-  }
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--text-sm);
 `;
 
 const EditForm = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
 `;
 
 const RatingSelection = styled.div`
   label {
     display: block;
-    margin-bottom: 1rem;
-    font-weight: 600;
-    color: #374151;
+    margin-bottom: var(--space-md);
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    font-family: var(--font-body);
   }
 `;
 
 const StarRating = styled.div`
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-sm);
 `;
 
 const StarButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
-  color: ${(props) => (props.active ? "#fbbf24" : "#d1d5db")};
-  transition: all 0.2s ease;
-  padding: 0.25rem;
+  color: ${(props) => (props.$active ? "var(--accent)" : "var(--gray-400)")};
+  transition: all var(--transition-normal) ease;
+  padding: var(--space-xs);
 
   &:hover {
     transform: scale(1.2);
-    color: #fbbf24;
+    color: var(--accent);
   }
 `;
 
-const TextArea = styled.textarea`
+const TextArea = styled(TextAreaBase)`
   width: 100%;
-  padding: 1.25rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  padding: var(--space-lg);
+  border: 2px solid var(--gray-300);
+  border-radius: var(--radius-lg);
   resize: vertical;
-  font-family: inherit;
-  font-size: 1rem;
-  transition: all 0.3s ease;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  transition: all var(--transition-normal);
 
   &:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
   }
 `;
 
 const EditActions = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
   justify-content: flex-end;
-`;
-
-const CancelButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  background: #f3f4f6;
-  color: #374151;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: #e5e7eb;
-  }
-`;
-
-const UpdateButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover:not(:disabled) {
-    background: #2563eb;
-    transform: translateY(-1px);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
 `;
 
 const FilterSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1.5rem;
-  background: #f8fafc;
-  border-radius: 12px;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
 `;
 
 const FilterLabel = styled.span`
-  font-weight: 600;
-  color: #374151;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  font-family: var(--font-body);
 `;
 
 const FilterTabs = styled.div`
   display: flex;
-  gap: 0.5rem;
+  gap: var(--space-sm);
   flex-wrap: wrap;
 `;
 
 const FilterTab = styled.button`
-  padding: 0.5rem 1rem;
-  border: 2px solid ${(props) => (props.active ? "#3b82f6" : "#e2e8f0")};
-  background: ${(props) => (props.active ? "#3b82f6" : "white")};
-  color: ${(props) => (props.active ? "white" : "#64748b")};
-  border-radius: 20px;
-  font-size: 0.9rem;
+  padding: var(--space-sm) var(--space-md);
+  border: 2px solid
+    ${(props) => (props.active ? "var(--primary)" : "var(--gray-300)")};
+  background: ${(props) => (props.active ? "var(--primary)" : "var(--white)")};
+  color: ${(props) => (props.active ? "var(--white)" : "var(--text-muted)")};
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-normal) ease;
+  font-family: var(--font-body);
 
   &:hover {
-    border-color: #3b82f6;
+    border-color: var(--primary);
   }
 `;
 
 const ReviewsGrid = styled.div`
   display: grid;
-  gap: 1.5rem;
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 3rem;
-  color: #64748b;
-`;
-
-const EmptyIcon = styled.div`
-  font-size: 3rem;
-  margin-bottom: 1rem;
+  gap: var(--space-lg);
 `;
 
 const LoginPrompt = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2rem;
-  padding: 4rem 2rem;
+  gap: var(--space-xl);
+  padding: var(--space-2xl) var(--space-xl);
   text-align: center;
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
 `;
 
 const PromptIcon = styled.div`
-  color: #3b82f6;
+  color: var(--primary);
 `;
 
 const PromptContent = styled.div`
   h3 {
-    margin: 0 0 0.5rem 0;
-    color: #1e293b;
-    font-size: 1.5rem;
+    margin: 0 0 var(--space-sm) 0;
+    color: var(--text-primary);
+    font-size: var(--text-xl);
+    font-family: var(--font-heading);
   }
   p {
-    margin: 0 0 1.5rem 0;
-    color: #64748b;
-  }
-`;
-
-const ActionButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  background: ${(props) =>
-    props.primary
-      ? "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)"
-      : "transparent"};
-  color: ${(props) => (props.primary ? "white" : "#3b82f6")};
-  border: ${(props) => (props.primary ? "none" : "2px solid #3b82f6")};
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: ${(props) =>
-      props.primary
-        ? "0 8px 20px rgba(59, 130, 246, 0.3)"
-        : "0 8px 20px rgba(59, 130, 246, 0.15)"};
+    margin: 0 0 var(--space-lg) 0;
+    color: var(--text-muted);
+    font-family: var(--font-body);
   }
 `;
