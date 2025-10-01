@@ -17,7 +17,7 @@ const CarCard = ({
         <img src={car.images[0]} alt={car.model} />
         {showOverlay && (
           <CarOverlay>
-            <ButtonLink to={`/model/${car.id}`} $size="md">
+            <ButtonLink to={`/model/${car._id}`} $size="md">
               View Details
             </ButtonLink>
           </CarOverlay>
