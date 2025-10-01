@@ -3,6 +3,19 @@ import { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { useGetBookingById } from "../hooks/useBooking";
+import { useUpdateUserBooking } from "../hooks/useBooking";
+import { ROUTE_CONFIG, PATHS } from "../routes/routePaths";
+import usePageTitle from "../hooks/usePageTitle";
+
+// Button Components
+import {
+  PrimaryButton,
+  SecondaryButton,
+  AccentButtonLink,
+  GhostButton,
+} from "../components/ui/Button";
+
+// Icons
 import {
   FaArrowLeft,
   FaCar,
@@ -21,16 +34,20 @@ import {
   FaShieldAlt,
 } from "react-icons/fa";
 
-import { useUpdateUserBooking } from "../hooks/useBooking";
-
 const BookingDetailPage = () => {
   const { bookingId } = useParams();
+  const seoConfig = ROUTE_CONFIG[PATHS.BOOKING];
+
+  // Use the custom SEO hook
+  usePageTitle(
+    `Booking #${bookingId?.slice(-8).toUpperCase()} - Mercedes Rentals`,
+    seoConfig.description
+  );
 
   const { data: bookingData } = useGetBookingById(bookingId);
   const { mutate: updateUserBooking } = useUpdateUserBooking(bookingId);
 
   const booking = useMemo(() => bookingData?.data?.data || null, [bookingData]);
-
   const navigate = useNavigate();
 
   // State for file uploads
@@ -44,10 +61,13 @@ const BookingDetailPage = () => {
           <ErrorIcon>⚠️</ErrorIcon>
           <ErrorTitle>Booking Not Found</ErrorTitle>
           <ErrorText>The booking you're looking for doesn't exist.</ErrorText>
-          <BackButton onClick={() => navigate("/check-bookings")}>
+          <SecondaryButton
+            onClick={() => navigate("/check-bookings")}
+            $size="lg"
+          >
             <FaArrowLeft />
             Back to My Bookings
-          </BackButton>
+          </SecondaryButton>
         </ErrorState>
       </PageWrapper>
     );
@@ -56,25 +76,25 @@ const BookingDetailPage = () => {
   const getStatusConfig = (status) => {
     const config = {
       confirmed: {
-        color: "#10b981",
+        color: "var(--success)",
         bgColor: "#d1fae5",
         icon: FaCheckCircle,
         label: "Confirmed",
       },
       completed: {
-        color: "#3b82f6",
+        color: "var(--info)",
         bgColor: "#dbeafe",
         icon: FaCheckCircle,
         label: "Completed",
       },
       cancelled: {
-        color: "#ef4444",
+        color: "var(--error)",
         bgColor: "#fee2e2",
         icon: FaClock,
         label: "Cancelled",
       },
       pending: {
-        color: "#f59e0b",
+        color: "var(--warning)",
         bgColor: "#fef3c7",
         icon: FaClock,
         label: "Pending",
@@ -189,10 +209,10 @@ const BookingDetailPage = () => {
   return (
     <PageWrapper>
       <Header>
-        <BackButton onClick={() => navigate("/check-bookings")}>
+        <SecondaryButton onClick={() => navigate("/check-bookings")} $size="sm">
           <FaArrowLeft />
           Back to Bookings
-        </BackButton>
+        </SecondaryButton>
         <HeaderContent>
           <Title>Booking Details</Title>
           <BookingId># {booking._id?.slice(-8).toUpperCase()}</BookingId>
@@ -313,6 +333,7 @@ const BookingDetailPage = () => {
                               handleDownloadDocument(doc.documentUrl)
                             }
                             title={`Download ${doc.name}`}
+                            $size="sm"
                           >
                             <FaDownload />
                           </DownloadButton>
@@ -380,6 +401,7 @@ const BookingDetailPage = () => {
                             booking.driver.license?.fileUrl
                           )
                         }
+                        $size="sm"
                       >
                         <FaDownload />
                       </DownloadButton>
@@ -394,7 +416,6 @@ const BookingDetailPage = () => {
                           setDriverLicenseFile(e.target.files[0])
                         }
                         id="driver-license-upload"
-                        // disabled={isUploading}
                       />
                       <FileLabel htmlFor="driver-license-upload">
                         <UploadIcon>
@@ -408,23 +429,6 @@ const BookingDetailPage = () => {
                           <FileName>{driverLicenseFile.name}</FileName>
                         )}
                       </FileLabel>
-                      {/* {driverLicenseFile && (
-                      <UploadAction>
-                        <UploadButton
-                          onClick={() =>
-                            handleFileUpload("driverLicense", driverLicenseFile)
-                          }
-                          disabled={isUploading}
-                        >
-                          {isUploading ? "Uploading..." : "Upload License"}
-                        </UploadButton>
-                        <CancelUpload
-                          onClick={() => setDriverLicenseFile(null)}
-                        >
-                          <FaTimes />
-                        </CancelUpload>
-                      </UploadAction>
-                    )} */}
                     </UploadSection>
                   )}
 
@@ -443,6 +447,7 @@ const BookingDetailPage = () => {
                         onClick={() =>
                           handleDownloadDocument(booking.insurance?.documentUrl)
                         }
+                        $size="sm"
                       >
                         <FaDownload />
                       </DownloadButton>
@@ -455,7 +460,6 @@ const BookingDetailPage = () => {
                         accept="image/*,.pdf"
                         onChange={(e) => setInsuranceFile(e.target.files[0])}
                         id="insurance-upload"
-                        // disabled={isUploading}
                       />
                       <FileLabel htmlFor="insurance-upload">
                         <UploadIcon>
@@ -471,16 +475,18 @@ const BookingDetailPage = () => {
                       </FileLabel>
                       {driverLicenseFile && insuranceFile && (
                         <UploadAction>
-                          <UploadButton
-                          // onClick={() => handleFileUpload()}
-                          // disabled={isUploading}
+                          <PrimaryButton type="submit" $size="sm">
+                            Upload Documents
+                          </PrimaryButton>
+                          <GhostButton
+                            onClick={() => {
+                              setDriverLicenseFile(null);
+                              setInsuranceFile(null);
+                            }}
+                            $size="sm"
                           >
-                            {/* {isUploading ? "Uploading..." : "Upload"} */}
-                            upload
-                          </UploadButton>
-                          {/* <CancelUpload onClick={() => setInsuranceFile(null)}>
-                        <FaTimes />
-                      </CancelUpload> */}
+                            <FaTimes />
+                          </GhostButton>
                         </UploadAction>
                       )}
                     </UploadSection>
@@ -552,10 +558,13 @@ const BookingDetailPage = () => {
                 {/* Payment Button - Only show when documents are verified but payment is pending */}
                 {showPaymentButton && (
                   <PaymentButtonContainer>
-                    <PaymentButton onClick={handleProceedToPayment}>
+                    <AccentButtonLink
+                      onClick={handleProceedToPayment}
+                      $size="lg"
+                    >
                       <FaShoppingCart />
                       Proceed to Payment
-                    </PaymentButton>
+                    </AccentButtonLink>
                     <PaymentHelpText>
                       Your documents have been verified. Complete payment to
                       confirm your booking.
@@ -586,11 +595,11 @@ const BookingDetailPage = () => {
 
       {/* Action Buttons */}
       <ActionSection>
-        <SecondaryButton onClick={() => navigate("/check-bookings")}>
+        <SecondaryButton onClick={() => navigate("/check-bookings")} $size="lg">
           <FaArrowLeft />
           Back to My Bookings
         </SecondaryButton>
-        <PrimaryButton onClick={() => window.print()}>
+        <PrimaryButton onClick={() => window.print()} $size="lg">
           Print Booking Details
         </PrimaryButton>
       </ActionSection>
@@ -600,44 +609,26 @@ const BookingDetailPage = () => {
 
 export default BookingDetailPage;
 
-// Styled Components
+// Styled Components - Updated to use global CSS variables
 const PageWrapper = styled.div`
   min-height: 100vh;
-  background: #f8fafc;
+  background: var(--background);
   padding: 0;
 `;
 
 const Header = styled.div`
-  background: white;
-  padding: 2rem;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--white);
+  padding: var(--space-xl);
+  border-bottom: 1px solid var(--gray-200);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 2rem;
+  gap: var(--space-lg);
 
   @media (max-width: 768px) {
     flex-direction: column;
-    gap: 1rem;
-  }
-`;
-
-const BackButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: none;
-  border: 1px solid #d1d5db;
-  color: #374151;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #f3f4f6;
-    border-color: #9ca3af;
+    gap: var(--space-md);
+    padding: var(--space-lg);
   }
 `;
 
@@ -646,19 +637,20 @@ const HeaderContent = styled.div`
 `;
 
 const Title = styled.h1`
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0 0 0.5rem 0;
+  font-size: var(--text-5xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-sm) 0;
+  font-family: var(--font-heading);
 
   @media (max-width: 768px) {
-    font-size: 2rem;
+    font-size: var(--text-4xl);
   }
 `;
 
 const BookingId = styled.p`
-  color: #64748b;
-  font-size: 1rem;
+  color: var(--text-muted);
+  font-size: var(--text-base);
   margin: 0;
   font-family: "Courier New", monospace;
 `;
@@ -666,14 +658,15 @@ const BookingId = styled.p`
 const StatusBadge = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
   background: ${(props) => props.bgColor};
   color: ${(props) => props.color};
-  border-radius: 20px;
-  font-weight: 600;
+  border-radius: var(--radius-full);
+  font-weight: var(--font-semibold);
   text-transform: capitalize;
   white-space: nowrap;
+  font-family: var(--font-body);
 `;
 
 const ErrorState = styled.div`
@@ -682,57 +675,60 @@ const ErrorState = styled.div`
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 4rem 2rem;
+  padding: var(--space-2xl) var(--space-lg);
   max-width: 400px;
   margin: 0 auto;
+  min-height: 400px;
 `;
 
 const ErrorIcon = styled.div`
   font-size: 4rem;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-lg);
 `;
 
 const ErrorTitle = styled.h2`
-  font-size: 1.5rem;
-  color: #1e293b;
-  margin-bottom: 0.5rem;
+  font-size: var(--text-2xl);
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-heading);
 `;
 
 const ErrorText = styled.p`
-  color: #64748b;
-  margin-bottom: 2rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xl);
+  font-family: var(--font-body);
 `;
 
 const ContentGrid = styled.div`
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 2rem;
-  padding: 2rem;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
   max-width: 1400px;
   margin: 0 auto;
 
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
-    padding: 1.5rem;
+    gap: var(--space-md);
+    padding: var(--space-md);
   }
 
   @media (max-width: 768px) {
-    padding: 1rem;
-    gap: 1rem;
+    padding: var(--space-md);
+    gap: var(--space-md);
   }
 `;
 
 const MainSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-md);
 `;
 
 const Sidebar = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-md);
 
   @media (max-width: 1024px) {
     order: -1;
@@ -740,37 +736,37 @@ const Sidebar = styled.div`
 `;
 
 const Card = styled.div`
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
+  border: 1px solid var(--gray-200);
 `;
 
 const CardHeader = styled.div`
-  padding: 1.5rem 1.5rem 0;
+  padding: var(--space-lg) var(--space-lg) 0;
 `;
 
 const CardTitle = styled.h2`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1e293b;
+  gap: var(--space-sm);
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
   margin: 0;
+  font-family: var(--font-heading);
 `;
 
 const CardContent = styled.div`
-  padding: 1.5rem;
+  padding: var(--space-lg);
 `;
-const Form = styled.form`
-  /* display: flex;
-  flex-direction: column;
-  gap: 1rem; */
-`;
+
+const Form = styled.form``;
+
 const CarInfo = styled.div`
   display: flex;
-  gap: 1.5rem;
+  gap: var(--space-md);
   align-items: flex-start;
 
   @media (max-width: 768px) {
@@ -782,7 +778,7 @@ const CarInfo = styled.div`
 const CarImage = styled.img`
   width: 200px;
   height: 120px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   object-fit: cover;
 
   @media (max-width: 768px) {
@@ -797,41 +793,44 @@ const CarDetails = styled.div`
 `;
 
 const CarModel = styled.h3`
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0 0 0.5rem 0;
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-sm) 0;
+  font-family: var(--font-heading);
 `;
 
 const CarSpecs = styled.p`
-  color: #64748b;
-  font-size: 1rem;
-  margin: 0 0 0.5rem 0;
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  margin: 0 0 var(--space-sm) 0;
+  font-family: var(--font-body);
 `;
 
 const CarFeatures = styled.p`
-  color: #94a3b8;
-  font-size: 0.875rem;
+  color: var(--text-light);
+  font-size: var(--text-sm);
   margin: 0;
+  font-family: var(--font-body);
 `;
 
 const DetailGrid = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-md);
 `;
 
 const DetailItem = styled.div`
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
+  gap: var(--space-md);
 `;
 
 const DetailIcon = styled.div`
-  color: #3b82f6;
-  padding: 0.5rem;
-  background: #eff6ff;
-  border-radius: 8px;
+  color: var(--primary);
+  padding: var(--space-sm);
+  background: rgba(211, 47, 47, 0.1);
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -844,41 +843,43 @@ const DetailContent = styled.div`
 `;
 
 const DetailLabel = styled.div`
-  font-size: 0.875rem;
-  color: #64748b;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-weight: var(--font-medium);
+  margin-bottom: var(--space-xs);
+  font-family: var(--font-body);
 `;
 
 const DetailValue = styled.div`
-  font-size: 1rem;
-  color: #1e293b;
-  font-weight: 600;
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  font-weight: var(--font-semibold);
+  font-family: var(--font-body);
 `;
 
 // New Verified Documents Styles
 const VerifiedDocumentsList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-md);
 `;
 
 const VerifiedDocumentItem = styled.div`
   background: #f0f9ff;
   border: 1px solid #e0f2fe;
-  border-radius: 8px;
-  padding: 1rem;
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
 `;
 
 const DocumentHeader = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
 `;
 
 const DocumentIconWrapper = styled.div`
-  color: #059669;
+  color: var(--success);
   font-size: 1.5rem;
   display: flex;
   align-items: center;
@@ -886,7 +887,7 @@ const DocumentIconWrapper = styled.div`
   width: 40px;
   height: 40px;
   background: #d1fae5;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
 `;
 
 const DocumentInfo = styled.div`
@@ -894,84 +895,86 @@ const DocumentInfo = styled.div`
 `;
 
 const DocumentName = styled.div`
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 0.25rem;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+  font-family: var(--font-body);
 `;
 
 const VerifiedBadge = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: #059669;
-  font-weight: 500;
+  gap: var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--success);
+  font-weight: var(--font-medium);
+  font-family: var(--font-body);
 `;
 
 const VerificationDetails = styled.div`
-  background: white;
-  padding: 0.75rem;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
+  background: var(--white);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--gray-200);
 `;
 
 const VerificationDetail = styled.div`
-  font-size: 0.875rem;
-  color: #64748b;
-  margin-bottom: 0.25rem;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xs);
+  font-family: var(--font-body);
 
   &:last-child {
     margin-bottom: 0;
   }
 
   strong {
-    color: #374151;
+    color: var(--text-primary);
   }
 `;
 
 const VerificationNote = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
   background: #d1fae5;
   color: #065f46;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  margin-top: 1rem;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  margin-top: var(--space-lg);
+  font-family: var(--font-body);
 `;
 
-// Existing styles remain the same...
 const DocumentsList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-md);
 `;
 
 const DocumentItem = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 8px;
+  padding: var(--space-lg);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
 `;
 
-// ... (rest of the existing styles remain exactly the same)
-
 const UploadSection = styled.div`
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 2px dashed #e2e8f0;
+  padding: var(--space-lg);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 2px dashed var(--gray-300);
 `;
 
 const UploadTitle = styled.h4`
-  font-size: 1rem;
-  font-weight: 600;
-  color: #374151;
-  margin: 0 0 1rem 0;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-md) 0;
+  font-family: var(--font-body);
 `;
 
 const FileInput = styled.input`
@@ -981,104 +984,66 @@ const FileInput = styled.input`
 const FileLabel = styled.label`
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  border: 2px dashed #d1d5db;
-  border-radius: 8px;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border: 2px dashed var(--gray-400);
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all 0.2s;
-  background: white;
+  transition: all var(--transition-normal);
+  background: var(--white);
 
   &:hover {
-    border-color: #3b82f6;
-    background: #f0f9ff;
+    border-color: var(--primary);
+    background: rgba(211, 47, 47, 0.1);
   }
-
-  ${(props) =>
-    props.disabled &&
-    `
-    opacity: 0.6;
-    cursor: not-allowed;
-    
-    &:hover {
-      border-color: #d1d5db;
-      background: white;
-    }
-  `}
 `;
 
 const UploadIcon = styled.div`
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 1.5rem;
 `;
 
 const FileHint = styled.div`
-  font-size: 0.875rem;
-  color: #6b7280;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-family: var(--font-body);
 `;
 
 const FileName = styled.div`
   margin-left: auto;
-  font-size: 0.875rem;
-  color: #059669;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--success);
+  font-weight: var(--font-semibold);
+  font-family: var(--font-body);
 `;
 
 const UploadAction = styled.div`
   display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
   align-items: center;
 `;
 
-const UploadButton = styled.button`
-  padding: 0.75rem 1.5rem;
-  border: none;
-  background: #10b981;
-  color: white;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-  flex: 1;
-
-  &:hover:not(:disabled) {
-    background: #059669;
-  }
-
-  &:disabled {
-    background: #9ca3af;
-    cursor: not-allowed;
-  }
-`;
-
-const CancelUpload = styled.button`
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  background: white;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #64748b;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #f3f4f6;
-    border-color: #9ca3af;
+const DownloadButton = styled(PrimaryButton)`
+  && {
+    padding: var(--space-sm) var(--space-md);
+    min-width: auto;
   }
 `;
 
 const PriceBreakdown = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-sm);
 `;
 
 const PriceItem = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--gray-100);
+  font-family: var(--font-body);
 
   &:last-child {
     border-bottom: none;
@@ -1089,85 +1054,65 @@ const TotalPrice = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 0.75rem;
-  border-top: 2px solid #e2e8f0;
-  font-weight: 700;
-  font-size: 1.125rem;
-  color: #1e293b;
+  padding-top: var(--space-sm);
+  border-top: 2px solid var(--gray-200);
+  font-weight: var(--font-bold);
+  font-size: var(--text-lg);
+  color: var(--text-primary);
+  font-family: var(--font-body);
 `;
 
 const PaymentInfo = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-sm);
 `;
 
 const PaymentItem = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-family: var(--font-body);
 `;
 
 const PaymentStatus = styled.span`
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.875rem;
-  font-weight: 600;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
   background: ${(props) => (props.paid ? "#d1fae5" : "#fef3c7")};
   color: ${(props) => (props.paid ? "#065f46" : "#92400e")};
+  font-family: var(--font-body);
 `;
 
 const PaymentButtonContainer = styled.div`
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e2e8f0;
-`;
-
-const PaymentButton = styled.button`
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 1rem 1.5rem;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--gray-200);
 `;
 
 const PaymentHelpText = styled.p`
-  font-size: 0.875rem;
-  color: #64748b;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
   text-align: center;
-  margin: 0.5rem 0 0 0;
+  margin: var(--space-sm) 0 0 0;
   line-height: 1.4;
+  font-family: var(--font-body);
 `;
 
 const PaymentMessage = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  margin-top: 1rem;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  margin-top: var(--space-lg);
   background: ${(props) => (props.success ? "#d1fae5" : "#eff6ff")};
   color: ${(props) => (props.success ? "#065f46" : "#374151")};
-  border-left: 4px solid ${(props) => (props.success ? "#10b981" : "#3b82f6")};
+  border-left: 4px solid
+    ${(props) => (props.success ? "var(--success)" : "var(--info)")};
+  font-family: var(--font-body);
 `;
 
 const InfoIcon = styled.span`
@@ -1176,71 +1121,25 @@ const InfoIcon = styled.span`
 
 const ActionSection = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
   justify-content: center;
-  padding: 2rem;
-  background: white;
-  border-top: 1px solid #e2e8f0;
-  margin-top: 2rem;
+  padding: var(--space-lg);
+  background: var(--white);
+  border-top: 1px solid var(--gray-200);
+  margin-top: var(--space-lg);
 
   @media (max-width: 768px) {
     flex-direction: column;
-    padding: 1.5rem;
+    padding: var(--space-md);
   }
 `;
 
-const PrimaryButton = styled.button`
-  background: #3b82f6;
-  color: white;
-  border: none;
-  padding: 1rem 2rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-
-  &:hover {
-    background: #2563eb;
-  }
-`;
-
-const SecondaryButton = styled.button`
-  background: white;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  padding: 1rem 2rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  &:hover {
-    background: #f9fafb;
-    border-color: #9ca3af;
-  }
-`;
 const DocumentStatus = styled.span`
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  background: ${(props) => (props.paid ? "#d1fae5" : "#fef3c7")};
-  color: ${(props) => (props.paid ? "#065f46" : "#92400e")};
-`;
-const DownloadButton = styled.button`
-  background: #3b82f6;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-
-  &:hover {
-    background: #2563eb;
-  }
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  background: ${(props) => (props.verified ? "#d1fae5" : "#fef3c7")};
+  color: ${(props) => (props.verified ? "#065f46" : "#92400e")};
+  font-family: var(--font-body);
 `;

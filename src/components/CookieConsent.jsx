@@ -4,6 +4,13 @@ import styled from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCookieConsent } from "../hooks/useCookieConsent";
 
+// Import button components
+import {
+  PrimaryButton,
+  SecondaryButton,
+  GhostButton,
+} from "../components/ui/Button";
+
 // Using only basic icons that should be available
 import {
   FaCookie,
@@ -88,15 +95,19 @@ const CookieConsent = () => {
                     <FaCog />
                     Cookie Preferences
                   </ModalTitle>
-                  <CloseButton onClick={() => setPreferencesOpen(false)}>
+                  <CloseButton
+                    onClick={() => setPreferencesOpen(false)}
+                    $size="sm"
+                  >
                     <FaTimes />
                   </CloseButton>
                 </ModalHeader>
 
                 <ModalContent>
                   <PreferencesDescription>
-                    We use cookies to enhance your experience on our website.
-                    Choose which types of cookies you allow us to use.
+                    We use cookies to enhance your experience on our luxury
+                    Mercedes-Benz platform. Choose which types of cookies you
+                    allow us to use.
                   </PreferencesDescription>
 
                   <PreferencesList>
@@ -119,12 +130,12 @@ const CookieConsent = () => {
                     <PreferenceItem>
                       <PreferenceInfo>
                         <PreferenceTitle>
-                          <FaChartBar style={{ marginRight: "8px" }} />
+                          <FaChartBar />
                           Analytics Cookies
                         </PreferenceTitle>
                         <PreferenceDescription>
                           Help us understand how visitors interact with our
-                          website.
+                          luxury platform.
                         </PreferenceDescription>
                       </PreferenceInfo>
                       <PreferenceToggle
@@ -138,12 +149,12 @@ const CookieConsent = () => {
                     <PreferenceItem>
                       <PreferenceInfo>
                         <PreferenceTitle>
-                          <FaBullhorn style={{ marginRight: "8px" }} />
+                          <FaBullhorn />
                           Marketing Cookies
                         </PreferenceTitle>
                         <PreferenceDescription>
-                          Used to track visitors across websites for advertising
-                          purposes.
+                          Used to provide personalized luxury vehicle
+                          recommendations.
                         </PreferenceDescription>
                       </PreferenceInfo>
                       <PreferenceToggle
@@ -157,11 +168,12 @@ const CookieConsent = () => {
                     <PreferenceItem>
                       <PreferenceInfo>
                         <PreferenceTitle>
-                          <FaUserCog style={{ marginRight: "8px" }} />
+                          <FaUserCog />
                           Preference Cookies
                         </PreferenceTitle>
                         <PreferenceDescription>
-                          Allow the website to remember choices you make.
+                          Allow the platform to remember your luxury
+                          preferences.
                         </PreferenceDescription>
                       </PreferenceInfo>
                       <PreferenceToggle
@@ -175,10 +187,13 @@ const CookieConsent = () => {
                 </ModalContent>
 
                 <ModalActions>
-                  <SecondaryButton onClick={() => setPreferencesOpen(false)}>
+                  <SecondaryButton
+                    onClick={() => setPreferencesOpen(false)}
+                    $size="md"
+                  >
                     Cancel
                   </SecondaryButton>
-                  <PrimaryButton onClick={handleSavePreferences}>
+                  <PrimaryButton onClick={handleSavePreferences} $size="md">
                     Save Preferences
                   </PrimaryButton>
                 </ModalActions>
@@ -192,22 +207,26 @@ const CookieConsent = () => {
                   <BannerText>
                     <BannerTitle>We Value Your Privacy</BannerTitle>
                     <BannerDescription>
-                      We use cookies to enhance your browsing experience, serve
-                      personalized content, and analyze our traffic. By clicking
-                      "Accept All", you consent to our use of cookies.
+                      At Mercedes-Benz Rentals, we use cookies to enhance your
+                      luxury experience, serve personalized content, and analyze
+                      our traffic. By clicking "Accept All", you consent to our
+                      use of cookies.
                     </BannerDescription>
                   </BannerText>
                 </BannerHeader>
 
                 <BannerActions>
-                  <PreferencesButton onClick={() => setPreferencesOpen(true)}>
+                  <PreferencesButton
+                    onClick={() => setPreferencesOpen(true)}
+                    $size="sm"
+                  >
                     <FaCog />
                     Preferences
                   </PreferencesButton>
-                  <EssentialButton onClick={handleAcceptEssential}>
+                  <EssentialButton onClick={handleAcceptEssential} $size="sm">
                     Essential Only
                   </EssentialButton>
-                  <AcceptButton onClick={handleAcceptAll}>
+                  <AcceptButton onClick={handleAcceptAll} $size="sm">
                     Accept All
                   </AcceptButton>
                 </BannerActions>
@@ -222,7 +241,7 @@ const CookieConsent = () => {
 
 export default CookieConsent;
 
-// Styled Components - Updated for bottom positioning
+// Styled Components - Updated to use global CSS variables
 const Overlay = styled(motion.div)`
   position: fixed;
   top: 0;
@@ -239,14 +258,14 @@ const Overlay = styled(motion.div)`
 
   @media (min-width: 768px) {
     align-items: flex-end;
-    padding-bottom: 2rem;
+    padding-bottom: var(--space-lg);
   }
 `;
 
 const BannerContainer = styled(motion.div)`
-  background: white;
-  border-radius: 20px 20px 0 0;
-  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1);
+  background: var(--white);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: var(--shadow-lg);
   max-width: 100%;
   width: 100%;
   max-height: 90vh;
@@ -255,8 +274,7 @@ const BannerContainer = styled(motion.div)`
 
   @media (min-width: 768px) {
     max-width: 600px;
-    border-radius: 20px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    border-radius: var(--radius-xl);
     margin: 0 auto;
   }
 
@@ -266,23 +284,23 @@ const BannerContainer = styled(motion.div)`
 `;
 
 const BannerContent = styled.div`
-  padding: 1.5rem;
+  padding: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-lg);
 
   @media (min-width: 640px) {
-    padding: 2rem;
+    padding: var(--space-xl);
     flex-direction: row;
     align-items: center;
-    gap: 2rem;
+    gap: var(--space-xl);
   }
 `;
 
 const BannerHeader = styled.div`
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
+  gap: var(--space-md);
 
   @media (max-width: 639px) {
     text-align: center;
@@ -292,12 +310,12 @@ const BannerHeader = styled.div`
 const CookieIcon = styled.div`
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  border-radius: 12px;
+  background: var(--gradient-accent);
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--secondary);
   font-size: 1.5rem;
   flex-shrink: 0;
 
@@ -311,22 +329,24 @@ const BannerText = styled.div`
 `;
 
 const BannerTitle = styled.h3`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 0.5rem 0;
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-sm) 0;
+  font-family: var(--font-heading);
 `;
 
 const BannerDescription = styled.p`
-  color: #64748b;
+  color: var(--text-secondary);
   line-height: 1.6;
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
 `;
 
 const BannerActions = styled.div`
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-sm);
   align-items: center;
   justify-content: flex-end;
   flex-wrap: wrap;
@@ -342,57 +362,42 @@ const BannerActions = styled.div`
   }
 `;
 
-const Button = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-  font-size: 0.9rem;
-  white-space: nowrap;
-
-  &:hover {
-    transform: translateY(-1px);
+const PreferencesButton = styled(SecondaryButton)`
+  && {
+    @media (max-width: 639px) {
+      width: 100%;
+      justify-content: center;
+    }
   }
+`;
 
-  @media (max-width: 639px) {
-    width: 100%;
+const EssentialButton = styled(SecondaryButton)`
+  && {
+    @media (max-width: 639px) {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+`;
+
+const AcceptButton = styled(PrimaryButton)`
+  && {
+    @media (max-width: 639px) {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+`;
+
+const CloseButton = styled(GhostButton)`
+  && {
+    padding: var(--space-sm);
+    min-width: auto;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
     justify-content: center;
-  }
-`;
-
-const PreferencesButton = styled(Button)`
-  background: transparent;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
-
-  &:hover {
-    background: #f8fafc;
-    border-color: #cbd5e1;
-  }
-`;
-
-const EssentialButton = styled(Button)`
-  background: transparent;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
-
-  &:hover {
-    background: #f8fafc;
-    border-color: #cbd5e1;
-  }
-`;
-
-const AcceptButton = styled(Button)`
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-
-  &:hover {
-    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
   }
 `;
 
@@ -406,74 +411,62 @@ const ModalHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
-  border-bottom: 1px solid #e2e8f0;
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--gray-200);
 
   @media (max-width: 640px) {
-    padding: 1.25rem 1.5rem;
+    padding: var(--space-md) var(--space-lg);
   }
 `;
 
 const ModalTitle = styled.h2`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1e293b;
+  gap: var(--space-sm);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
   margin: 0;
-`;
-
-const CloseButton = styled.button`
-  background: none;
-  border: none;
-  padding: 0.5rem;
-  border-radius: 8px;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #f1f5f9;
-    color: #374151;
-  }
+  font-family: var(--font-heading);
 `;
 
 const ModalContent = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding: 2rem;
+  padding: var(--space-xl);
 
   @media (max-width: 640px) {
-    padding: 1.5rem;
+    padding: var(--space-lg);
   }
 `;
 
 const PreferencesDescription = styled.p`
-  color: #64748b;
+  color: var(--text-secondary);
   line-height: 1.6;
-  margin-bottom: 2rem;
+  margin-bottom: var(--space-xl);
   text-align: center;
+  font-family: var(--font-body);
 `;
 
 const PreferencesList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-md);
 `;
 
 const PreferenceItem = styled.div`
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
-  padding: 1.5rem;
-  background: ${(props) => (props.$required ? "#f0f9ff" : "#f8fafc")};
-  border: 1px solid ${(props) => (props.$required ? "#bae6fd" : "#e2e8f0")};
-  border-radius: 12px;
-  transition: all 0.2s;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: ${(props) => (props.$required ? "#f0f9ff" : "var(--surface)")};
+  border: 1px solid
+    ${(props) => (props.$required ? "#bae6fd" : "var(--gray-200)")};
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-normal);
 
   &:hover {
-    border-color: #cbd5e1;
+    border-color: var(--gray-300);
   }
 `;
 
@@ -484,90 +477,73 @@ const PreferenceInfo = styled.div`
 const PreferenceTitle = styled.div`
   display: flex;
   align-items: center;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 0.5rem;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-body);
+  gap: var(--space-sm);
 `;
 
 const RequiredBadge = styled.span`
-  background: #3b82f6;
-  color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  margin-left: 0.75rem;
+  background: var(--primary);
+  color: var(--white);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  font-family: var(--font-body);
 `;
 
 const PreferenceDescription = styled.p`
-  color: #64748b;
-  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
   line-height: 1.5;
   margin: 0;
+  font-family: var(--font-body);
 `;
 
 const PreferenceToggle = styled.button`
   width: 44px;
   height: 24px;
   background: ${(props) =>
-    props.$active ? "#10b981" : props.$disabled ? "#9ca3af" : "#d1d5db"};
+    props.$active
+      ? "var(--success)"
+      : props.$disabled
+      ? "var(--gray-400)"
+      : "var(--gray-300)"};
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-full);
   position: relative;
   cursor: ${(props) => (props.$disabled ? "not-allowed" : "pointer")};
-  transition: all 0.2s;
+  transition: all var(--transition-normal);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 0.75rem;
+  color: var(--white);
+  font-size: var(--text-xs);
 
   &::after {
     content: "";
     position: absolute;
     width: 16px;
     height: 16px;
-    background: white;
+    background: var(--white);
     border-radius: 50%;
     top: 4px;
     left: ${(props) => (props.$active ? "24px" : "4px")};
-    transition: left 0.2s;
+    transition: left var(--transition-normal);
   }
 `;
 
 const ModalActions = styled.div`
   display: flex;
-  gap: 1rem;
-  padding: 1.5rem 2rem;
-  border-top: 1px solid #e2e8f0;
-  background: #f8fafc;
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--space-xl);
+  border-top: 1px solid var(--gray-200);
+  background: var(--surface);
 
   @media (max-width: 640px) {
     flex-direction: column;
-    padding: 1.25rem 1.5rem;
-  }
-`;
-
-const PrimaryButton = styled(Button)`
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
-
-  &:hover {
-    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
-  }
-
-  @media (max-width: 640px) {
-    order: -1;
-  }
-`;
-
-const SecondaryButton = styled(Button)`
-  background: white;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
-
-  &:hover {
-    background: #f8fafc;
-    border-color: #cbd5e1;
+    padding: var(--space-md) var(--space-lg);
   }
 `;

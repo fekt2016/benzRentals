@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import styled, { keyframes } from "styled-components";
 import { useVerifyOtp } from "../../hooks/useAuth";
-import { PrimaryButton, SecondaryButton } from "../Button";
+import { PrimaryButton, SecondaryButton } from "../../components/ui/Button";
 
 const OtpModal = ({ isOpen, onClose, phone }) => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);

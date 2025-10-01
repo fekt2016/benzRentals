@@ -14,8 +14,7 @@ import {
   SecondaryButton,
   GhostButton,
   ButtonLink,
-  SecondaryButtonLink,
-} from "../components/Button";
+} from "../components/ui/Button";
 
 // Icons
 import {
@@ -91,7 +90,7 @@ export default function Header() {
   const navItems = [
     { path: PATHS.HOME, label: "Home" },
     { path: PATHS.MODELS, label: "Our Fleet" },
-    { path: PATHS.ABOUT, label: "About" },
+    { path: PATHS.ABOUT, label: "About Us" },
     { path: PATHS.CONTACT, label: "Contact" },
   ];
 
@@ -106,13 +105,13 @@ export default function Header() {
       <HeaderContainer>
         {/* Logo */}
         <Logo to={PATHS.HOME}>
-          <LogoIcon>{/* <FiCar /> */}</LogoIcon>
+          <LogoIcon>🚗</LogoIcon>
           <LogoText>
             Benz<span>Flex</span>
           </LogoText>
         </Logo>
 
-        {/* Desktop Navigation - Moved closer to right section */}
+        {/* Desktop Navigation */}
         <NavContainer>
           <Nav>
             {navItems.map((item) => (
@@ -130,7 +129,7 @@ export default function Header() {
             ))}
           </Nav>
 
-          {/* Right Section - Now part of the same container */}
+          {/* Right Section */}
           <RightSection>
             {user ? (
               <>
@@ -204,7 +203,7 @@ export default function Header() {
               </>
             ) : (
               <AuthButton to={PATHS.LOGIN} $size="md">
-                <FiUser style={{ marginRight: "0.5rem" }} />
+                <FiUser style={{ marginRight: "var(--space-xs)" }} />
                 Account
               </AuthButton>
             )}
@@ -254,35 +253,35 @@ export default function Header() {
 
                   <MobileNavItem>
                     <MobileNavLink to="/bookings">
-                      <FiCalendar style={{ marginRight: "0.5rem" }} />
+                      <FiCalendar style={{ marginRight: "var(--space-xs)" }} />
                       My Bookings
                     </MobileNavLink>
                   </MobileNavItem>
 
                   <MobileNavItem>
                     <MobileNavLink to="/reviews">
-                      <FiStar style={{ marginRight: "0.5rem" }} />
+                      <FiStar style={{ marginRight: "var(--space-xs)" }} />
                       My Reviews
                     </MobileNavLink>
                   </MobileNavItem>
 
                   <MobileNavItem>
                     <MobileNavLink to="/notifications">
-                      <FiBell style={{ marginRight: "0.5rem" }} />
+                      <FiBell style={{ marginRight: "var(--space-xs)" }} />
                       Notifications
                     </MobileNavLink>
                   </MobileNavItem>
 
                   <MobileNavItem>
                     <MobileNavLink to="/profile">
-                      <FiSettings style={{ marginRight: "0.5rem" }} />
+                      <FiSettings style={{ marginRight: "var(--space-xs)" }} />
                       Profile Settings
                     </MobileNavLink>
                   </MobileNavItem>
 
                   <MobileNavItem>
                     <MobileLogoutButton onClick={handleLogout} $size="sm">
-                      <FiLogOut style={{ marginRight: "0.5rem" }} />
+                      <FiLogOut style={{ marginRight: "var(--space-xs)" }} />
                       Sign Out
                     </MobileLogoutButton>
                   </MobileNavItem>
@@ -290,7 +289,7 @@ export default function Header() {
               ) : (
                 <MobileNavItem>
                   <MobileAuthButton to={PATHS.LOGIN} $size="sm">
-                    <FiUser style={{ marginRight: "0.5rem" }} />
+                    <FiUser style={{ marginRight: "var(--space-xs)" }} />
                     Account
                   </MobileAuthButton>
                 </MobileNavItem>
@@ -315,10 +314,9 @@ const StyledHeader = styled(motion.header)`
   backdrop-filter: ${({ scrolled }) =>
     scrolled ? "blur(20px) saturate(180%)" : "none"};
   border-bottom: ${({ scrolled }) =>
-    scrolled ? "1px solid rgba(255, 255, 255, 0.2)" : "none"};
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: ${({ scrolled }) =>
-    scrolled ? "0 8px 32px rgba(0, 0, 0, 0.1)" : "none"};
+    scrolled ? "1px solid var(--gray-200)" : "none"};
+  transition: all var(--transition-normal);
+  box-shadow: ${({ scrolled }) => (scrolled ? "var(--shadow-md)" : "none")};
 `;
 
 const HeaderContainer = styled.div`
@@ -327,20 +325,21 @@ const HeaderContainer = styled.div`
   justify-content: space-between;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1rem 2rem;
+  padding: var(--space-md) var(--space-lg);
   position: relative;
 
   @media (max-width: 768px) {
-    padding: 1rem;
+    padding: var(--space-md);
   }
 `;
 
 const Logo = styled(Link)`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-sm);
   text-decoration: none;
-  transition: transform 0.3s ease;
+  transition: transform var(--transition-normal);
+  font-family: var(--font-heading);
 
   &:hover {
     transform: translateY(-2px);
@@ -350,50 +349,50 @@ const Logo = styled(Link)`
 const LogoIcon = styled.div`
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  border-radius: 10px;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--white);
   font-size: 1.5rem;
 `;
 
 const LogoText = styled.div`
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1e293b;
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  color: var(--secondary);
+  font-family: var(--font-heading);
 
   span {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    background: var(--gradient-primary);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
   @media (max-width: 768px) {
-    font-size: 1.25rem;
+    font-size: var(--text-xl);
   }
 `;
 
-// New container that groups nav and right section
 const NavContainer = styled.div`
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: var(--space-lg);
   flex: 1;
   justify-content: flex-end;
 
   @media (max-width: 768px) {
     justify-content: flex-end;
-    gap: 1rem;
+    gap: var(--space-sm);
   }
 `;
 
 const Nav = styled.nav`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-xs);
 
   @media (max-width: 768px) {
     display: none;
@@ -406,19 +405,21 @@ const NavItem = styled.div`
 
 const NavLink = styled(Link)`
   position: relative;
-  padding: 0.75rem 1.25rem;
+  padding: var(--space-sm) var(--space-md);
   text-decoration: none;
-  color: ${(props) => (props.$isActive ? "#3b82f6" : "#64748b")};
-  font-weight: 500;
-  border-radius: 10px;
-  transition: all 0.3s ease;
+  color: ${(props) =>
+    props.$isActive ? "var(--primary)" : "var(--text-secondary)"};
+  font-weight: var(--font-medium);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-normal);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-xs);
+  font-family: var(--font-body);
 
   &:hover {
-    color: #3b82f6;
-    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary);
+    background: rgba(211, 47, 47, 0.1);
   }
 
   &::before {
@@ -428,9 +429,9 @@ const NavLink = styled(Link)`
     left: 50%;
     width: ${(props) => (props.$isActive ? "80%" : "0%")};
     height: 2px;
-    background: #3b82f6;
+    background: var(--primary);
     transform: translateX(-50%);
-    transition: width 0.3s ease;
+    transition: width var(--transition-normal);
   }
 
   &:hover::before {
@@ -445,14 +446,14 @@ const ActiveIndicator = styled(motion.div)`
   transform: translateX(-50%);
   width: 80%;
   height: 2px;
-  background: #3b82f6;
+  background: var(--primary);
   border-radius: 2px;
 `;
 
 const RightSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-sm);
 `;
 
 const NotificationBellWrapper = styled.div`
@@ -462,20 +463,21 @@ const NotificationBellWrapper = styled.div`
 
 const AuthButton = styled(ButtonLink)`
   && {
-    padding: 0.75rem 1.5rem;
-    border-radius: 10px;
-    font-weight: 600;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-lg);
+    font-weight: var(--font-semibold);
     display: flex;
     align-items: center;
+    font-family: var(--font-body);
   }
 `;
 
 const MobileMenuButton = styled(PrimaryButton)`
   && {
     display: none;
-    padding: 0.75rem;
-    border-radius: 10px;
-    font-size: 1.25rem;
+    padding: var(--space-sm);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-lg);
     min-width: auto;
     width: 48px;
     height: 48px;
@@ -495,22 +497,23 @@ const UserSection = styled.div`
 const UserAvatar = styled(motion.div)`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 1rem;
-  border-radius: 50px;
-  background: rgba(59, 130, 246, 0.1);
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  background: rgba(211, 47, 47, 0.1);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
   border: 2px solid transparent;
+  font-family: var(--font-body);
 
   &:hover {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: rgba(59, 130, 246, 0.3);
+    background: rgba(211, 47, 47, 0.2);
+    border-color: rgba(211, 47, 47, 0.3);
   }
 
   .chevron {
-    transition: transform 0.3s ease;
-    color: #64748b;
+    transition: transform var(--transition-normal);
+    color: var(--text-muted);
   }
 
   .chevron.open {
@@ -529,16 +532,16 @@ const AvatarPlaceholder = styled.div`
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--white);
 `;
 
 const UserName = styled.span`
-  font-weight: 600;
-  color: #1e293b;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
 
   @media (max-width: 480px) {
     display: none;
@@ -549,11 +552,11 @@ const DropdownMenu = styled(motion.div)`
   position: absolute;
   top: 100%;
   right: 0;
-  margin-top: 0.5rem;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-top: var(--space-xs);
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--gray-200);
   backdrop-filter: blur(20px);
   min-width: 240px;
   overflow: hidden;
@@ -561,71 +564,79 @@ const DropdownMenu = styled(motion.div)`
 `;
 
 const DropdownHeader = styled.div`
-  padding: 1.25rem;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-bottom: 1px solid #e2e8f0;
+  padding: var(--space-md);
+  background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+  border-bottom: 1px solid var(--gray-200);
+  font-family: var(--font-body);
 
   div:first-child {
-    font-size: 0.875rem;
-    color: #64748b;
-    margin-bottom: 0.25rem;
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-bottom: var(--space-xs);
   }
 
   .user-email {
-    font-weight: 600;
-    color: #1e293b;
-    font-size: 0.9rem;
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
   }
 `;
 
 const DropdownItem = styled(Link)`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   text-decoration: none;
-  color: #475569;
-  font-weight: 500;
-  transition: all 0.2s ease;
+  color: var(--text-secondary);
+  font-weight: var(--font-medium);
+  transition: all var(--transition-fast);
   border-left: 3px solid transparent;
+  font-family: var(--font-body);
 
   &:hover {
-    background: #f8fafc;
-    color: #3b82f6;
-    border-left-color: #3b82f6;
+    background: var(--gray-50);
+    color: var(--primary);
+    border-left-color: var(--primary);
   }
 
   svg {
     width: 18px;
     height: 18px;
+    color: var(--text-muted);
+  }
+
+  &:hover svg {
+    color: var(--primary);
   }
 `;
 
 const DropdownDivider = styled.div`
   height: 1px;
-  background: #e2e8f0;
-  margin: 0.5rem 0;
+  background: var(--gray-200);
+  margin: var(--space-xs) 0;
 `;
 
 const LogoutButton = styled(SecondaryButton)`
   && {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: var(--space-sm);
     width: 100%;
-    padding: 1rem 1.25rem;
+    padding: var(--space-sm) var(--space-md);
     border: none;
     border-radius: 0;
-    color: #ef4444;
-    border-color: #ef4444;
+    color: var(--error);
+    border-color: var(--error);
     background: transparent;
-    font-weight: 500;
+    font-weight: var(--font-medium);
     border-left: 3px solid transparent;
+    font-family: var(--font-body);
 
     &:hover {
       background: #fef2f2;
-      border-left-color: #ef4444;
-      color: #ef4444;
+      border-left-color: var(--error);
+      color: var(--error);
     }
 
     svg {
@@ -637,8 +648,8 @@ const LogoutButton = styled(SecondaryButton)`
 
 const MobileMenu = styled(motion.div)`
   display: none;
-  background: white;
-  border-top: 1px solid #e2e8f0;
+  background: var(--white);
+  border-top: 1px solid var(--gray-200);
 
   @media (max-width: 768px) {
     display: block;
@@ -648,68 +659,72 @@ const MobileMenu = styled(motion.div)`
 const MobileNav = styled.nav`
   display: flex;
   flex-direction: column;
-  padding: 1rem;
+  padding: var(--space-md);
 `;
 
 const MobileNavItem = styled.div`
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-xs);
 `;
 
 const MobileNavLink = styled(Link)`
   display: block;
-  padding: 1rem 1.25rem;
+  padding: var(--space-sm) var(--space-md);
   text-decoration: none;
-  color: ${(props) => (props.$isActive ? "#3b82f6" : "#475569")};
-  font-weight: 500;
-  border-radius: 10px;
-  transition: all 0.3s ease;
+  color: ${(props) =>
+    props.$isActive ? "var(--primary)" : "var(--text-secondary)"};
+  font-weight: var(--font-medium);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-normal);
   background: ${(props) =>
-    props.$isActive ? "rgba(59, 130, 246, 0.1)" : "transparent"};
+    props.$isActive ? "rgba(211, 47, 47, 0.1)" : "transparent"};
+  font-family: var(--font-body);
 
   &:hover {
-    background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
+    background: rgba(211, 47, 47, 0.1);
+    color: var(--primary);
   }
 `;
 
 const MobileNotificationSection = styled.div`
   display: flex;
   justify-content: center;
-  padding: 0.5rem 0;
+  padding: var(--space-xs) 0;
 `;
 
 const MobileAuthButton = styled(ButtonLink)`
   && {
     display: block;
-    padding: 1rem 1.25rem;
+    padding: var(--space-sm) var(--space-md);
     text-decoration: none;
-    font-weight: 600;
-    border-radius: 10px;
+    font-weight: var(--font-semibold);
+    border-radius: var(--radius-lg);
     text-align: center;
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-family: var(--font-body);
   }
 `;
 
 const MobileLogoutButton = styled(SecondaryButton)`
   && {
     display: block;
-    padding: 1rem 1.25rem;
-    font-weight: 600;
-    border-radius: 10px;
+    padding: var(--space-sm) var(--space-md);
+    font-weight: var(--font-semibold);
+    border-radius: var(--radius-lg);
     text-align: center;
     width: 100%;
-    border: 2px solid #ef4444;
-    color: #ef4444;
+    border: 2px solid var(--error);
+    color: var(--error);
     display: flex;
     align-items: center;
     justify-content: center;
+    font-family: var(--font-body);
 
     &:hover {
       background: #fef2f2;
-      color: #ef4444;
+      color: var(--error);
     }
   }
 `;

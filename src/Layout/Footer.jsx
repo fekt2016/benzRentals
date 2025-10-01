@@ -10,6 +10,8 @@ import {
   FaEnvelope,
   FaArrowRight,
 } from "react-icons/fa";
+import { PrimaryButton, AccentButtonLink } from "../components/ui/Button";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -53,25 +55,25 @@ const Footer = () => {
                 <LinkArrow>
                   <FaArrowRight />
                 </LinkArrow>
-                <a href="/models">Our Fleet</a>
+                <FooterLink to="/models">Our Fleet</FooterLink>
               </LinkItem>
               <LinkItem>
                 <LinkArrow>
                   <FaArrowRight />
                 </LinkArrow>
-                <a href="/locations">Locations</a>
+                <FooterLink to="/locations">Locations</FooterLink>
               </LinkItem>
               <LinkItem>
                 <LinkArrow>
                   <FaArrowRight />
                 </LinkArrow>
-                <a href="/pricing">Pricing</a>
+                <FooterLink to="/pricing">Pricing</FooterLink>
               </LinkItem>
               <LinkItem>
                 <LinkArrow>
                   <FaArrowRight />
                 </LinkArrow>
-                <a href="/testimonials">Testimonials</a>
+                <FooterLink to="/testimonials">Testimonials</FooterLink>
               </LinkItem>
             </LinksList>
           </LinksColumn>
@@ -84,25 +86,25 @@ const Footer = () => {
                 <LinkArrow>
                   <FaArrowRight />
                 </LinkArrow>
-                <a href="/luxury-rentals">Luxury Rentals</a>
+                <FooterLink to="/luxury-rentals">Luxury Rentals</FooterLink>
               </LinkItem>
               <LinkItem>
                 <LinkArrow>
                   <FaArrowRight />
                 </LinkArrow>
-                <a href="/chauffeur">Chauffeur Service</a>
+                <FooterLink to="/chauffeur">Chauffeur Service</FooterLink>
               </LinkItem>
               <LinkItem>
                 <LinkArrow>
                   <FaArrowRight />
                 </LinkArrow>
-                <a href="/corporate">Corporate Programs</a>
+                <FooterLink to="/corporate">Corporate Programs</FooterLink>
               </LinkItem>
               <LinkItem>
                 <LinkArrow>
                   <FaArrowRight />
                 </LinkArrow>
-                <a href="/events">Event Transportation</a>
+                <FooterLink to="/events">Event Transportation</FooterLink>
               </LinkItem>
             </LinksList>
           </LinksColumn>
@@ -115,7 +117,12 @@ const Footer = () => {
             </NewsletterText>
             <NewsletterForm>
               <NewsletterInput type="email" placeholder="Enter your email" />
-              <SubscribeButton>
+              <SubscribeButton
+                $size="sm"
+                type="submit"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <FaArrowRight />
               </SubscribeButton>
             </NewsletterForm>
@@ -151,9 +158,9 @@ const Footer = () => {
             © {currentYear} Mercedes-Benz Premium Rentals. All rights reserved.
           </CopyrightText>
           <LegalLinks>
-            <LegalLink href="/privacy">Privacy Policy</LegalLink>
-            <LegalLink href="/terms">Terms of Service</LegalLink>
-            <LegalLink href="/cookies">Cookie Policy</LegalLink>
+            <LegalLink to="/privacy">Privacy Policy</LegalLink>
+            <LegalLink to="/terms">Terms of Service</LegalLink>
+            <LegalLink to="/cookies">Cookie Policy</LegalLink>
           </LegalLinks>
         </CopyrightContainer>
       </CopyrightSection>
@@ -161,7 +168,14 @@ const Footer = () => {
       {/* Floating CTA */}
       <FloatingCTA>
         <CTAText>Ready to experience luxury?</CTAText>
-        <CTAButton href="/booking">Book Now</CTAButton>
+        <CTAButton
+          to="/booking"
+          $size="sm"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          Book Now
+        </CTAButton>
       </FloatingCTA>
     </FooterWrapper>
   );
@@ -188,56 +202,54 @@ const slideUp = keyframes`
 
 const pulse = keyframes`
   0% {
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.4);
   }
   70% {
-    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+    box-shadow: 0 0 0 10px rgba(211, 47, 47, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    box-shadow: 0 0 0 0 rgba(211, 47, 47, 0);
   }
 `;
 
-const gradientShift = keyframes`
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-`;
+// const gradientShift = keyframes`
+//   0% { background-position: 0% 50%; }
+//   50% { background-position: 100% 50%; }
+//   100% { background-position: 0% 50%; }
+// `;
 
 // Styled Components
 const FooterWrapper = styled.footer`
   position: relative;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-  background-size: 200% 200%;
-  animation: ${gradientShift} 10s ease infinite;
-  color: white;
+  background: var(--gradient-secondary);
+  color: var(--white);
   margin-top: auto;
 `;
 
 const MainFooter = styled.div`
-  padding: 5rem 2rem 3rem;
+  padding: var(--space-2xl) var(--space-lg) var(--space-xl);
   max-width: 1200px;
   margin: 0 auto;
 
   @media (max-width: 768px) {
-    padding: 3rem 1rem 2rem;
+    padding: var(--space-xl) var(--space-md) var(--space-lg);
   }
 `;
 
 const FooterContainer = styled.div`
   display: grid;
   grid-template-columns: 2fr 1fr 1fr 1.5fr;
-  gap: 3rem;
+  gap: var(--space-xl);
   align-items: start;
 
   @media (max-width: 1024px) {
     grid-template-columns: 1fr 1fr;
-    gap: 2rem;
+    gap: var(--space-lg);
   }
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
-    gap: 2.5rem;
+    gap: var(--space-xl);
   }
 `;
 
@@ -248,8 +260,8 @@ const BrandColumn = styled.div`
 const BrandLogo = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
 `;
 
 const CarIcon = styled.div`
@@ -259,9 +271,10 @@ const CarIcon = styled.div`
 `;
 
 const BrandName = styled.h3`
-  font-size: 1.8rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-semibold);
+  font-family: var(--font-heading);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -269,33 +282,36 @@ const BrandName = styled.h3`
 `;
 
 const BrandDescription = styled.p`
-  color: #cbd5e1;
+  color: var(--text-light);
   line-height: 1.6;
-  margin-bottom: 2rem;
-  font-size: 1.4rem;
+  margin-bottom: var(--space-lg);
+  font-size: var(--text-base);
+  font-family: var(--font-body);
 `;
 
 const ContactInfo = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-sm);
 `;
 
 const ContactItem = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
-  color: #cbd5e1;
-  font-size: 1.3rem;
-  transition: color 0.3s ease;
+  gap: var(--space-sm);
+  color: var(--text-light);
+  font-size: var(--text-base);
+  transition: color var(--transition-normal);
+  font-family: var(--font-body);
 
   &:hover {
-    color: #60a5fa;
+    color: var(--accent);
   }
 
   svg {
-    color: #3b82f6;
+    color: var(--primary);
     width: 16px;
+    flex-shrink: 0;
   }
 `;
 
@@ -304,10 +320,11 @@ const LinksColumn = styled.div`
 `;
 
 const ColumnTitle = styled.h4`
-  font-size: 1.6rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: #f8fafc;
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  font-family: var(--font-heading);
+  margin-bottom: var(--space-md);
+  color: var(--white);
   position: relative;
 
   &::after {
@@ -317,7 +334,7 @@ const ColumnTitle = styled.h4`
     left: 0;
     width: 40px;
     height: 2px;
-    background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+    background: var(--gradient-primary);
     border-radius: 2px;
   }
 `;
@@ -327,35 +344,56 @@ const LinksList = styled.ul`
   padding: 0;
   margin: 0;
 `;
+const LinkItem = styled.li`
+  margin-bottom: var(--space-sm);
+  position: relative;
+  transition: transform var(--transition-normal);
 
+  &:hover {
+    transform: translateX(5px);
+  }
+`;
 const LinkArrow = styled.span`
   position: absolute;
   left: -1.5rem;
   top: 50%;
   transform: translateY(-50%) translateX(-5px);
   opacity: 0;
-  transition: all 0.3s ease;
-  color: #3b82f6;
-  font-size: 0.8rem;
+  transition: all var(--transition-normal);
+  color: var(--primary);
+  font-size: var(--text-sm);
 
-  a:hover + & {
+  ${LinkItem}:hover & {
     opacity: 1;
     transform: translateY(-50%) translateX(0);
   }
 `;
 
-const LinkItem = styled.li`
-  margin-bottom: 1rem;
+const FooterLink = styled(Link)`
+  color: var(--text-light);
+  text-decoration: none;
+  font-size: var(--text-base);
+  transition: all var(--transition-normal);
   position: relative;
-  transition: transform 0.3s ease;
+  font-family: var(--font-body);
 
   &:hover {
-    transform: translateX(5px);
+    color: var(--accent);
+  }
 
-    ${LinkArrow} {
-      opacity: 1;
-      transform: translateX(0);
-    }
+  &::after {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 1px;
+    bottom: -2px;
+    left: 0;
+    background: var(--accent);
+    transition: width var(--transition-normal);
+  }
+
+  &:hover::after {
+    width: 100%;
   }
 `;
 
@@ -364,77 +402,65 @@ const NewsletterColumn = styled.div`
 `;
 
 const NewsletterText = styled.p`
-  color: #cbd5e1;
-  margin-bottom: 1.5rem;
-  font-size: 1.3rem;
+  color: var(--text-light);
+  margin-bottom: var(--space-md);
+  font-size: var(--text-base);
   line-height: 1.5;
+  font-family: var(--font-body);
 `;
 
 const NewsletterForm = styled.form`
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 2rem;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
   position: relative;
 `;
 
 const NewsletterInput = styled.input`
   flex: 1;
-  padding: 1rem 1.5rem;
-  border: 1px solid #334155;
-  border-radius: 12px;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--gray-600);
+  border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
-  color: white;
-  font-size: 1.3rem;
-  transition: all 0.3s ease;
+  color: var(--white);
+  font-size: var(--text-base);
+  font-family: var(--font-body);
+  transition: all var(--transition-normal);
 
   &::placeholder {
-    color: #94a3b8;
+    color: var(--text-muted);
   }
 
   &:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
   }
 `;
 
-const SubscribeButton = styled.button`
-  padding: 1rem;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  border: none;
-  border-radius: 12px;
-  color: white;
-  cursor: pointer;
-  transition: all 0.3s ease;
+const SubscribeButton = styled(PrimaryButton)`
+  padding: var(--space-sm);
+  min-width: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 50px;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
 `;
 
 const SocialSection = styled.div`
-  margin-top: 2rem;
+  margin-top: var(--space-lg);
 `;
 
 const SocialTitle = styled.h5`
-  font-size: 1.4rem;
-  margin-bottom: 1rem;
-  color: #f8fafc;
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-sm);
+  color: var(--white);
+  font-family: var(--font-heading);
 `;
 
 const SocialIcons = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: var(--space-sm);
 `;
 
 const SocialLink = styled.a`
@@ -446,17 +472,17 @@ const SocialLink = styled.a`
   height: 45px;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
-  border-radius: 12px;
-  color: #cbd5e1;
+  border-radius: var(--radius-lg);
+  color: var(--text-light);
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
   overflow: hidden;
 
   &:hover {
     transform: translateY(-3px);
-    color: white;
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+    color: var(--white);
+    background: var(--gradient-primary);
+    box-shadow: var(--shadow-gold);
   }
 
   svg {
@@ -487,125 +513,89 @@ const HoverEffect = styled.div`
 
 const CopyrightSection = styled.div`
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 2rem 0;
+  padding: var(--space-lg) 0;
   background: rgba(0, 0, 0, 0.2);
 `;
 
 const CopyrightContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 var(--space-lg);
   display: flex;
   justify-content: space-between;
   align-items: center;
 
   @media (max-width: 768px) {
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--space-sm);
     text-align: center;
-    padding: 0 1rem;
+    padding: 0 var(--space-md);
   }
 `;
 
 const CopyrightText = styled.p`
-  color: #94a3b8;
-  font-size: 1.2rem;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
   margin: 0;
+  font-family: var(--font-body);
 `;
 
 const LegalLinks = styled.div`
   display: flex;
-  gap: 2rem;
+  gap: var(--space-lg);
 
   @media (max-width: 480px) {
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-xs);
   }
 `;
 
-const LegalLink = styled.a`
-  color: #94a3b8;
+const LegalLink = styled(Link)`
+  color: var(--text-muted);
   text-decoration: none;
-  font-size: 1.2rem;
-  transition: color 0.3s ease;
+  font-size: var(--text-sm);
+  transition: color var(--transition-normal);
+  font-family: var(--font-body);
 
   &:hover {
-    color: #60a5fa;
+    color: var(--accent);
   }
 `;
 
 const FloatingCTA = styled.div`
   position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  padding: 1rem 1.5rem;
-  border-radius: 50px;
+  bottom: var(--space-lg);
+  right: var(--space-lg);
+  background: var(--gradient-primary);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
-  gap: 1rem;
-  box-shadow: 0 20px 40px rgba(59, 130, 246, 0.3);
+  gap: var(--space-sm);
+  box-shadow: var(--shadow-lg);
   animation: ${pulse} 2s infinite;
   z-index: 1000;
 
   @media (max-width: 768px) {
-    bottom: 1rem;
-    right: 1rem;
-    left: 1rem;
+    bottom: var(--space-md);
+    right: var(--space-md);
+    left: var(--space-md);
     justify-content: center;
   }
 `;
 
 const CTAText = styled.span`
-  color: white;
-  font-weight: 600;
-  font-size: 1.3rem;
+  color: var(--white);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-base);
   white-space: nowrap;
+  font-family: var(--font-body);
 `;
 
-const CTAButton = styled.a`
-  background: white;
-  color: #3b82f6;
-  padding: 0.5rem 1.5rem;
-  border-radius: 25px;
+const CTAButton = styled(AccentButtonLink)`
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
   text-decoration: none;
-  font-weight: 600;
-  font-size: 1.3rem;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-  }
+  font-weight: var(--font-semibold);
+  font-size: var(--text-base);
 `;
-
-// Add global link styles for all footer links
-const GlobalLink = styled.a`
-  color: #cbd5e1;
-  text-decoration: none;
-  font-size: 1.3rem;
-  transition: all 0.3s ease;
-  position: relative;
-
-  &:hover {
-    color: #60a5fa;
-  }
-
-  &::after {
-    content: "";
-    position: absolute;
-    width: 0;
-    height: 1px;
-    bottom: -2px;
-    left: 0;
-    background: #60a5fa;
-    transition: width 0.3s ease;
-  }
-
-  &:hover::after {
-    width: 100%;
-  }
-`;
-
-// Apply GlobalLink to all anchor tags within LinkItems
-export { GlobalLink as FooterLink };

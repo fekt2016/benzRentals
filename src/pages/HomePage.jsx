@@ -1,10 +1,32 @@
 import React, { useRef, useEffect, useMemo } from "react";
 import styled from "styled-components";
-import { Link } from "react-router-dom";
 // eslint-disable-next-line no-unused-vars
 import { motion, useInView, useAnimation } from "framer-motion";
+
+// Import reusable components
+import HeroSection from "../components/Sections/HeroSection";
+import SectionHeader from "../components/Sections/SectionHeader";
+import StatsGrid from "../components/Sections/StatsGrid";
+import CarCard from "../components/Cards/CarCard";
+import FeatureCard from "../components/Cards/FeatureCard";
+import Container from "../Layout/Container";
+import CarGrid from "../Layout/CarGrid";
+
+// Import buttons
+import {
+  PrimaryButton,
+  SecondaryButton,
+  AccentButton,
+  ButtonLink,
+  SecondaryButtonLink,
+  SuccessButton,
+} from "../components/ui/Button";
+
+// Import hooks and utilities
 import { useGetCars } from "../hooks/useCar";
 import { getRandomItems } from "../utils/helper";
+import { ROUTE_CONFIG, PATHS } from "../routes/routePaths";
+import usePageTitle from "../hooks/usePageTitle";
 
 // Icons
 import {
@@ -17,10 +39,12 @@ import {
   FaPlay,
   FaUsers,
   FaAward,
-  FaHeart,
 } from "react-icons/fa";
 
 const HomePage = () => {
+  const seoConfig = ROUTE_CONFIG[PATHS.HOME];
+  usePageTitle(seoConfig.title, seoConfig.description);
+
   // Refs for intersection observer
   const heroRef = useRef(null);
   const featuresRef = useRef(null);
@@ -123,6 +147,7 @@ const HomePage = () => {
     ];
   }, [cars]);
 
+  // Stats data
   const stats = [
     { number: "500+", label: "Happy Customers", icon: FaUsers },
     { number: "50+", label: "Premium Vehicles", icon: FaCar },
@@ -130,92 +155,81 @@ const HomePage = () => {
     { number: "24/7", label: "Support Available", icon: FaClock },
   ];
 
+  // Features data
+  const features = [
+    {
+      icon: FaCar,
+      title: "Premium Fleet Only",
+      description:
+        "Exclusively Mercedes-Benz vehicles, meticulously maintained and regularly updated",
+      color: "var(--success)",
+    },
+    {
+      icon: FaShieldAlt,
+      title: "Full Coverage Insurance",
+      description:
+        "Comprehensive insurance included with every rental for complete peace of mind",
+      color: "var(--info)",
+    },
+    {
+      icon: FaClock,
+      title: "24/7 Support",
+      description:
+        "Round-the-clock customer service ready to assist you whenever you need",
+      color: "var(--warning)",
+    },
+    {
+      icon: FaCheckCircle,
+      title: "Easy Booking Process",
+      description:
+        "Simple 3-step booking process with instant confirmation and flexible options",
+      color: "var(--error)",
+    },
+  ];
+
   return (
     <Wrapper>
       {/* Hero Section */}
-      <HeroSection ref={heroRef}>
-        <HeroBackground>
-          <BackgroundImage
-            src="/images/ben1.jpg"
-            alt="Mercedes-Benz Fleet"
-            onError={(e) => {
-              e.target.src =
-                "https://images.unsplash.com/photo-1563720223182-8e41e09c2396?auto=format&fit=crop&w=1600&q=80";
-            }}
-          />
-          <Overlay />
-        </HeroBackground>
-
-        <HeroContent>
-          <motion.div
-            initial="hidden"
-            animate={heroControls}
-            variants={heroVariants}
-          >
-            <motion.div variants={heroItemVariants}>
-              <HeroBadge>
-                <FaStar />
-                Premium Luxury Rentals
-              </HeroBadge>
-            </motion.div>
-
-            <motion.h1 variants={heroItemVariants}>
-              <span>Experience</span> <GradientText>Mercedes-Benz</GradientText>
-              <span>Excellence</span>
-            </motion.h1>
-
-            <motion.p variants={heroItemVariants}>
-              Discover the pinnacle of automotive luxury with our exclusive
-              Mercedes-Benz fleet. From sophisticated sedans to powerful SUVs,
-              experience premium comfort and performance.
-            </motion.p>
-
-            <motion.div variants={heroItemVariants}>
-              <HeroButtons>
-                <PrimaryButton to="/models" $large={false}>
-                  Explore Our Fleet
-                  <FaArrowRight />
-                </PrimaryButton>
-                <SecondaryButton as="button" $large={false}>
-                  <FaPlay />
-                  Watch Story
-                </SecondaryButton>
-              </HeroButtons>
-            </motion.div>
-          </motion.div>
-        </HeroContent>
-
-        <ScrollIndicator>
-          <motion.div
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            Scroll to Explore
-          </motion.div>
-        </ScrollIndicator>
-      </HeroSection>
+      <HeroContainer ref={heroRef}>
+        <HeroSection
+          backgroundImage="/images/ben1.jpg"
+          badge={
+            <>
+              <FaStar size={16} />
+              Premium Luxury Rentals
+            </>
+          }
+          title={
+            <>
+              <WhiteText>Experience</WhiteText>{" "}
+              <GradientText>Benzflex</GradientText>
+              <WhiteText>Excellence</WhiteText>
+            </>
+          }
+          description="Discover the pinnacle of automotive luxury with our exclusive Mercedes-Benz fleet. From sophisticated sedans to powerful SUVs, experience premium comfort and performance."
+          primaryButton={{
+            to: "/models",
+            text: "Explore Our Fleet",
+            icon: (props) => <FaArrowRight size={18} {...props} />,
+          }}
+          secondaryButton={{
+            onClick: () => console.log("Watch story clicked"),
+            text: "Watch Story",
+            icon: (props) => <FaPlay size={16} {...props} />,
+          }}
+          onBackgroundError={(e) => {
+            e.target.src =
+              "https://images.unsplash.com/photo-1563720223182-8e41e09c2396?auto=format&fit=crop&w=1600&q=80";
+          }}
+          scrollText="Scroll to Explore"
+        />
+      </HeroContainer>
 
       {/* Stats Section */}
       <StatsSection ref={statsRef}>
-        <StatsGrid>
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.label}
-              initial="hidden"
-              animate={statsControls}
-              variants={statVariants}
-              custom={index}
-            >
-              <StatCard>
-                <StatIcon>
-                  <stat.icon />
-                </StatIcon>
-                <StatNumber>{stat.number}</StatNumber>
-                <StatLabel>{stat.label}</StatLabel>
-              </StatCard>
-            </motion.div>
-          ))}
-        </StatsGrid>
+        <Container>
+          <StatsGrid stats={stats} animationControls={statsControls} />
+        </Container>
       </StatsSection>
 
       {/* Features Section */}
@@ -226,71 +240,26 @@ const HomePage = () => {
             animate={featuresControls}
             variants={sectionVariants}
           >
-            <SectionHeader>
-              <SectionSubtitle>Why Choose BenzRent</SectionSubtitle>
-              <SectionTitle>Unmatched Luxury Experience</SectionTitle>
-            </SectionHeader>
+            <SectionHeader
+              subtitle="Why Choose BenzRent"
+              title="Unmatched Luxury Experience"
+            />
 
             <FeaturesGrid>
-              <motion.div variants={featureVariants}>
-                <FeatureCard>
-                  <FeatureIcon $color="#10b981">
-                    <FaCar />
-                  </FeatureIcon>
-                  <FeatureContent>
-                    <h3>Premium Fleet Only</h3>
-                    <p>
-                      Exclusively Mercedes-Benz vehicles, meticulously
-                      maintained and regularly updated
-                    </p>
-                  </FeatureContent>
-                </FeatureCard>
-              </motion.div>
-
-              <motion.div variants={featureVariants}>
-                <FeatureCard>
-                  <FeatureIcon $color="#3b82f6">
-                    <FaShieldAlt />
-                  </FeatureIcon>
-                  <FeatureContent>
-                    <h3>Full Coverage Insurance</h3>
-                    <p>
-                      Comprehensive insurance included with every rental for
-                      complete peace of mind
-                    </p>
-                  </FeatureContent>
-                </FeatureCard>
-              </motion.div>
-
-              <motion.div variants={featureVariants}>
-                <FeatureCard>
-                  <FeatureIcon $color="#f59e0b">
-                    <FaClock />
-                  </FeatureIcon>
-                  <FeatureContent>
-                    <h3>24/7 Support</h3>
-                    <p>
-                      Round-the-clock customer service ready to assist you
-                      whenever you need
-                    </p>
-                  </FeatureContent>
-                </FeatureCard>
-              </motion.div>
-
-              <motion.div variants={featureVariants}>
-                <FeatureCard>
-                  <FeatureIcon $color="#ef4444">
-                    <FaCheckCircle />
-                  </FeatureIcon>
-                  <FeatureContent>
-                    <h3>Easy Booking Process</h3>
-                    <p>
-                      Simple 3-step booking process with instant confirmation
-                      and flexible options
-                    </p>
-                  </FeatureContent>
-                </FeatureCard>
-              </motion.div>
+              {features.map((feature, index) => (
+                <motion.div
+                  key={feature.title}
+                  variants={featureVariants}
+                  custom={index}
+                >
+                  <FeatureCard
+                    {...feature}
+                    icon={(props) =>
+                      React.createElement(feature.icon, { size: 24, ...props })
+                    }
+                  />
+                </motion.div>
+              ))}
             </FeaturesGrid>
           </motion.div>
         </Container>
@@ -304,54 +273,29 @@ const HomePage = () => {
             animate={showcaseControls}
             variants={sectionVariants}
           >
-            <SectionHeader>
-              <SectionSubtitle>Featured Collection</SectionSubtitle>
-              <SectionTitle>Our Premium Fleet</SectionTitle>
-            </SectionHeader>
+            <SectionHeader
+              subtitle="Featured Collection"
+              title="Our Premium Fleet"
+            />
 
-            <CarsGrid>
+            <CarGrid columns={3}>
               {featuredCars.map((car, index) => (
                 <motion.div
                   key={car.id}
                   variants={carCardVariants}
                   custom={index}
                 >
-                  <CarCard>
-                    <CarImage>
-                      <img src={car.image} alt={car.model} />
-                      <CarOverlay>
-                        <ViewDetailsButton to={`/model/${car.id}`}>
-                          View Details
-                        </ViewDetailsButton>
-                      </CarOverlay>
-                    </CarImage>
-                    <CarContent>
-                      <CarHeader>
-                        <CarModel>{car.model}</CarModel>
-                        <CarPrice>
-                          ${car.price}
-                          <span>/day</span>
-                        </CarPrice>
-                      </CarHeader>
-                      <CarSeries>{car.series}</CarSeries>
-                      <CarFeatures>
-                        {car.features.map((feature, idx) => (
-                          <FeatureTag key={idx}>{feature}</FeatureTag>
-                        ))}
-                      </CarFeatures>
-                      <BookButton to={`/model/${car.id}`}>
-                        Book This Car
-                      </BookButton>
-                    </CarContent>
-                  </CarCard>
+                  <CarCard car={car} />
                 </motion.div>
               ))}
-            </CarsGrid>
+            </CarGrid>
 
-            <ViewAllButton to="/models">
-              View All Vehicles
-              <FaArrowRight />
-            </ViewAllButton>
+            <ViewAllWrapper>
+              <SecondaryButtonLink to="/models" $size="lg">
+                View All Vehicles
+                <FaArrowRight size={18} />
+              </SecondaryButtonLink>
+            </ViewAllWrapper>
           </motion.div>
         </Container>
       </ShowcaseSection>
@@ -364,10 +308,10 @@ const HomePage = () => {
             animate={discountControls}
             variants={discountVariants}
           >
-            <DiscountCard>
+            <DiscountCard className="luxury-card">
               <DiscountContent>
-                <DiscountBadge>
-                  <FaAward />
+                <DiscountBadge className="status-badge status-badge--warning">
+                  <FaAward size={16} />
                   Limited Time Offer
                 </DiscountBadge>
 
@@ -378,42 +322,42 @@ const HomePage = () => {
 
                 <DiscountDescription>
                   Experience Mercedes-Benz excellence at an exclusive price. New
-                  customers save 15% on their first rental. Limited time offer
+                  customers save 15% on your first rental. Limited time offer
                   for luxury seekers.
                 </DiscountDescription>
 
                 <DiscountFeatures>
                   <DiscountFeature>
-                    <FaCheckCircle />
+                    <FaCheckCircle size={20} />
                     <span>Applicable on all Mercedes-Benz models</span>
                   </DiscountFeature>
                   <DiscountFeature>
-                    <FaCheckCircle />
+                    <FaCheckCircle size={20} />
                     <span>No minimum rental period required</span>
                   </DiscountFeature>
                   <DiscountFeature>
-                    <FaCheckCircle />
+                    <FaCheckCircle size={20} />
                     <span>Includes premium insurance coverage</span>
                   </DiscountFeature>
                   <DiscountFeature>
-                    <FaCheckCircle />
+                    <FaCheckCircle size={20} />
                     <span>Flexible cancellation policy</span>
                   </DiscountFeature>
                 </DiscountFeatures>
 
                 <DiscountActions>
-                  <PrimaryButton to="/models" $large={false}>
-                    <FaCar />
+                  <AccentButton as={ButtonLink} to="/models" $size="lg">
+                    <FaCar size={20} />
                     Claim Your 15% Off
-                  </PrimaryButton>
+                  </AccentButton>
                   <SecondaryButton
                     as="button"
-                    $large={false}
+                    $size="lg"
                     onClick={() =>
                       alert("Contact us at 1-800-MERCEDES for details")
                     }
                   >
-                    <FaClock />
+                    <FaClock size={18} />
                     Limited Time Offer
                   </SecondaryButton>
                 </DiscountActions>
@@ -462,7 +406,7 @@ const HomePage = () => {
             animate={ctaControls}
             variants={ctaVariants}
           >
-            <CTACard>
+            <CTACard className="luxury-card">
               <CTAContent>
                 <h2>Ready to Experience Luxury?</h2>
                 <p>
@@ -470,16 +414,20 @@ const HomePage = () => {
                   for their premium mobility needs
                 </p>
                 <CTAButtons>
-                  <PrimaryButton to="/models" $large={true}>
+                  <PrimaryButton as={ButtonLink} to="/models" $size="lg">
                     Book Your Mercedes Now
                   </PrimaryButton>
-                  <SecondaryButton as="button" $large={true}>
+                  <SecondaryButton
+                    as="button"
+                    $size="lg"
+                    onClick={() => console.log("Contact team clicked")}
+                  >
                     Contact Our Team
                   </SecondaryButton>
                 </CTAButtons>
               </CTAContent>
               <CTAIllustration>
-                <FaCar />
+                <FaCar size={48} />
               </CTAIllustration>
             </CTACard>
           </motion.div>
@@ -490,26 +438,6 @@ const HomePage = () => {
 };
 
 // Animation variants
-const heroVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.2,
-      duration: 0.8,
-    },
-  },
-};
-
-const heroItemVariants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.8, ease: "easeOut" },
-  },
-};
-
 const sectionVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -548,19 +476,6 @@ const discountVariants = {
   },
 };
 
-const statVariants = {
-  hidden: { scale: 0, opacity: 0 },
-  visible: {
-    scale: 1,
-    opacity: 1,
-    transition: {
-      type: "spring",
-      stiffness: 100,
-      duration: 0.6,
-    },
-  },
-};
-
 const ctaVariants = {
   hidden: { opacity: 0, y: 50 },
   visible: {
@@ -570,596 +485,99 @@ const ctaVariants = {
   },
 };
 
-// Styled Components
+// Styled Components - Fixed overflow issues
 const Wrapper = styled.div`
   margin-top: 4rem;
   overflow-x: hidden;
-`;
-
-const Container = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 2rem;
-
-  @media (max-width: 768px) {
-    padding: 0 1rem;
-  }
-`;
-
-// Hero Section - Fixed background
-const HeroSection = styled.section`
-  height: 90vh;
-  min-height: 600px;
+  width: 100%;
+  max-width: 100vw;
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+`;
+
+const HeroContainer = styled.div`
+  width: 100%;
   overflow: hidden;
-
-  @media (max-width: 768px) {
-    height: 80vh;
-    min-height: 500px;
-  }
-`;
-
-const HeroBackground = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-`;
-
-const BackgroundImage = styled.img`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-`;
-
-const Overlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    135deg,
-    rgba(0, 0, 0, 0.7) 0%,
-    rgba(0, 0, 0, 0.4) 100%
-  );
-`;
-
-const HeroContent = styled.div`
-  position: relative;
-  z-index: 2;
-  text-align: center;
-  color: white;
-  max-width: 800px;
-  padding: 0 2rem;
-
-  h1 {
-    font-size: 4rem;
-    font-weight: 700;
-    margin-bottom: 1.5rem;
-    line-height: 1.1;
-
-    @media (max-width: 768px) {
-      font-size: 2.5rem;
-    }
-
-    @media (max-width: 480px) {
-      font-size: 2rem;
-    }
-  }
-
-  p {
-    font-size: 1.25rem;
-    margin-bottom: 2.5rem;
-    opacity: 0.9;
-    line-height: 1.6;
-
-    @media (max-width: 768px) {
-      font-size: 1.1rem;
-    }
-
-    @media (max-width: 480px) {
-      font-size: 1rem;
-    }
-  }
-`;
-
-const GradientText = styled.span`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-`;
-
-const HeroBadge = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  padding: 0.75rem 1.5rem;
-  border-radius: 50px;
-  margin-bottom: 2rem;
-  font-weight: 600;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  font-size: 0.9rem;
-
-  @media (max-width: 480px) {
-    padding: 0.5rem 1rem;
-    font-size: 0.8rem;
-  }
-`;
-
-const HeroButtons = styled.div`
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
-
-  @media (max-width: 480px) {
-    flex-direction: column;
-    align-items: center;
-  }
-`;
-
-// Refactored Button Components
-const BaseButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: ${(props) => (props.$large ? "1.25rem 2.5rem" : "1rem 2rem")};
-  border-radius: 12px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  font-size: ${(props) => (props.$large ? "1.1rem" : "1rem")};
-  border: none;
-  cursor: pointer;
-  justify-content: center;
-  font-family: inherit;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
-
-  @media (max-width: 480px) {
-    width: 100%;
-    max-width: 280px;
-  }
-`;
-
-const PrimaryButton = styled(BaseButton).attrs((props) => ({
-  as: props.to ? Link : "button",
-}))`
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
-
-  &:hover {
-    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
-  }
-`;
-
-const SecondaryButton = styled(BaseButton).attrs((props) => ({
-  as: props.to ? Link : "button",
-}))`
-  background: transparent;
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.5);
-  }
-`;
-
-const ScrollIndicator = styled.div`
-  position: absolute;
-  bottom: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2;
-  color: white;
-  opacity: 0.7;
-  font-size: 0.9rem;
-
-  @media (max-width: 768px) {
-    bottom: 1rem;
-  }
 `;
 
 // Stats Section
 const StatsSection = styled.section`
-  padding: 4rem 0;
-  background: #f8fafc;
-`;
-
-const StatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 2rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
-    padding: 0 1rem;
-  }
-
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-`;
-
-const StatCard = styled.div`
-  text-align: center;
-  padding: 2rem 1rem;
-
-  @media (max-width: 480px) {
-    padding: 1.5rem 1rem;
-  }
-`;
-
-const StatIcon = styled.div`
-  width: 60px;
-  height: 60px;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 1rem;
-  color: white;
-  font-size: 1.5rem;
-
-  @media (max-width: 768px) {
-    width: 50px;
-    height: 50px;
-    font-size: 1.25rem;
-  }
-`;
-
-const StatNumber = styled.div`
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 0.5rem;
-
-  @media (max-width: 768px) {
-    font-size: 2rem;
-  }
-`;
-
-const StatLabel = styled.div`
-  color: #64748b;
-  font-weight: 500;
-  font-size: 0.9rem;
+  padding: var(--space-2xl) 0;
+  background: var(--surface);
+  width: 100%;
+  overflow: hidden;
 `;
 
 // Features Section
 const FeaturesSection = styled.section`
-  padding: 6rem 0;
-  background: white;
+  padding: var(--space-2xl) 0;
+  background: var(--white);
+  width: 100%;
+  overflow: hidden;
 
   @media (max-width: 768px) {
-    padding: 4rem 0;
-  }
-`;
-
-const SectionHeader = styled.div`
-  text-align: center;
-  margin-bottom: 4rem;
-
-  @media (max-width: 768px) {
-    margin-bottom: 3rem;
-  }
-`;
-
-const SectionSubtitle = styled.div`
-  color: #3b82f6;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-`;
-
-const SectionTitle = styled.h2`
-  font-size: 3rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 1rem;
-
-  @media (max-width: 768px) {
-    font-size: 2rem;
-  }
-
-  @media (max-width: 480px) {
-    font-size: 1.75rem;
+    padding: var(--space-xl) 0;
   }
 `;
 
 const FeaturesGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 2rem;
+  gap: var(--space-lg);
+  width: 100%;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-`;
-
-const FeatureCard = styled.div`
-  display: flex;
-  gap: 1.5rem;
-  padding: 2rem;
-  background: #f8fafc;
-  border-radius: 20px;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  }
-
-  @media (max-width: 480px) {
-    flex-direction: column;
-    text-align: center;
-    padding: 1.5rem;
-    gap: 1rem;
-  }
-`;
-
-const FeatureIcon = styled.div`
-  width: 60px;
-  height: 60px;
-  background: ${(props) => props.$color}20;
-  border-radius: 15px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${(props) => props.$color};
-  font-size: 1.5rem;
-  flex-shrink: 0;
-
-  @media (max-width: 480px) {
-    width: 50px;
-    height: 50px;
-    font-size: 1.25rem;
-    margin: 0 auto;
-  }
-`;
-
-const FeatureContent = styled.div`
-  h3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #1e293b;
-    margin-bottom: 0.5rem;
-  }
-
-  p {
-    color: #64748b;
-    line-height: 1.6;
+    gap: var(--space-md);
   }
 `;
 
 // Showcase Section
 const ShowcaseSection = styled.section`
-  padding: 6rem 0;
-  background: #f8fafc;
-
-  @media (max-width: 768px) {
-    padding: 4rem 0;
-  }
-`;
-
-const CarsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
-  margin-bottom: 3rem;
-
-  @media (max-width: 1024px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-  }
-`;
-
-const CarCard = styled.div`
-  background: white;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
-  }
-`;
-
-const CarImage = styled.div`
-  position: relative;
-  height: 250px;
-  overflow: hidden;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-  }
-
-  &:hover img {
-    transform: scale(1.05);
-  }
-`;
-
-const CarOverlay = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-
-  ${CarCard}:hover & {
-    opacity: 1;
-  }
-`;
-
-const ViewDetailsButton = styled(Link)`
-  background: #3b82f6;
-  color: white;
-  padding: 1rem 2rem;
-  border-radius: 10px;
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #2563eb;
-    transform: scale(1.05);
-  }
-`;
-
-const CarContent = styled.div`
-  padding: 2rem;
-
-  @media (max-width: 480px) {
-    padding: 1.5rem;
-  }
-`;
-
-const CarHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.5rem;
-
-  @media (max-width: 480px) {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-`;
-
-const CarModel = styled.h3`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0;
-`;
-
-const CarPrice = styled.div`
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #3b82f6;
-
-  span {
-    font-size: 0.875rem;
-    color: #64748b;
-    font-weight: 400;
-  }
-`;
-
-const CarSeries = styled.p`
-  color: #64748b;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-`;
-
-const CarFeatures = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-`;
-
-const FeatureTag = styled.span`
-  background: #f1f5f9;
-  color: #475569;
-  padding: 0.25rem 0.75rem;
-  border-radius: 15px;
-  font-size: 0.75rem;
-  font-weight: 500;
-`;
-
-const BookButton = styled(Link)`
-  display: block;
+  padding: var(--space-2xl) 0;
+  background: var(--surface);
   width: 100%;
-  background: #10b981;
-  color: white;
-  text-align: center;
-  padding: 1rem;
-  border-radius: 10px;
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.2s;
+  overflow: hidden;
 
-  &:hover {
-    background: #059669;
-    transform: translateY(-2px);
+  @media (max-width: 768px) {
+    padding: var(--space-xl) 0;
   }
 `;
 
-const ViewAllButton = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #3b82f6;
-  color: white;
-  padding: 1rem 2rem;
-  border-radius: 10px;
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.2s;
-  margin: 0 auto;
-  display: block;
-  width: fit-content;
+const ViewAllWrapper = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-xl);
+  width: 100%;
+`;
 
-  &:hover {
-    background: #2563eb;
-    transform: translateY(-2px);
-  }
+const GradientText = styled.span`
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: var(--font-heading);
 `;
 
 // Discount Section
 const DiscountSection = styled.section`
-  padding: 6rem 0;
-  background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
+  padding: var(--space-2xl) 0;
+  background: var(--gradient-secondary);
+  width: 100%;
+  overflow: hidden;
 
   @media (max-width: 768px) {
-    padding: 4rem 0;
+    padding: var(--space-xl) 0;
   }
 `;
 
 const DiscountCard = styled.div`
-  background: white;
-  border-radius: 30px;
+  background: var(--white);
+  border-radius: var(--radius-3xl);
   overflow: hidden;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-xl);
+  max-width: 100%;
 
   @media (max-width: 968px) {
     grid-template-columns: 1fr;
@@ -1167,95 +585,107 @@ const DiscountCard = styled.div`
 `;
 
 const DiscountContent = styled.div`
-  padding: 4rem;
+  padding: var(--space-2xl);
   display: flex;
   flex-direction: column;
   justify-content: center;
+  max-width: 100%;
 
   @media (max-width: 768px) {
-    padding: 3rem 2rem;
+    padding: var(--space-xl);
   }
 
   @media (max-width: 480px) {
-    padding: 2rem 1.5rem;
+    padding: var(--space-lg);
   }
 `;
 
 const DiscountBadge = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 50px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  margin-bottom: 2rem;
+  gap: var(--space-xs);
+  color: var(--white);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-full);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-xl);
   width: fit-content;
+  font-family: var(--font-body);
 `;
 
 const DiscountTitle = styled.h2`
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 1.5rem;
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-lg);
   line-height: 1.2;
+  font-family: var(--font-heading);
+  word-wrap: break-word;
 
   @media (max-width: 768px) {
-    font-size: 2rem;
+    font-size: var(--text-3xl);
   }
 
   @media (max-width: 480px) {
-    font-size: 1.75rem;
+    font-size: var(--text-2xl);
   }
 `;
 
 const DiscountHighlight = styled.span`
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: var(--gradient-accent);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  font-family: var(--font-heading);
 `;
 
 const DiscountDescription = styled.p`
-  font-size: 1.1rem;
-  color: #64748b;
-  margin-bottom: 2rem;
+  font-size: var(--text-lg);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xl);
   line-height: 1.6;
+  font-family: var(--font-body);
+  word-wrap: break-word;
 
   @media (max-width: 480px) {
-    font-size: 1rem;
+    font-size: var(--text-base);
   }
 `;
 
 const DiscountFeatures = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 2.5rem;
+  gap: var(--space-md);
+  margin-bottom: var(--space-2xl);
+  width: 100%;
 `;
 
 const DiscountFeature = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  color: #374151;
+  gap: var(--space-sm);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  width: 100%;
 
   svg {
-    color: #10b981;
+    color: var(--success);
     flex-shrink: 0;
   }
 
   span {
-    font-weight: 500;
+    font-weight: var(--font-medium);
+    word-wrap: break-word;
   }
 `;
 
 const DiscountActions = styled.div`
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  width: 100%;
+  flex-wrap: wrap;
 
   @media (max-width: 480px) {
     flex-direction: column;
@@ -1263,18 +693,21 @@ const DiscountActions = styled.div`
 `;
 
 const DiscountTerms = styled.p`
-  font-size: 0.8rem;
-  color: #94a3b8;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
   line-height: 1.4;
+  font-family: var(--font-body);
+  word-wrap: break-word;
 `;
 
 const DiscountVisual = styled.div`
   position: relative;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  width: 100%;
 
   @media (max-width: 968px) {
     min-height: 400px;
@@ -1296,11 +729,7 @@ const DiscountOverlay = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(59, 130, 246, 0.9) 0%,
-    rgba(29, 78, 216, 0.9) 100%
-  );
+  background: var(--gradient-overlay);
 `;
 
 const DiscountStats = styled.div`
@@ -1308,12 +737,14 @@ const DiscountStats = styled.div`
   z-index: 2;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 2rem;
+  gap: var(--space-lg);
   text-align: center;
-  color: white;
+  color: var(--white);
+  width: 100%;
+  max-width: 100%;
 
   @media (max-width: 480px) {
-    gap: 1rem;
+    gap: var(--space-md);
   }
 `;
 
@@ -1324,86 +755,98 @@ const DiscountStat = styled.div`
 `;
 
 const StatValue = styled.div`
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--space-xs);
+  font-family: var(--font-heading);
 
   @media (max-width: 480px) {
-    font-size: 1.5rem;
+    font-size: var(--text-2xl);
   }
 `;
 
-// const StatLabel = styled.div`
-//   font-size: 0.9rem;
-//   opacity: 0.9;
-// `;
+const StatLabel = styled.div`
+  font-size: var(--text-sm);
+  opacity: 0.9;
+  font-family: var(--font-body);
+`;
 
 // CTA Section
 const CTASection = styled.section`
-  padding: 6rem 0;
-  background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
+  padding: var(--space-2xl) 0;
+  background: var(--gradient-luxury);
+  width: 100%;
+  overflow: hidden;
 
   @media (max-width: 768px) {
-    padding: 4rem 0;
+    padding: var(--space-xl) 0;
   }
 `;
 
 const CTACard = styled.div`
-  background: white;
-  border-radius: 30px;
-  padding: 4rem;
+  background: var(--white);
+  border-radius: var(--radius-3xl);
+  padding: var(--space-2xl);
   display: flex;
   align-items: center;
-  gap: 3rem;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+  gap: var(--space-xl);
+  box-shadow: var(--shadow-xl);
+  max-width: 100%;
+  overflow: hidden;
 
   @media (max-width: 768px) {
     flex-direction: column;
     text-align: center;
-    padding: 3rem 2rem;
-    gap: 2rem;
+    padding: var(--space-xl);
+    gap: var(--space-lg);
   }
 
   @media (max-width: 480px) {
-    padding: 2rem 1.5rem;
-    border-radius: 20px;
+    padding: var(--space-lg);
+    border-radius: var(--radius-xl);
   }
 `;
 
 const CTAContent = styled.div`
   flex: 1;
+  max-width: 100%;
 
   h2 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 1rem;
+    font-size: var(--text-4xl);
+    font-weight: var(--font-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-md);
+    font-family: var(--font-heading);
+    word-wrap: break-word;
 
     @media (max-width: 768px) {
-      font-size: 2rem;
+      font-size: var(--text-3xl);
     }
 
     @media (max-width: 480px) {
-      font-size: 1.75rem;
+      font-size: var(--text-2xl);
     }
   }
 
   p {
-    font-size: 1.1rem;
-    color: #64748b;
-    margin-bottom: 2rem;
+    font-size: var(--text-lg);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-xl);
     line-height: 1.6;
+    font-family: var(--font-body);
+    word-wrap: break-word;
 
     @media (max-width: 480px) {
-      font-size: 1rem;
+      font-size: var(--text-base);
     }
   }
 `;
 
 const CTAButtons = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: var(--space-md);
   flex-wrap: wrap;
+  width: 100%;
 
   @media (max-width: 480px) {
     flex-direction: column;
@@ -1413,25 +856,38 @@ const CTAButtons = styled.div`
 const CTAIllustration = styled.div`
   width: 200px;
   height: 200px;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  border-radius: 50%;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 4rem;
+  color: var(--white);
+  flex-shrink: 0;
+
+  svg {
+    font-size: 4rem;
+  }
 
   @media (max-width: 768px) {
     width: 150px;
     height: 150px;
-    font-size: 3rem;
+
+    svg {
+      font-size: 3rem;
+    }
   }
 
   @media (max-width: 480px) {
     width: 120px;
     height: 120px;
-    font-size: 2.5rem;
+
+    svg {
+      font-size: 2.5rem;
+    }
   }
+`;
+const WhiteText = styled.span`
+  color: var(--white);
 `;
 
 export default HomePage;

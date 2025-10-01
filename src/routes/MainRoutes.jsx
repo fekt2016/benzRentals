@@ -1,9 +1,14 @@
+// src/routes/MainRoutes.jsx
 import { Route, Routes } from "react-router-dom";
-import { PATHS, ADMIN_PATHS } from "./routePaths";
 import { lazy, Suspense } from "react";
+import { PATHS, ROUTE_CONFIG, ADMIN_PATHS } from "./routePaths";
+
+// Import your States components
+import { LoadingState, LoadingSpinner } from "../components/ui/LoadingSpinner";
 
 // Lazy imports
-const ProtectedRoute = lazy(() => import("../routes/protectedRoute"));
+const AboutUsPage = lazy(() => import("../pages/AboutUsPage"));
+const ProtectedRoute = lazy(() => import("./protectedRoute"));
 const ProfilePage = lazy(() => import("../pages/ProfilePage"));
 const HomePage = lazy(() => import("../pages/HomePage"));
 const ModelsPage = lazy(() => import("../pages/ModelsPage"));
@@ -23,7 +28,7 @@ const NotificationPage = lazy(() => import("../pages/NotificatioPage"));
 // Layouts
 const MainLayout = lazy(() => import("../Layout/MainLayout"));
 const AdminLayout = lazy(() => import("../Layout/AdminLayout"));
-const UserAuthPage = lazy(() => import("../Layout/UserAuthPage")); // ✅ this is your user layout
+const UserAuthPage = lazy(() => import("../Layout/UserAuthPage"));
 
 // Admin pages
 const AdminDashboard = lazy(() => import("../pages/adminPages/Dashboard"));
@@ -34,18 +39,30 @@ const AdminBookings = lazy(() => import("../pages/adminPages/AdminBookings"));
 const AdminUsers = lazy(() => import("../pages/adminPages/AdminUser"));
 const AdminReports = lazy(() => import("../pages/adminPages/AdminReports"));
 
-// 🔹 Loaders
+// 🔹 Custom Loader Components using your States components
 const Loader = () => (
-  <div style={{ padding: "2rem", textAlign: "center" }}>Loading...</div>
+  <LoadingState message="Loading Mercedes-Benz Experience..." size="lg" />
 );
+
 const UserLoader = () => (
-  <div style={{ padding: "2rem", textAlign: "center" }}>
-    Loading user dashboard...
-  </div>
+  <LoadingState message="Loading your luxury dashboard..." size="lg" />
 );
+
 const AdminLoader = () => (
-  <div style={{ padding: "2rem", textAlign: "center" }}>
-    Loading admin dashboard...
+  <LoadingState message="Loading admin dashboard..." size="lg" />
+);
+
+// Simple inline loader for minimal cases
+const InlineLoader = () => (
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      padding: "var(--space-xl)",
+    }}
+  >
+    <LoadingSpinner size="md" />
   </div>
 );
 
@@ -54,7 +71,8 @@ const MainRoutes = () => (
     <Routes>
       {/* Public routes with MainLayout */}
       <Route element={<MainLayout />}>
-        <Route path={PATHS.HOME} element={<HomePage />} />
+        <Route index element={<HomePage />} />
+        <Route path={PATHS.ABOUT} element={<AboutUsPage />} />
         <Route path={PATHS.MODELS} element={<ModelsPage />} />
         <Route path={PATHS.MODEL} element={<CarModelPage />} />
         <Route path={PATHS.LOCATIONS} element={<LocationPage />} />
@@ -66,7 +84,7 @@ const MainRoutes = () => (
         <Route
           element={
             <ProtectedRoute roles={["user"]}>
-              <UserAuthPage /> {/* keep normal import */}
+              <UserAuthPage />
             </ProtectedRoute>
           }
         >
@@ -77,8 +95,6 @@ const MainRoutes = () => (
           <Route path={PATHS.NOTIFICATIONS} element={<NotificationPage />} />
         </Route>
       </Route>
-
-      {/* ✅ Authenticated user routes with UserAuthLayout */}
 
       {/* Auth routes */}
       <Route path={PATHS.LOGIN} element={<LoginPage />} />

@@ -9,633 +9,594 @@ import {
   FaUsers,
   FaCog,
   FaMapMarkerAlt,
-  FaStar,
   FaFilter,
-  FaTimes,
+  FaSearch,
+  FaSyncAlt,
 } from "react-icons/fa";
+import CarCard from "../components/Cards/CarCard";
 
+// Component Imports
+import { AutoGrid, Grid } from "../components/Grid";
+import { LuxuryCard, StatsCard } from "../components/Cards/Card";
+import {
+  PrimaryButton,
+  SecondaryButton,
+  AccentButtonLink,
+} from "../components/ui/Button";
+import { SearchInput, Select, RangeSlider } from "../components/forms/Form";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner";
+import HeroSection from "../components/Sections/HeroSection";
 const ModelsPage = () => {
-  const { data: carsData, isLoading } = useGetCars();
+  const { data: carsData, isLoading, error } = useGetCars();
   const cars = useMemo(() => carsData?.data?.data || [], [carsData]);
 
   // Filters state
-  const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedState, setSelectedState] = useState("all");
-  const [priceRange, setPriceRange] = useState([0, 1000]);
+  const [filters, setFilters] = useState({
+    status: "all",
+    state: "all",
+    priceRange: [0, 1000],
+    searchQuery: "",
+  });
   const [showFilters, setShowFilters] = useState(false);
 
   // Collect unique states and get max price
-  const states = useMemo(
-    () => ["all", ...new Set(cars.map((car) => car.state).filter(Boolean))],
-    [cars]
-  );
-  const maxPrice = useMemo(
-    () => Math.max(...cars.map((car) => car.pricePerDay), 1000),
-    [cars]
-  );
+  const { states, maxPrice } = useMemo(() => {
+    const uniqueStates = [
+      "all",
+      ...new Set(cars.map((car) => car.state).filter(Boolean)),
+    ];
+    const maxCarPrice = Math.max(...cars.map((car) => car.pricePerDay), 1000);
+    return { states: uniqueStates, maxPrice: maxCarPrice };
+  }, [cars]);
 
   // Apply filters
-  const filteredCars = cars.filter((car) => {
-    const matchesStatus =
-      selectedStatus === "all" || car.status === selectedStatus;
-    const matchesState = selectedState === "all" || car.state === selectedState;
-    const matchesPrice =
-      car.pricePerDay >= priceRange[0] && car.pricePerDay <= priceRange[1];
-    return matchesStatus && matchesState && matchesPrice;
-  });
+  const filteredCars = useMemo(() => {
+    return cars.filter((car) => {
+      const matchesStatus =
+        filters.status === "all" || car.status === filters.status;
+      const matchesState =
+        filters.state === "all" || car.state === filters.state;
+      const matchesPrice =
+        car.pricePerDay >= filters.priceRange[0] &&
+        car.pricePerDay <= filters.priceRange[1];
+      const matchesSearch =
+        car.model?.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
+        car.series?.toLowerCase().includes(filters.searchQuery.toLowerCase());
 
-  const getStatusColor = (status) => {
-    const colors = {
-      available: "#10b981",
-      rented: "#ef4444",
-      maintenance: "#f59e0b",
-      reserved: "#3b82f6",
-    };
-    return colors[status] || "#6b7280";
+      return matchesStatus && matchesState && matchesPrice && matchesSearch;
+    });
+  }, [cars, filters]);
+
+  const statusConfig = {
+    available: { color: "var(--success)", text: "Available" },
+    rented: { color: "var(--error)", text: "Rented" },
+    maintenance: { color: "var(--warning)", text: "Maintenance" },
+    reserved: { color: "var(--info)", text: "Reserved" },
   };
 
-  const getStatusText = (status) => {
-    const texts = {
-      available: "Available",
-      rented: "Rented",
-      maintenance: "Maintenance",
-      reserved: "Reserved",
-    };
-    return texts[status] || status;
+  const handleFilterChange = (key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  if (isLoading) {
+  const resetFilters = () => {
+    setFilters({
+      status: "all",
+      state: "all",
+      priceRange: [0, maxPrice],
+      searchQuery: "",
+    });
+  };
+
+  // Hero section data
+  const heroData = {
+    backgroundImage: "/images/mercedes-fleet-hero.jpg",
+    badge: "Premium Fleet",
+    title: "Mercedes-Benz Premium Fleet",
+    description:
+      "Experience luxury and performance with our curated collection of Mercedes-Benz vehicles. Discover the perfect vehicle for your journey.",
+    primaryButton: {
+      to: "#filters",
+      text: "Explore Fleet",
+    },
+    secondaryButton: {
+      to: "/contact",
+      text: "Contact Us",
+    },
+    scrollText: "Discover Our Collection",
+  };
+
+  // Stats section for the hero
+  const HeroStats = () => (
+    <StatsGrid $template="repeat(auto-fit, minmax(200px, 1fr))" gap="lg">
+      <StatsCard>
+        <StatNumber>{cars.length}</StatNumber>
+        <StatLabel>Premium Vehicles</StatLabel>
+      </StatsCard>
+      <StatsCard>
+        <StatNumber>
+          {cars.filter((c) => c.status === "available").length}
+        </StatNumber>
+        <StatLabel>Available Now</StatLabel>
+      </StatsCard>
+      <StatsCard>
+        <StatNumber>24/7</StatNumber>
+        <StatLabel>Premium Support</StatLabel>
+      </StatsCard>
+    </StatsGrid>
+  );
+
+  if (error) {
     return (
-      <LoadingWrapper>
-        <LoadingSpinner>
-          <div></div>
-          <div></div>
-          <div></div>
-        </LoadingSpinner>
-        <p>Loading our premium fleet...</p>
-      </LoadingWrapper>
+      <ErrorState>
+        <ErrorIcon>⚠️</ErrorIcon>
+        <ErrorTitle>Failed to Load Vehicles</ErrorTitle>
+        <ErrorText>Please try refreshing the page</ErrorText>
+        <PrimaryButton onClick={() => window.location.reload()}>
+          <FaSyncAlt />
+          Retry
+        </PrimaryButton>
+      </ErrorState>
     );
   }
 
   return (
     <PageWrapper>
       {/* Hero Section */}
-      <HeroSection>
-        <HeroContent>
-          <HeroTitle>Mercedes-Benz Premium Fleet</HeroTitle>
-          <HeroSubtitle>
-            Experience luxury and performance with our curated collection of
-            Mercedes-Benz vehicles
-          </HeroSubtitle>
-          <HeroStats>
-            <StatItem>
-              <StatNumber>{cars.length}+</StatNumber>
-              <StatLabel>Premium Vehicles</StatLabel>
-            </StatItem>
-            <StatItem>
-              <StatNumber>
-                {cars.filter((c) => c.status === "available").length}
-              </StatNumber>
-              <StatLabel>Available Now</StatLabel>
-            </StatItem>
-            <StatItem>
-              <StatNumber>24/7</StatNumber>
-              <StatLabel>Support</StatLabel>
-            </StatItem>
-          </HeroStats>
-        </HeroContent>
+      <HeroSection
+        backgroundImage={heroData.backgroundImage}
+        badge={heroData.badge}
+        title={heroData.title}
+        description={heroData.description}
+        primaryButton={heroData.primaryButton}
+        secondaryButton={heroData.secondaryButton}
+        scrollText={heroData.scrollText}
+        onBackgroundError={(e) => {
+          e.target.style.display = "none";
+        }}
+      >
+        <HeroStats />
       </HeroSection>
 
-      {/* Filters Section */}
-      <FiltersSection>
-        <FiltersHeader>
-          <FiltersTitle>
-            <FaFilter />
-            Filter Vehicles
-          </FiltersTitle>
-          <FilterToggle onClick={() => setShowFilters(!showFilters)}>
-            {showFilters ? <FaTimes /> : <FaFilter />}
-            {showFilters ? "Hide Filters" : "Show Filters"}
-          </FilterToggle>
-        </FiltersHeader>
-
-        <FiltersContent $show={showFilters}>
-          <FilterGroup>
-            <FilterLabel>Vehicle Status</FilterLabel>
-            <StatusFilters>
-              {["all", "available", "rented", "maintenance"].map((status) => (
-                <StatusFilter
-                  key={status}
-                  $active={selectedStatus === status}
-                  $color={getStatusColor(status)}
-                  onClick={() => setSelectedStatus(status)}
-                >
-                  {status === "all" ? "All Vehicles" : getStatusText(status)}
-                </StatusFilter>
-              ))}
-            </StatusFilters>
-          </FilterGroup>
-
-          <FilterRow>
-            <FilterGroup>
-              <FilterLabel>Location</FilterLabel>
-              <Select
-                value={selectedState}
-                onChange={(e) => setSelectedState(e.target.value)}
+      {/* Main Content */}
+      <ContentSection id="filters">
+        {/* Search and Filters */}
+        <FiltersCard>
+          <FiltersHeader>
+            <FiltersTitle>
+              <FaFilter />
+              Find Your Mercedes
+            </FiltersTitle>
+            <FilterActions>
+              <SearchInput
+                placeholder="Search by model or series..."
+                value={filters.searchQuery}
+                onChange={(e) =>
+                  handleFilterChange("searchQuery", e.target.value)
+                }
+                icon={<FaSearch />}
+              />
+              <FilterToggle
+                $active={showFilters}
+                onClick={() => setShowFilters(!showFilters)}
+                $size="sm"
               >
-                {states.map((state, index) => (
-                  <option key={index} value={state}>
-                    {state === "all" ? "All Locations" : state}
-                  </option>
-                ))}
-              </Select>
-            </FilterGroup>
+                <FaFilter />
+                {showFilters ? "Hide Filters" : "Show Filters"}
+              </FilterToggle>
+            </FilterActions>
+          </FiltersHeader>
 
-            <FilterGroup>
-              <FilterLabel>
-                Price Range: ${priceRange[0]} - ${priceRange[1]}/day
-              </FilterLabel>
-              <PriceRange>
-                <RangeInput
-                  type="range"
-                  min="0"
-                  max={maxPrice}
-                  value={priceRange[0]}
-                  onChange={(e) =>
-                    setPriceRange([parseInt(e.target.value), priceRange[1]])
-                  }
-                />
-                <RangeInput
-                  type="range"
-                  min="0"
-                  max={maxPrice}
-                  value={priceRange[1]}
-                  onChange={(e) =>
-                    setPriceRange([priceRange[0], parseInt(e.target.value)])
-                  }
-                />
-              </PriceRange>
-            </FilterGroup>
-          </FilterRow>
-        </FiltersContent>
-
-        <ResultsInfo>
-          Showing {filteredCars.length} of {cars.length} vehicles
-        </ResultsInfo>
-      </FiltersSection>
-
-      {/* Cars Grid */}
-      {filteredCars.length === 0 ? (
-        <EmptyState>
-          <EmptyIcon>🚗</EmptyIcon>
-          <EmptyTitle>No vehicles found</EmptyTitle>
-          <EmptyText>Try adjusting your filters to see more results</EmptyText>
-          <ResetButton
-            onClick={() => {
-              setSelectedStatus("all");
-              setSelectedState("all");
-              setPriceRange([0, maxPrice]);
-            }}
-          >
-            Reset Filters
-          </ResetButton>
-        </EmptyState>
-      ) : (
-        <CarsGrid>
-          {filteredCars.map((car) => (
-            <CarCard key={car._id}>
-              <CarImage>
-                <img
-                  src={car.images?.[0] || "/default-car.jpg"}
-                  alt={car.model}
-                />
-                <StatusBadge $color={getStatusColor(car.status)}>
-                  {getStatusText(car.status)}
-                </StatusBadge>
-                <Overlay>
-                  <ViewDetailsButton to={`/model/${car._id}`}>
-                    View Details
-                  </ViewDetailsButton>
-                </Overlay>
-              </CarImage>
-
-              <CarContent>
-                <CarHeader>
-                  <CarModel>{car.model}</CarModel>
-                  <CarPrice>
-                    ${car.pricePerDay}
-                    <span>/day</span>
-                  </CarPrice>
-                </CarHeader>
-
-                <CarSeries>{car.series}</CarSeries>
-
-                <CarSpecs>
-                  <SpecItem>
-                    <FaCar />
-                    <span>{car.transmission || "Automatic"}</span>
-                  </SpecItem>
-                  <SpecItem>
-                    <FaGasPump />
-                    <span>{car.fuel || "Premium"}</span>
-                  </SpecItem>
-                  <SpecItem>
-                    <FaUsers />
-                    <span>{car.seats || 5} Seats</span>
-                  </SpecItem>
-                </CarSpecs>
-
-                {car.state && (
-                  <Location>
-                    <FaMapMarkerAlt />
-                    <span>{car.state}</span>
-                  </Location>
-                )}
-
-                <CarFeatures>
-                  {car.features?.slice(0, 3).map((feature, index) => (
-                    <FeatureTag key={index}>{feature}</FeatureTag>
-                  ))}
-                  {car.features && car.features.length > 3 && (
-                    <FeatureTag>+{car.features.length - 3} more</FeatureTag>
+          <FiltersContent $show={showFilters}>
+            <Grid $template="1fr 1fr 2fr" gap="lg">
+              <FilterGroup>
+                <FilterLabel>Vehicle Status</FilterLabel>
+                <StatusFilters>
+                  {["all", "available", "rented", "maintenance"].map(
+                    (status) => (
+                      <StatusFilter
+                        key={status}
+                        $active={filters.status === status}
+                        $color={
+                          statusConfig[status]?.color || "var(--gray-500)"
+                        }
+                        onClick={() => handleFilterChange("status", status)}
+                      >
+                        {status === "all"
+                          ? "All Vehicles"
+                          : statusConfig[status]?.text}
+                      </StatusFilter>
+                    )
                   )}
-                </CarFeatures>
+                </StatusFilters>
+              </FilterGroup>
 
-                <ActionButton to={`/model/${car._id}`}>
-                  <FaCog />
-                  Book Now
-                </ActionButton>
-              </CarContent>
-            </CarCard>
-          ))}
-        </CarsGrid>
-      )}
+              <FilterGroup>
+                <FilterLabel>Location</FilterLabel>
+                <Select
+                  value={filters.state}
+                  onChange={(e) => handleFilterChange("state", e.target.value)}
+                  options={states.map((state) => ({
+                    value: state,
+                    label: state === "all" ? "All Locations" : state,
+                  }))}
+                />
+              </FilterGroup>
+
+              <FilterGroup>
+                <FilterLabel>
+                  Price Range: ${filters.priceRange[0]} - $
+                  {filters.priceRange[1]}/day
+                </FilterLabel>
+                <RangeSlider
+                  min={0}
+                  max={maxPrice}
+                  value={filters.priceRange}
+                  onChange={(value) => handleFilterChange("priceRange", value)}
+                  formatValue={(value) => `$${value}`}
+                />
+              </FilterGroup>
+            </Grid>
+          </FiltersContent>
+
+          <FiltersFooter>
+            <ResultsInfo>
+              Showing {filteredCars.length} of {cars.length} vehicles
+            </ResultsInfo>
+            <SecondaryButton onClick={resetFilters}>
+              Reset Filters
+            </SecondaryButton>
+          </FiltersFooter>
+        </FiltersCard>
+
+        {/* Cars Grid */}
+        {isLoading ? (
+          <LoadingState>
+            <LoadingSpinner size="lg" />
+            <LoadingText>Loading our premium fleet...</LoadingText>
+          </LoadingState>
+        ) : filteredCars.length === 0 ? (
+          <EmptyState>
+            <EmptyIcon>🚗</EmptyIcon>
+            <EmptyTitle>No vehicles found</EmptyTitle>
+            <EmptyText>Try adjusting your filters or search terms</EmptyText>
+            <PrimaryButton onClick={resetFilters}>Reset Filters</PrimaryButton>
+          </EmptyState>
+        ) : (
+          <CarsSection>
+            <AutoGrid $minWidth="350px" gap="xl">
+              {filteredCars.map((car) => (
+                <CarCard key={car._id} car={car} />
+              ))}
+            </AutoGrid>
+          </CarsSection>
+        )}
+      </ContentSection>
     </PageWrapper>
   );
 };
+
+// Car Card Component for ModelsPage
+// const CarCard = ({ car }) => {
+//   const statusConfig = {
+//     available: { color: "var(--success)", text: "Available" },
+//     rented: { color: "var(--error)", text: "Rented" },
+//     maintenance: { color: "var(--warning)", text: "Maintenance" },
+//     reserved: { color: "var(--info)", text: "Reserved" },
+//   };
+
+//   const status = statusConfig[car.status] || {
+//     color: "var(--gray-500)",
+//     text: car.status,
+//   };
+
+//   return (
+//     <LuxuryCard $hover>
+//       <CarImage>
+//         <img
+//           src={car.images?.[0] || "/default-car.jpg"}
+//           alt={car.model}
+//           loading="lazy"
+//         />
+//         <StatusBadge $color={status.color}>{status.text}</StatusBadge>
+//         <CardOverlay>
+//           <ViewDetailsButton to={`/model/${car._id}`}>
+//             View Details
+//           </ViewDetailsButton>
+//         </CardOverlay>
+//       </CarImage>
+
+//       <CardContent>
+//         <CardHeader>
+//           <div>
+//             <CarModel>{car.model}</CarModel>
+//             <CarSeries>{car.series}</CarSeries>
+//           </div>
+//           <CarPrice>
+//             ${car.pricePerDay}
+//             <span>/day</span>
+//           </CarPrice>
+//         </CardHeader>
+
+//         <CarSpecs>
+//           <SpecItem>
+//             <FaCar />
+//             <span>{car.transmission || "Automatic"}</span>
+//           </SpecItem>
+//           <SpecItem>
+//             <FaGasPump />
+//             <span>{car.fuel || "Premium"}</span>
+//           </SpecItem>
+//           <SpecItem>
+//             <FaUsers />
+//             <span>{car.seats || 5} Seats</span>
+//           </SpecItem>
+//         </CarSpecs>
+
+//         {car.state && (
+//           <Location>
+//             <FaMapMarkerAlt />
+//             <span>{car.state}</span>
+//           </Location>
+//         )}
+
+//         {car.features && car.features.length > 0 && (
+//           <CarFeatures>
+//             {car.features.slice(0, 3).map((feature, index) => (
+//               <FeatureTag key={index}>{feature}</FeatureTag>
+//             ))}
+//             {car.features.length > 3 && (
+//               <FeatureTag>+{car.features.length - 3} more</FeatureTag>
+//             )}
+//           </CarFeatures>
+//         )}
+
+//         <ActionButton to={`/model/${car._id}`} $size="md">
+//           <FaCog />
+//           Book Now
+//         </ActionButton>
+//       </CardContent>
+//     </LuxuryCard>
+//   );
+// };
 
 export default ModelsPage;
 
 // Styled Components
 const PageWrapper = styled.div`
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: var(--background);
 `;
 
-const LoadingWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 50vh;
-  gap: 1rem;
-`;
-
-const LoadingSpinner = styled.div`
-  display: inline-block;
-  position: relative;
-  width: 80px;
-  height: 80px;
-
-  div {
-    display: inline-block;
-    position: absolute;
-    left: 8px;
-    width: 16px;
-    background: #3b82f6;
-    animation: loading 1.2s cubic-bezier(0, 0.5, 0.5, 1) infinite;
-  }
-
-  div:nth-child(1) {
-    left: 8px;
-    animation-delay: -0.24s;
-  }
-
-  div:nth-child(2) {
-    left: 32px;
-    animation-delay: -0.12s;
-  }
-
-  div:nth-child(3) {
-    left: 56px;
-    animation-delay: 0;
-  }
-
-  @keyframes loading {
-    0% {
-      top: 8px;
-      height: 64px;
-    }
-    50%,
-    100% {
-      top: 24px;
-      height: 32px;
-    }
-  }
-`;
-
-const HeroSection = styled.section`
-  background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
-  color: white;
-  padding: 4rem 2rem;
-  text-align: center;
-`;
-
-const HeroContent = styled.div`
+const ContentSection = styled.section`
   max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-lg);
+
+  @media (max-width: 768px) {
+    padding: var(--space-lg) var(--space-md);
+  }
+`;
+
+const CarsSection = styled.section`
+  margin-top: var(--space-xl);
+`;
+
+// ===== STATS COMPONENTS =====
+const StatsGrid = styled(Grid)`
+  max-width: 800px;
   margin: 0 auto;
 `;
 
-const HeroTitle = styled.h1`
-  font-size: 3rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
-  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-
-  @media (max-width: 768px) {
-    font-size: 2rem;
-  }
-`;
-
-const HeroSubtitle = styled.p`
-  font-size: 1.25rem;
-  color: #d1d5db;
-  margin-bottom: 3rem;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-
-  @media (max-width: 768px) {
-    font-size: 1rem;
-  }
-`;
-
-const HeroStats = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 3rem;
-  flex-wrap: wrap;
-
-  @media (max-width: 768px) {
-    gap: 1.5rem;
-  }
-`;
-
-const StatItem = styled.div`
-  text-align: center;
-`;
-
 const StatNumber = styled.div`
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #60a5fa;
-
-  @media (max-width: 768px) {
-    font-size: 2rem;
-  }
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--space-xs);
+  font-family: var(--font-body);
 `;
 
 const StatLabel = styled.div`
-  font-size: 0.875rem;
-  color: #9ca3af;
+  font-size: var(--text-sm);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  opacity: 0.9;
+  font-family: var(--font-body);
 `;
 
-const FiltersSection = styled.section`
-  background: white;
-  padding: 2rem;
-  margin: 2rem auto;
-  max-width: 1200px;
-  border-radius: 20px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
+// ===== FILTERS COMPONENTS =====
+const FiltersCard = styled(LuxuryCard)`
+  padding: var(--space-xl);
 
-  @media (max-width: 768px) {
-    margin: 1rem;
-    padding: 1.5rem;
-  }
+  margin-bottom: var(--space-xl);
 `;
 
 const FiltersHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-lg);
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: var(--space-md);
+    align-items: stretch;
+  }
 `;
 
 const FiltersTitle = styled.h2`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 1.5rem;
-  color: #1e293b;
+  gap: var(--space-sm);
+  font-size: var(--text-2xl);
+  color: var(--text-primary);
   margin: 0;
+  font-family: var(--font-heading);
 `;
 
-const FilterToggle = styled.button`
+const FilterActions = styled.div`
   display: flex;
+  gap: var(--space-md);
   align-items: center;
-  gap: 0.5rem;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #2563eb;
-    transform: translateY(-1px);
-  }
 
   @media (max-width: 768px) {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
+    flex-direction: column;
   }
+`;
+
+const FilterToggle = styled(SecondaryButton)`
+  white-space: nowrap;
+  background: ${({ $active }) =>
+    $active ? "var(--primary-light)" : "transparent"};
+  border-color: ${({ $active }) =>
+    $active ? "var(--primary)" : "var(--gray-300)"};
+  color: ${({ $active }) =>
+    $active ? "var(--primary-dark)" : "var(--text-secondary)"};
 `;
 
 const FiltersContent = styled.div`
   display: ${(props) => (props.$show ? "block" : "none")};
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-lg);
 `;
 
 const FilterGroup = styled.div`
-  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
 `;
 
 const FilterLabel = styled.label`
-  display: block;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 0.75rem;
-`;
-
-const FilterRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 2rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: var(--font-body);
 `;
 
 const StatusFilters = styled.div`
   display: flex;
-  gap: 0.75rem;
+  gap: var(--space-sm);
   flex-wrap: wrap;
 `;
 
 const StatusFilter = styled.button`
-  padding: 0.75rem 1.5rem;
-  border: 2px solid ${(props) => (props.$active ? props.$color : "#e5e7eb")};
+  padding: var(--space-sm) var(--space-lg);
+  border: 2px solid
+    ${(props) => (props.$active ? props.$color : "var(--gray-300)")};
   background: ${(props) => (props.$active ? props.$color : "transparent")};
-  color: ${(props) => (props.$active ? "white" : "#6b7280")};
-  border-radius: 10px;
+  color: ${(props) =>
+    props.$active ? "var(--white)" : "var(--text-secondary)"};
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  font-weight: 600;
-  transition: all 0.2s;
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  transition: all var(--transition-normal);
+  font-family: var(--font-body);
 
   &:hover {
     border-color: ${(props) => props.$color};
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${(props) => props.$color};
+    outline-offset: 2px;
   }
 `;
 
-const Select = styled.select`
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
-  font-size: 1rem;
-  background: white;
-  cursor: pointer;
+const FiltersFooter = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--gray-200);
 
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-  }
-`;
-
-const PriceRange = styled.div`
-  position: relative;
-  padding: 1rem 0;
-`;
-
-const RangeInput = styled.input`
-  width: 100%;
-  margin: 0.5rem 0;
-  -webkit-appearance: none;
-  appearance: none;
-  height: 6px;
-  background: #e5e7eb;
-  border-radius: 3px;
-  outline: none;
-
-  &::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    background: #3b82f6;
-    border-radius: 50%;
-    cursor: pointer;
-  }
-
-  &::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    background: #3b82f6;
-    border-radius: 50%;
-    cursor: pointer;
-    border: none;
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: var(--space-md);
+    text-align: center;
   }
 `;
 
 const ResultsInfo = styled.div`
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+`;
+
+// ===== STATE COMPONENTS =====
+const LoadingState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2xl);
+  gap: var(--space-lg);
+`;
+
+const LoadingText = styled.p`
+  color: var(--text-secondary);
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
+  font-family: var(--font-body);
+`;
+
+const ErrorState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  color: #6b7280;
-  font-weight: 600;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
+  padding: var(--space-2xl) var(--space-lg);
+  max-width: 400px;
+  margin: 0 auto;
+  min-height: 400px;
+`;
+
+const ErrorIcon = styled.div`
+  font-size: 4rem;
+  margin-bottom: var(--space-lg);
+`;
+
+const ErrorTitle = styled.h2`
+  font-size: var(--text-2xl);
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-heading);
+`;
+
+const ErrorText = styled.p`
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xl);
+  font-family: var(--font-body);
 `;
 
 const EmptyState = styled.div`
   text-align: center;
-  padding: 4rem 2rem;
+  padding: var(--space-2xl) var(--space-lg);
   max-width: 400px;
-  margin: 2rem auto;
+  margin: 0 auto;
 `;
 
 const EmptyIcon = styled.div`
   font-size: 4rem;
-  margin-bottom: 1rem;
+  margin-bottom: var(--space-lg);
 `;
 
 const EmptyTitle = styled.h3`
-  font-size: 1.5rem;
-  color: #1e293b;
-  margin-bottom: 0.5rem;
+  font-size: var(--text-xl);
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-heading);
 `;
 
 const EmptyText = styled.p`
-  color: #6b7280;
-  margin-bottom: 2rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xl);
+  font-family: var(--font-body);
 `;
 
-const ResetButton = styled.button`
-  background: #3b82f6;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #2563eb;
-    transform: translateY(-1px);
-  }
-`;
-
-const CarsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 2rem 4rem;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    padding: 0 1rem 2rem;
-    gap: 1.5rem;
-  }
-`;
-
-const CarCard = styled.div`
-  background: white;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e5e7eb;
-  transition: all 0.3s ease;
-  position: relative;
-
-  &:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  }
-`;
-
+// ===== CAR CARD COMPONENTS =====
 const CarImage = styled.div`
   position: relative;
   height: 250px;
@@ -645,7 +606,7 @@ const CarImage = styled.div`
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s ease;
+    transition: transform var(--transition-normal);
   }
 
   &:hover img {
@@ -655,150 +616,170 @@ const CarImage = styled.div`
 
 const StatusBadge = styled.div`
   position: absolute;
-  top: 1rem;
-  left: 1rem;
+  top: var(--space-lg);
+  left: var(--space-lg);
   background: ${(props) => props.$color};
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  color: var(--white);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  z-index: 2;
+  font-family: var(--font-body);
 `;
 
-const Overlay = styled.div`
+const CardOverlay = styled.div`
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity var(--transition-normal);
+  z-index: 1;
 
-  ${CarCard}:hover & {
+  ${LuxuryCard}:hover & {
     opacity: 1;
   }
 `;
 
 const ViewDetailsButton = styled(Link)`
-  background: #3b82f6;
-  color: white;
-  padding: 1rem 2rem;
-  border-radius: 10px;
+  background: var(--gradient-primary);
+  color: var(--white);
+  padding: var(--space-lg) var(--space-xl);
+  border-radius: var(--radius-lg);
   text-decoration: none;
-  font-weight: 600;
-  transition: all 0.2s;
+  font-weight: var(--font-semibold);
+  transition: all var(--transition-normal);
+  font-family: var(--font-body);
 
   &:hover {
-    background: #2563eb;
+    background: var(--primary-dark);
     transform: scale(1.05);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--white);
+    outline-offset: 2px;
   }
 `;
 
-const CarContent = styled.div`
-  padding: 1.5rem;
+const CardContent = styled.div`
+  padding: var(--space-xl);
 `;
 
-const CarHeader = styled.div`
+const CardHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-md);
 `;
 
 const CarModel = styled.h3`
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
-`;
-
-const CarPrice = styled.div`
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #3b82f6;
-
-  span {
-    font-size: 0.875rem;
-    color: #6b7280;
-    font-weight: 400;
-  }
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-xs) 0;
+  line-height: 1.2;
+  font-family: var(--font-body);
 `;
 
 const CarSeries = styled.p`
-  color: #6b7280;
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  margin: 0;
+  font-family: var(--font-body);
+`;
+
+const CarPrice = styled.div`
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--primary);
+  text-align: right;
+  font-family: var(--font-body);
+
+  span {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    font-weight: var(--font-normal);
+  }
 `;
 
 const CarSpecs = styled.div`
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+
+  @media (max-width: 768px) {
+    gap: var(--space-md);
+  }
 `;
 
 const SpecItem = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  color: #6b7280;
-  font-size: 0.875rem;
+  gap: var(--space-sm);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
 
   svg {
-    color: #3b82f6;
+    color: var(--primary);
+    font-size: var(--text-base);
   }
 `;
 
 const Location = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  color: #6b7280;
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
+  gap: var(--space-sm);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-lg);
+  font-family: var(--font-body);
 
   svg {
-    color: #ef4444;
+    color: var(--error);
   }
 `;
 
 const CarFeatures = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
 `;
 
 const FeatureTag = styled.span`
-  background: #f1f5f9;
-  color: #475569;
-  padding: 0.25rem 0.75rem;
-  border-radius: 15px;
-  font-size: 0.75rem;
-  font-weight: 500;
+  background: var(--gray-100);
+  color: var(--text-secondary);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  font-family: var(--font-body);
 `;
 
-const ActionButton = styled(Link)`
+const ActionButton = styled(AccentButtonLink)`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: var(--space-sm);
   width: 100%;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
   text-decoration: none;
-  padding: 1rem;
-  border-radius: 10px;
-  font-weight: 600;
-  transition: all 0.2s;
+  font-weight: var(--font-semibold);
+  transition: all var(--transition-normal);
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.5);
+    box-shadow: var(--shadow-lg);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--white);
+    outline-offset: 2px;
   }
 `;

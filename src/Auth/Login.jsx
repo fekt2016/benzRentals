@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import styled, { keyframes } from "styled-components";
 import OtpModal from "../components/Modal/OtpModal";
-import { PrimaryButton } from "../components/Button";
+import { PrimaryButton } from "../components/ui/Button";
 import { useSendOtp, useRegister } from "../hooks/useAuth";
 
 // Optimized Animations - Only essential ones remain
