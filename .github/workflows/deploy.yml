@@ -13,33 +13,27 @@ jobs:
       url: https://benzflex.com
 
     steps:
-      # 1. Checkout latest code
       - name: 🚚 Checkout code
         uses: actions/checkout@v4
 
-      # 2. Setup Node.js
       - name: ⎔ Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18.x
           cache: npm
 
-      # 3. Install dependencies
       - name: 📦 Install dependencies
         run: npm ci
 
-      # 4. Build project
       - name: 🏗️ Build project
         run: |
           npm run build
-          # fallback in case no build folder is found
           if [ ! -d "dist" ] && [ ! -d "build" ]; then
-            echo "❌ No build output directory found!"
+            echo "❌ No build output found! Creating placeholder..."
             mkdir -p dist
-            echo "<h1>Deployment placeholder</h1>" > dist/index.html
+            echo "<h1>Site under deployment</h1>" > dist/index.html
           fi
 
-      # 5. Detect build folder
       - name: 📁 Detect build directory
         id: detect-dir
         run: |
@@ -52,18 +46,6 @@ jobs:
             exit 1
           fi
 
-      # 6. Validate FTP secrets
-      - name: 🔒 Verify FTP secrets
-        run: |
-          for var in FTP_SERVER FTP_USERNAME FTP_PASSWORD; do
-            if [ -z "${{ secrets[$var] }}" ]; then
-              echo "::error::❌ $var secret is missing!"
-              exit 1
-            fi
-          done
-          echo "✅ All secrets verified"
-
-      # 7. Deploy build folder to cPanel public_html
       - name: 📤 Deploy to FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -71,20 +53,11 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ${{ steps.detect-dir.outputs.directory }}/
-          # IMPORTANT: Adjust this depending on your FTP root
-          server-dir: ./public_html/
-          exclude: |
-            **/.git*
-            **/.github*
-            **/node_modules/**
-            **/*.log
-            **/*.md
-            **/.env*
+          server-dir: ./
           log-level: verbose
           dangerous-clean-slate: false
 
-      # 8. Confirm deployment
       - name: 🌐 Verify deployment
         run: |
           echo "✅ Deployment completed!"
-          echo "🌍 Live site: https://benzflex.com"
+          echo "🌍 Site: https://benzflex.com"
