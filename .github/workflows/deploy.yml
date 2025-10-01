@@ -9,7 +9,7 @@ jobs:
     name: 🎉 Deploy to Production
     runs-on: ubuntu-latest
     environment:
-      name: ftp_server
+      name: server
       url: https://benzflex.com
 
     steps:
