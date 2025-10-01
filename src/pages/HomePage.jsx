@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useMemo } from "react";
 import styled from "styled-components";
 // eslint-disable-next-line no-unused-vars
 import { motion, useInView, useAnimation } from "framer-motion";
+import { devices } from "../styles/GlobalStyles";
 
 // Import reusable components
 import HeroSection from "../components/Sections/HeroSection";
@@ -281,7 +282,7 @@ const HomePage = () => {
             <CarGrid columns={3}>
               {featuredCars.map((car, index) => (
                 <motion.div
-                  key={car.id}
+                  key={car._id}
                   variants={carCardVariants}
                   custom={index}
                 >
@@ -525,7 +526,7 @@ const FeaturesGrid = styled.div`
   gap: var(--space-lg);
   width: 100%;
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     grid-template-columns: 1fr;
     gap: var(--space-md);
   }

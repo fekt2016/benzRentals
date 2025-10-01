@@ -12,9 +12,10 @@ const CarGrid = ({ children, className = "", columns = 3 }) => {
 };
 
 const GridWrapper = styled.div`
-  display: flex;
+  display: grid;
 
-  /* grid-template-columns: repeat(${(props) => props.$columns}, 1fr); */
+  grid-template-columns: repeat(3, 1fr);
+
   gap: var(--space-lg);
   margin-bottom: var(--space-xl);
 

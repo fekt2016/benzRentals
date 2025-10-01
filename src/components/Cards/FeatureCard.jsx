@@ -42,6 +42,7 @@ const CardWrapper = styled.div`
   }
 
   @media ${devices.sm} {
+    margin: var(--space-lg);
     flex-direction: column;
     text-align: center;
     padding: var(--space-lg);

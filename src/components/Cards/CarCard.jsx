@@ -112,6 +112,9 @@ const CardWrapper = styled.div`
     transform: translateY(-10px);
     box-shadow: var(--shadow-lg);
   }
+  @media ${devices.md} {
+    margin: 0 5rem;
+  }
 `;
 
 const CarImage = styled.div`
