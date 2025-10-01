@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import GlobalStyles from "./styles/GlobalStyles";
-import { theme } from "./styles/theme";
 import { ThemeProvider } from "styled-components";
 import { BrowserRouter } from "react-router-dom";
 import MainRoutes from "./routes/MainRoutes";
@@ -19,7 +18,7 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={theme}>
+      <ThemeProvider>
         <GlobalStyles />
         <BrowserRouter
           future={{
