@@ -13,82 +13,78 @@ jobs:
       url: https://benzflex.com
 
     steps:
+      # 1. Checkout latest code
       - name: 🚚 Checkout code
         uses: actions/checkout@v4
 
+      # 2. Setup Node.js
       - name: ⎔ Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18.x
-          cache: "npm"
+          cache: npm
 
+      # 3. Install dependencies
       - name: 📦 Install dependencies
         run: npm ci
 
+      # 4. Build project
       - name: 🏗️ Build project
         run: |
           npm run build
-          # Ensure build output exists
+          # fallback in case no build folder is found
           if [ ! -d "dist" ] && [ ! -d "build" ]; then
-            echo "️❌ No build output directory found!"
-            echo "📁 Creating fallback dist..."
+            echo "❌ No build output directory found!"
             mkdir -p dist
-            echo "<!DOCTYPE html><html><head><title>BenzFlex</title></head><body><h1>Website Under Deployment</h1></body></html>" > dist/index.html
+            echo "<h1>Deployment placeholder</h1>" > dist/index.html
           fi
 
-      - name: 📁 Determine build directory
-        id: set-dir
+      # 5. Detect build folder
+      - name: 📁 Detect build directory
+        id: detect-dir
         run: |
           if [ -d "dist" ]; then
             echo "directory=dist" >> $GITHUB_OUTPUT
           elif [ -d "build" ]; then
             echo "directory=build" >> $GITHUB_OUTPUT
           else
-            echo "::error::❌ No build directory found!"
+            echo "::error::No build directory found!"
             exit 1
           fi
 
-      - name: 🔒 Verify environment secrets
+      # 6. Validate FTP secrets
+      - name: 🔒 Verify FTP secrets
         run: |
-          echo "🔐 Verifying FTP secrets..."
-          if [ -z "${{ secrets.FTP_SERVER }}" ]; then
-            echo "::error::❌ FTP_SERVER secret is missing!"
-            exit 1
-          fi
-          if [ -z "${{ secrets.FTP_USERNAME }}" ]; then
-            echo "::error::❌ FTP_USERNAME secret is missing!"
-            exit 1
-          fi
-          if [ -z "${{ secrets.FTP_PASSWORD }}" ]; then
-            echo "::error::❌ FTP_PASSWORD secret is missing!"
-            exit 1
-          fi
-          echo "✅ All secrets verified successfully"
+          for var in FTP_SERVER FTP_USERNAME FTP_PASSWORD; do
+            if [ -z "${{ secrets[$var] }}" ]; then
+              echo "::error::❌ $var secret is missing!"
+              exit 1
+            fi
+          done
+          echo "✅ All secrets verified"
 
-      - name: 📤 Deploy to FTP server
+      # 7. Deploy build folder to cPanel public_html
+      - name: 📤 Deploy to FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./
-          server-dir: /home/turtlvhi/public_html/
+          local-dir: ${{ steps.detect-dir.outputs.directory }}/
+          # IMPORTANT: Adjust this depending on your FTP root
+          server-dir: ./public_html/
           exclude: |
             **/.git*
             **/.github*
             **/node_modules/**
-            **/README.md
-            **/package*.json
-            **/vite.config.*
-            **/src/**
             **/*.log
             **/*.md
             **/.env*
           log-level: verbose
           dangerous-clean-slate: false
 
+      # 8. Confirm deployment
       - name: 🌐 Verify deployment
         run: |
-          echo "✅ Deployment completed successfully!"
-          echo "🌍 View site: https://benzflex.com"
-          echo "📁 FTP directory: /benzflex.com/"
+          echo "✅ Deployment completed!"
+          echo "🌍 Live site: https://benzflex.com"
