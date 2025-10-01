@@ -14,7 +14,7 @@ const CarCard = ({
   return (
     <CardWrapper className={`luxury-card ${className}`}>
       <CarImage>
-        <img src={car.image} alt={car.model} />
+        <img src={car.images[0]} alt={car.model} />
         {showOverlay && (
           <CarOverlay>
             <ButtonLink to={`/model/${car.id}`} $size="md">

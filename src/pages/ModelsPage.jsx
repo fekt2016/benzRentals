@@ -89,7 +89,7 @@ const ModelsPage = () => {
 
   // Hero section data
   const heroData = {
-    backgroundImage: "/images/mercedes-fleet-hero.jpg",
+    backgroundImage: "/images/ben2.jpg",
     badge: "Premium Fleet",
     title: "Mercedes-Benz Premium Fleet",
     description:
@@ -274,90 +274,6 @@ const ModelsPage = () => {
     </PageWrapper>
   );
 };
-
-// Car Card Component for ModelsPage
-// const CarCard = ({ car }) => {
-//   const statusConfig = {
-//     available: { color: "var(--success)", text: "Available" },
-//     rented: { color: "var(--error)", text: "Rented" },
-//     maintenance: { color: "var(--warning)", text: "Maintenance" },
-//     reserved: { color: "var(--info)", text: "Reserved" },
-//   };
-
-//   const status = statusConfig[car.status] || {
-//     color: "var(--gray-500)",
-//     text: car.status,
-//   };
-
-//   return (
-//     <LuxuryCard $hover>
-//       <CarImage>
-//         <img
-//           src={car.images?.[0] || "/default-car.jpg"}
-//           alt={car.model}
-//           loading="lazy"
-//         />
-//         <StatusBadge $color={status.color}>{status.text}</StatusBadge>
-//         <CardOverlay>
-//           <ViewDetailsButton to={`/model/${car._id}`}>
-//             View Details
-//           </ViewDetailsButton>
-//         </CardOverlay>
-//       </CarImage>
-
-//       <CardContent>
-//         <CardHeader>
-//           <div>
-//             <CarModel>{car.model}</CarModel>
-//             <CarSeries>{car.series}</CarSeries>
-//           </div>
-//           <CarPrice>
-//             ${car.pricePerDay}
-//             <span>/day</span>
-//           </CarPrice>
-//         </CardHeader>
-
-//         <CarSpecs>
-//           <SpecItem>
-//             <FaCar />
-//             <span>{car.transmission || "Automatic"}</span>
-//           </SpecItem>
-//           <SpecItem>
-//             <FaGasPump />
-//             <span>{car.fuel || "Premium"}</span>
-//           </SpecItem>
-//           <SpecItem>
-//             <FaUsers />
-//             <span>{car.seats || 5} Seats</span>
-//           </SpecItem>
-//         </CarSpecs>
-
-//         {car.state && (
-//           <Location>
-//             <FaMapMarkerAlt />
-//             <span>{car.state}</span>
-//           </Location>
-//         )}
-
-//         {car.features && car.features.length > 0 && (
-//           <CarFeatures>
-//             {car.features.slice(0, 3).map((feature, index) => (
-//               <FeatureTag key={index}>{feature}</FeatureTag>
-//             ))}
-//             {car.features.length > 3 && (
-//               <FeatureTag>+{car.features.length - 3} more</FeatureTag>
-//             )}
-//           </CarFeatures>
-//         )}
-
-//         <ActionButton to={`/model/${car._id}`} $size="md">
-//           <FaCog />
-//           Book Now
-//         </ActionButton>
-//       </CardContent>
-//     </LuxuryCard>
-//   );
-// };
 
 export default ModelsPage;
 
