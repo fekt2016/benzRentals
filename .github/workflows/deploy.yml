@@ -58,8 +58,8 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ${{ steps.detect-dir.outputs.directory }}
-          server-dir: ./public_html/
+          local-dir: ${{ steps.detect-dir.outputs.directory }}/
+          server-dir: public_html/
           log-level: verbose
           dangerous-clean-slate: false
 
