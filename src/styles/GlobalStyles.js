@@ -21,8 +21,7 @@ export const devices = {
 
 const GlobalStyles = createGlobalStyle`
   /* Import Google Fonts - Ultra Modern Luxury */
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap');
-
+  
   :root {
     // Mercedes-Benz Luxury Color Palette
     --primary: #D32F2F;        // Mercedes Red
