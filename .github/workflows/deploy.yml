@@ -13,18 +13,22 @@ jobs:
       url: https://benzflex.com
 
     steps:
+      # 1. Checkout repo
       - name: 🚚 Checkout code
         uses: actions/checkout@v4
 
+      # 2. Setup Node.js (use Node 20 for Vite 7, React Router 7, etc.)
       - name: ⎔ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18.x
+          node-version: 20.x
           cache: npm
 
+      # 3. Install dependencies
       - name: 📦 Install dependencies
         run: npm ci
 
+      # 4. Build project
       - name: 🏗️ Build project
         run: |
           npm run build
@@ -34,6 +38,7 @@ jobs:
             echo "<h1>Site under deployment</h1>" > dist/index.html
           fi
 
+      # 5. Detect build folder (dist or build)
       - name: 📁 Detect build directory
         id: detect-dir
         run: |
@@ -46,6 +51,7 @@ jobs:
             exit 1
           fi
 
+      # 6. Deploy build folder to cPanel public_html
       - name: 📤 Deploy to FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -53,11 +59,13 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ${{ steps.detect-dir.outputs.directory }}/
-          server-dir: ./
+          server-dir: ./public_html/
           log-level: verbose
           dangerous-clean-slate: false
 
+      # 7. Verify deployment
       - name: 🌐 Verify deployment
         run: |
-          echo "✅ Deployment completed!"
+          echo "✅ Deployment completed successfully!"
           echo "🌍 Site: https://benzflex.com"
+          echo "📁 Files deployed to: /home/turtlvhi/public_html/"
