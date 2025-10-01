@@ -188,7 +188,7 @@ const InputElement = styled.input`
   }
 
   &[type="number"] {
-    -moz-appearance: textfield;
+    /* -moz-appearance: textfield; */
 
     &::-webkit-outer-spin-button,
     &::-webkit-inner-spin-button {
