@@ -7,6 +7,7 @@ import { useCurrentUser, useLogout } from "../hooks/useAuth";
 import { jwtDecode } from "jwt-decode";
 import { PATHS } from "../routes/routePaths";
 import NotificationBell from "../components/NotificationBell";
+import { devices } from "../styles/GlobalStyles";
 
 // Import reusable buttons
 import {
@@ -328,7 +329,7 @@ const HeaderContainer = styled.div`
   padding: var(--space-md) var(--space-lg);
   position: relative;
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     padding: var(--space-md);
   }
 `;
@@ -371,7 +372,7 @@ const LogoText = styled.div`
     -webkit-text-fill-color: transparent;
   }
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     font-size: var(--text-xl);
   }
 `;
@@ -482,7 +483,7 @@ const MobileMenuButton = styled(PrimaryButton)`
     width: 48px;
     height: 48px;
 
-    @media (max-width: 768px) {
+    @media ${devices.md} {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -543,7 +544,7 @@ const UserName = styled.span`
   font-weight: var(--font-semibold);
   color: var(--text-primary);
 
-  @media (max-width: 480px) {
+  @media ${devices.xs1} {
     display: none;
   }
 `;
@@ -634,7 +635,7 @@ const LogoutButton = styled(SecondaryButton)`
     font-family: var(--font-body);
 
     &:hover {
-      background: #fef2f2;
+      background: var(--white);
       border-left-color: var(--error);
       color: var(--error);
     }
@@ -651,7 +652,7 @@ const MobileMenu = styled(motion.div)`
   background: var(--white);
   border-top: 1px solid var(--gray-200);
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     display: block;
   }
 `;

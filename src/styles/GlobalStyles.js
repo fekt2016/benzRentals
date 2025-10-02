@@ -3,6 +3,7 @@ import { createGlobalStyle } from "styled-components";
 // Breakpoints (mobile-first)
 export const breakpoints = {
   xs: "320px",
+  xs1: "480",
   sm: "640px",
   md: "768px",
   lg: "1024px",
@@ -24,13 +25,13 @@ const GlobalStyles = createGlobalStyle`
   
   :root {
     // Mercedes-Benz Luxury Color Palette
-    --primary: #006994 ;        // Mercedes Red
-    --primary-dark: #64b2d4;   // Dark Red
-    --primary-light: #2f86c5;  // Light Red
+    --primary: #5ccefb ;        // Mercedes Red
+    --primary-dark: #4090b0;   // Dark Red
+    --primary-light: #aee7fd;  // Light Red
     --secondary: #0D0D0D;      // Jet Black
     --secondary-light: #1A1A1A; // Dark Gray
-    --accent: #FFD700;         // Gold Accent
-    --accent-dark: #B8860B;    // Dark Gold
+    --accent: #fb895c;         // Gold Accent
+    --accent-dark: #c96e4a;    // Dark Gold
     
     // Neutral Colors
     --background: #FFFFFF;
@@ -68,9 +69,9 @@ const GlobalStyles = createGlobalStyle`
     --font-accent: 'Plus Jakarta Sans', sans-serif;
 
     // Gradients
-    --gradient-primary: linear-gradient(135deg, #D32F2F 0%, #B71C1C 100%);
+    --gradient-primary: linear-gradient(135deg, #4090b0 0%, #aee7fd 100%);
     --gradient-secondary: linear-gradient(135deg, #0D0D0D 0%, #1A1A1A 100%);
-    --gradient-accent: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+    --gradient-accent: linear-gradient(135deg, #fb895c 0%, #c96e4a 100%);
     --gradient-luxury: linear-gradient(135deg, #1E293B 0%, #374151 100%);
     --gradient-overlay: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.4) 100%);
 
