@@ -9,7 +9,7 @@ import { getAuthToken } from "../utils/tokenService";
 // Environment-based configuration
 const isProduction = process.env.NODE_ENV === "production";
 const baseURL = isProduction
-  ? ` ${process.env.REACT_APP_API_BASE_URL}`
+  ? `${window.location.origin}/api/v1`
   : "http://localhost:3001/api/v1";
 
 // Create axios instance with default config
