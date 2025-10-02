@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
-import { PATHS } from "../routes/routePaths";
 import { formatDate } from "../utils/helper";
 import UpdateDocumentsModal from "../components/Modal/UpdateDocumentsModal";
 import {
@@ -16,10 +15,16 @@ import {
 import { useMyDrivers } from "../hooks/useDriver";
 import { useAddBookingDriver, useGetBookingById } from "../hooks/useBooking";
 import { useStripePayment } from "../hooks/usePayment";
+import usePageTitle from "../hooks/usePageTitle";
+
+import { ROUTE_CONFIG, PATHS } from "../routes/routePaths";
 
 const paymentMethods = [{ id: "stripe", name: "Stripe", icon: FiCreditCard }];
 
 export default function CheckoutPage() {
+  const seoConfig = ROUTE_CONFIG[PATHS.CHECKOUT];
+
+  usePageTitle(seoConfig.title, seoConfig.description);
   const location = useLocation();
   const navigate = useNavigate();
   const { bookingId } = location?.state || {};

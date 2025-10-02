@@ -9,7 +9,7 @@ export const PATHS = {
   CORPORATE: "/corporate",
   ABOUT: "/about",
   CONTACT: "/contact",
-  HELP_CENTER: "/help",
+  SUPPORT: "/Support",
   BOOKINGS: "/bookings",
   BOOKING: "/booking/:bookingId",
   CONFIRMATION: "/confirmation",

@@ -25,6 +25,7 @@ const api = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
+    console.log("url", config.url);
     const relativePath = getRelativePath(config.url);
     const normalizedPath = normalizePath(relativePath);
     const method = config.method ? config.method.toLowerCase() : "get";

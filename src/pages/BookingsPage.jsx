@@ -33,8 +33,16 @@ import {
   FaRegSmile,
 } from "react-icons/fa";
 import { useMemo, useState } from "react";
+import usePageTitle from "../hooks/usePageTitle";
+
+import { ROUTE_CONFIG, PATHS } from "../routes/routePaths";
 
 const BookingsPage = () => {
+  const seoConfig = ROUTE_CONFIG[PATHS.BOOKINGS];
+
+  // Use the custom SEO hook
+  usePageTitle(seoConfig.title, seoConfig.description);
+
   const { data: BookingsData, isLoading } = useMyBookings();
   const [updatingBooking, setUpdatingBooking] = useState(null);
   const [reviewingBooking, setReviewingBooking] = useState(null);

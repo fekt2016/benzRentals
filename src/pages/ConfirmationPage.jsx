@@ -2,10 +2,17 @@
 import React, { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import styled from "styled-components";
-import { PATHS } from "../routes/routePaths";
+
 import { useGetBookingConfirmation } from "../hooks/usePayment";
+import usePageTitle from "../hooks/usePageTitle";
+
+import { ROUTE_CONFIG, PATHS } from "../routes/routePaths";
 
 const BookingConfirmationPage = () => {
+  const seoConfig = ROUTE_CONFIG[PATHS.CONFIRMATION];
+
+  usePageTitle(seoConfig.title, seoConfig.description);
+
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const bookingId = searchParams.get("booking_id");

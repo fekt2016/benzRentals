@@ -33,7 +33,14 @@ import {
   ErrorMessage,
 } from "../components/forms/Form";
 
+import usePageTitle from "../hooks/usePageTitle";
+
+import { ROUTE_CONFIG, PATHS } from "../routes/routePaths";
+
 const UserReviews = () => {
+  const seoConfig = ROUTE_CONFIG[PATHS.REVIEWS];
+
+  usePageTitle(seoConfig.title, seoConfig.description);
   const { data: userData } = useCurrentUser();
   const user = userData?.user || null;
   console.log("user", user);

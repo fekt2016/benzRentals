@@ -16,8 +16,13 @@ import {
 } from "../components/forms/Form";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { devices } from "../styles/GlobalStyles";
-
+import usePageTitle from "../hooks/usePageTitle";
+import { ROUTE_CONFIG, PATHS } from "../routes/routePaths";
 const ContactPage = () => {
+  const seoConfig = ROUTE_CONFIG[PATHS.CONTACT];
+
+  usePageTitle(seoConfig.title, seoConfig.description);
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",

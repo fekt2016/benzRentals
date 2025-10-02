@@ -78,7 +78,7 @@ const MainRoutes = () => (
         <Route path={PATHS.LOCATIONS} element={<LocationPage />} />
         <Route path={PATHS.LOCATION} element={<LocationDetailPage />} />
         <Route path={PATHS.CONTACT} element={<ContactPage />} />
-        <Route path={PATHS.HELP_CENTER} element={<HelpCenterPage />} />
+        <Route path={PATHS.SUPPORT} element={<HelpCenterPage />} />
         <Route path={PATHS.CONFIRMATION} element={<ConfirmationPage />} />
         <Route path={PATHS.CHECKOUT} element={<CheckoutPage />} />
         <Route

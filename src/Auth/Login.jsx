@@ -60,6 +60,7 @@ const LoginPage = () => {
       }
 
       const payload = { fullName, phone, email, password, passwordConfirm };
+      console.log(fullName, phone, email, password, passwordConfirm);
       register.mutate(payload, {
         onSuccess: (data) => {
           console.log("Registered", data);
