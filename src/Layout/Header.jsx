@@ -13,7 +13,6 @@ import { devices } from "../styles/GlobalStyles";
 import {
   PrimaryButton,
   SecondaryButton,
-  GhostButton,
   ButtonLink,
 } from "../components/ui/Button";
 
@@ -324,7 +323,7 @@ const HeaderContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  max-width: 1200px;
+  max-width: 120rem;
   margin: 0 auto;
   padding: var(--space-md) var(--space-lg);
   position: relative;
@@ -348,15 +347,15 @@ const Logo = styled(Link)`
 `;
 
 const LogoIcon = styled.div`
-  width: 40px;
-  height: 40px;
+  width: 4rem;
+  height: 4rem;
   background: var(--gradient-primary);
   border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--white);
-  font-size: 1.5rem;
+  font-size: var(--text-2xl);
 `;
 
 const LogoText = styled.div`
@@ -420,7 +419,7 @@ const NavLink = styled(Link)`
 
   &:hover {
     color: var(--primary);
-    background: rgba(211, 47, 47, 0.1);
+    background: rgba(251, 137, 92, 0.3);
   }
 
   &::before {
@@ -501,15 +500,15 @@ const UserAvatar = styled(motion.div)`
   gap: var(--space-sm);
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-full);
-  background: rgba(211, 47, 47, 0.1);
+  background: rgb(251, 137, 92, 0.3);
   cursor: pointer;
   transition: all var(--transition-normal);
   border: 2px solid transparent;
   font-family: var(--font-body);
 
   &:hover {
-    background: rgba(211, 47, 47, 0.2);
-    border-color: rgba(211, 47, 47, 0.3);
+    background: rgb(251, 137, 92, 0.5);
+    border-color: rgb(251, 137, 92, 0.8);
   }
 
   .chevron {
@@ -523,8 +522,8 @@ const UserAvatar = styled(motion.div)`
 `;
 
 const AvatarImage = styled.img`
-  width: 36px;
-  height: 36px;
+  width: 3.6rem;
+  height: 3.6rem;
   border-radius: 50%;
   object-fit: cover;
 `;
@@ -677,11 +676,11 @@ const MobileNavLink = styled(Link)`
   border-radius: var(--radius-lg);
   transition: all var(--transition-normal);
   background: ${(props) =>
-    props.$isActive ? "rgba(211, 47, 47, 0.1)" : "transparent"};
+    props.$isActive ? "rgb(251, 137, 92)" : "transparent"};
   font-family: var(--font-body);
 
   &:hover {
-    background: rgba(211, 47, 47, 0.1);
+    background: rgb(251, 137, 92, 0.3);
     color: var(--primary);
   }
 `;
@@ -724,7 +723,7 @@ const MobileLogoutButton = styled(SecondaryButton)`
     font-family: var(--font-body);
 
     &:hover {
-      background: #fef2f2;
+      background: var(--white);
       color: var(--error);
     }
   }

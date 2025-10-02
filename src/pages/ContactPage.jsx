@@ -15,6 +15,7 @@ import {
   SuccessMessage,
 } from "../components/forms/Form";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
+import { devices } from "../styles/GlobalStyles";
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -259,7 +260,7 @@ export default ContactPage;
 // Styled Components using Global Styles
 const ContactContainer = styled.div`
   padding: var(--space-2xl) 0;
-  max-width: 1200px;
+  max-width: 120rem;
   margin: 0 auto;
   font-family: var(--font-body);
 `;
@@ -277,7 +278,7 @@ const PageTitle = styled.h1`
   margin-bottom: var(--space-md);
   font-family: var(--font-heading);
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     font-size: var(--text-3xl);
   }
 `;
@@ -286,7 +287,7 @@ const PageSubtitle = styled.p`
   font-size: var(--text-lg);
   color: var(--text-secondary);
   line-height: 1.6;
-  max-width: 600px;
+  max-width: 60rem;
   margin: 0 auto;
 `;
 
@@ -296,12 +297,12 @@ const ContactGrid = styled.div`
   gap: var(--space-xl);
   padding: 0 var(--space-lg);
 
-  @media (max-width: 1024px) {
+  @media ${devices.lg} {
     grid-template-columns: 1fr;
     gap: var(--space-lg);
   }
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     padding: 0 var(--space-md);
   }
 `;
@@ -310,7 +311,7 @@ const ContactFormCard = styled(LuxuryCard)`
   padding: var(--space-2xl);
   background: var(--white);
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     padding: var(--space-xl);
   }
 `;
@@ -344,7 +345,7 @@ const FormRow = styled.div`
   grid-template-columns: 1fr 1fr;
   gap: var(--space-md);
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     grid-template-columns: 1fr;
   }
 `;
@@ -368,7 +369,7 @@ const ContactInfoCard = styled(Card)`
   padding: var(--space-xl);
   background: ${(props) => (props.$accent ? "var(--surface)" : "var(--white)")};
   border-left: ${(props) =>
-    props.$accent ? "4px solid var(--error)" : "none"};
+    props.$accent ? "4px solid var(--accent)" : "none"};
   display: flex;
   align-items: flex-start;
   gap: var(--space-lg);
@@ -381,7 +382,7 @@ const ContactInfoCard = styled(Card)`
 `;
 
 const InfoIcon = styled.div`
-  font-size: 2rem;
+  font-size: var(--text-4xl);
   flex-shrink: 0;
   margin-top: var(--space-xs);
 `;

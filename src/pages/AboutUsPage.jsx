@@ -3,6 +3,8 @@ import styled from "styled-components";
 import { Link } from "react-router-dom";
 // eslint-disable-next-line no-unused-vars
 import { motion, useInView } from "framer-motion";
+import { devices } from "../styles/GlobalStyles";
+import { PrimaryButton, SecondaryButton } from "../components/ui/Button";
 
 // Icons
 import {
@@ -205,7 +207,7 @@ const AboutPage = () => {
                 transition={{ duration: 0.8, delay: 0.2 }}
               >
                 <StoryImage
-                  src="https://images.unsplash.com/photo-1563720223182-8e41e09c2396?auto=format&fit=crop&w=800&q=80"
+                  src="/images/ben23.jpg"
                   alt="BenzFlex Founding Story"
                 />
                 <StoryCard>
@@ -394,33 +396,33 @@ const AboutPage = () => {
 
 // Styled Components (keep all your existing styled components exactly as they are)
 const Wrapper = styled.div`
-  margin-top: 4rem;
+  margin-top: var(--space-2xl);
   overflow-x: hidden;
 `;
 
 const Container = styled.div`
-  max-width: 1200px;
+  max-width: 120rem;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 var(--space-lg);
 
-  @media (max-width: 768px) {
-    padding: 0 1rem;
+  @media ${devices.md} {
+    padding: 0 var(--space-sm);
   }
 `;
 
 // Hero Section
 const HeroSection = styled.section`
   height: 70vh;
-  min-height: 500px;
+  min-height: 50rem;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     height: 60vh;
-    min-height: 400px;
+    min-height: 40rem;
   }
 `;
 
@@ -446,23 +448,19 @@ const Overlay = styled.div`
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    135deg,
-    rgba(0, 0, 0, 0.8) 0%,
-    rgba(0, 0, 0, 0.4) 100%
-  );
+  background: var(--gradient-overlay);
 `;
 
 const HeroContent = styled.div`
   position: relative;
   z-index: 2;
   text-align: center;
-  color: white;
-  max-width: 800px;
-  padding: 0 2rem;
+  color: var(--white);
+  max-width: 80rem;
+  padding: 0 var(--space-lg);
 
-  @media (max-width: 768px) {
-    padding: 0 1rem;
+  @media ${devices.md} {
+    padding: 0 var(--space-sm);
   }
 `;
 
@@ -472,64 +470,67 @@ const HeroBadge = styled.div`
   gap: 0.5rem;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
-  padding: 0.75rem 1.5rem;
+  padding: var(--space-xs) var(--space-md);
   border-radius: 50px;
   margin-bottom: 2rem;
   font-weight: 600;
   border: 1px solid rgba(255, 255, 255, 0.2);
   font-size: 0.9rem;
 
-  @media (max-width: 480px) {
-    padding: 0.5rem 1rem;
+  @media ${devices.xs1} {
+    padding: var(--space-xs) var(--space-md);
     font-size: 0.8rem;
   }
 `;
 
 const HeroTitle = styled.h1`
-  font-size: 4rem;
+  font-size: var(--text-7xl);
   font-weight: 700;
   margin-bottom: 1.5rem;
   line-height: 1.1;
+  color: var(--white);
 
-  @media (max-width: 768px) {
-    font-size: 2.5rem;
+  @media ${devices.md} {
+    font-size: var(--text-4xl);
   }
 
   @media (max-width: 480px) {
-    font-size: 2rem;
+    font-size: var(--text-4xl);
   }
 `;
 
 const GradientText = styled.span`
-  background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+  background: var(--gradient-accent);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 `;
 
 const HeroDescription = styled.p`
-  font-size: 1.25rem;
+  font-size: var(--text-xl);
+  color: var(--white);
   opacity: 0.9;
   line-height: 1.6;
-  max-width: 600px;
+  max-width: 60rem;
   margin: 0 auto;
 
-  @media (max-width: 768px) {
-    font-size: 1.1rem;
+  @media ${devices.md} {
+    font-size: var(--text-lg);
   }
 
-  @media (max-width: 480px) {
-    font-size: 1rem;
+  @media ${devices.xs1} {
+    font-size: var(--text-base);
   }
 `;
 
 // Story Section
 const StorySection = styled.section`
-  padding: 6rem 0;
-  background: white;
+  /* padding: 6rem 0; */
+  padding: var(--space-3xl);
+  background: var(--white);
 
-  @media (max-width: 768px) {
-    padding: 4rem 0;
+  @media ${devices.md} {
+    padding: var(--space-2x) 0;
   }
 `;
 
@@ -539,14 +540,15 @@ const StoryGrid = styled.div`
   gap: 4rem;
   align-items: center;
 
-  @media (max-width: 968px) {
+  @media ${devices.md2} {
+    margin-top: var(--space-lg);
     grid-template-columns: 1fr;
     gap: 3rem;
   }
 `;
 
 const StoryContent = styled.div`
-  @media (max-width: 968px) {
+  @media ${devices.md2} {
     order: 2;
   }
 `;
@@ -554,47 +556,47 @@ const StoryContent = styled.div`
 const StoryVisual = styled.div`
   position: relative;
 
-  @media (max-width: 968px) {
+  @media ${devices.md2} {
     order: 1;
   }
 `;
 
 const StoryImage = styled.img`
   width: 100%;
-  border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
 `;
 
 const StoryCard = styled.div`
   position: absolute;
   bottom: -2rem;
   left: -2rem;
-  background: white;
-  padding: 2rem;
+  background: var(--accent);
+  padding: var(--space-lg);
   border-radius: 15px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-sm);
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     position: relative;
     bottom: auto;
     left: auto;
-    margin-top: 1rem;
+    margin-top: var(--space-sm);
   }
 `;
 
 const StoryCardIcon = styled.div`
   width: 50px;
   height: 50px;
-  background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
-  border-radius: 12px;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 1.25rem;
+  color: var(--white);
+  font-size: var(--text-xl);
 `;
 
 const StoryCardContent = styled.div``;
@@ -602,133 +604,128 @@ const StoryCardContent = styled.div``;
 const StoryCardNumber = styled.div`
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--primary-dark);
 `;
 
 const StoryCardLabel = styled.div`
-  font-size: 0.9rem;
-  color: #64748b;
+  font-size: var(--text-sm);
+  color: var(--primary-dark);
 `;
 
 const StoryText = styled.p`
-  font-size: 1.1rem;
-  color: #64748b;
+  font-size: var(--text-lg);
+  color: var(--text-secondary);
   line-height: 1.7;
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-md);
 
-  @media (max-width: 480px) {
-    font-size: 1rem;
+  @media ${devices.xs1} {
+    font-size: var(--text-base);
   }
 `;
 
 const StoryFeatures = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-top: 2rem;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
 `;
 
 const StoryFeature = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  color: #374151;
+  gap: var(--space-sm);
+  color: var(--text-secondary);
 
   svg {
-    color: #10b981;
+    color: var(--success);
     flex-shrink: 0;
   }
 
   span {
-    font-weight: 500;
+    font-weight: var(--font-medium);
   }
 `;
 
 // Section Components
 const SectionHeader = styled.div`
   text-align: ${(props) => (props.$center ? "center" : "left")};
-  margin-bottom: 4rem;
+  margin-bottom: var(--space-2xl);
 
-  @media (max-width: 768px) {
-    margin-bottom: 3rem;
+  @media ${devices.md} {
+    margin-bottom: var(--space-xl);
   }
 `;
 
 const SectionSubtitle = styled.div`
-  color: #d32f2f;
-  font-weight: 600;
+  color: var(--primary);
+  font-weight: var(--font-semibold);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
+  margin-bottom: var(--space-sm);
+  font-size: var(--text-sm);
 `;
 
 const SectionTitle = styled.h2`
-  font-size: 3rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 1rem;
-
-  @media (max-width: 768px) {
-    font-size: 2rem;
+  font-size: var(--text-5xl);
+  font-weight: var(--font-bold);
+  color: var(--secondary);
+  margin-bottom: var(--space-sm);
+  @media ${devices.md} {
+    font-size: var(--text-5xl);
   }
 
-  @media (max-width: 480px) {
-    font-size: 1.75rem;
+  @media ${devices.xs1} {
+    font-size: var(--text-3xl);
   }
 `;
 
 // Mission Section
 const MissionSection = styled.section`
   padding: 4rem 0;
-  background: #f8fafc;
+  background: var(--white);
 `;
 
 const MissionGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  gap: var(--space-lg);
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: var(--space-md);
   }
 `;
 
 const MissionCard = styled.div`
   background: ${(props) =>
-    props.$accent
-      ? "linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%)"
-      : "white"};
+    props.$accent ? "var(--gradient-accent)" : "white"};
   padding: 3rem;
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  color: ${(props) => (props.$accent ? "white" : "inherit")};
+  color: ${(props) => (props.$accent ? "var(--primary-dark)" : "inherit")};
 
-  @media (max-width: 768px) {
-    padding: 2rem;
+  @media ${devices.md} {
+    padding: var(--space-lg);
   }
 `;
 
 const MissionIcon = styled.div`
-  width: 60px;
-  height: 60px;
+  width: 6rem;
+  height: 6rem;
   background: ${(props) =>
-    props.$accent
-      ? "rgba(255, 255, 255, 0.1)"
-      : "linear-gradient(135deg, #d32f2f20 0%, #b71c1c20 100%)"};
-  border-radius: 15px;
+    props.$accent ? "rgba(255, 255, 255, 0.1)" : "var(--gradient-primary)"};
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${(props) => (props.$accent ? "white" : "#d32f2f")};
-  font-size: 1.5rem;
-  margin-bottom: 1.5rem;
+  color: ${(props) => (props.$accent ? "var(--white)" : "var(--accent)")};
+  font-size: var(--text-2xl);
+  margin-bottom: var(--space-md);
 `;
 
 const MissionTitle = styled.h3`
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: var(--text-3xl);
+  font-weight: var(--font-semibold);
   margin-bottom: 1rem;
   color: inherit;
 `;
@@ -736,20 +733,20 @@ const MissionTitle = styled.h3`
 const MissionDescription = styled.p`
   line-height: 1.7;
   opacity: ${(props) => (props.$accent ? 0.9 : 0.8)};
-  font-size: 1.1rem;
+  font-size: var(--text-xl);
 
-  @media (max-width: 480px) {
-    font-size: 1rem;
+  @media ${devices.xs1} {
+    font-size: var(--text-base);
   }
 `;
 
 // Values Section
 const ValuesSection = styled.section`
-  padding: 6rem 0;
-  background: white;
+  padding: var(--space-3xl) 0;
+  background: var(--white);
 
-  @media (max-width: 768px) {
-    padding: 4rem 0;
+  @media ${devices.md} {
+    padding: var(--space-2xl) 0;
   }
 `;
 
@@ -758,147 +755,147 @@ const ValuesGrid = styled.div`
   grid-template-columns: repeat(2, 1fr);
   gap: 2rem;
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: var(--space-md);
   }
 `;
 
 const ValueCard = styled.div`
-  padding: 2.5rem;
-  background: #f8fafc;
-  border-radius: 20px;
+  padding: var(--space-lg);
+  background: var(--white);
+  border-radius: var(--radius-xl);
   text-align: center;
   transition: all 0.3s ease;
 
   &:hover {
     transform: translateY(-5px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-lg);
   }
 
-  @media (max-width: 480px) {
-    padding: 2rem;
+  @media ${devices.xs1} {
+    padding: var(--space-lg);
   }
 `;
 
 const ValueIcon = styled.div`
-  width: 70px;
-  height: 70px;
-  background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+  width: 7rem;
+  height: 7rem;
+  background: var(--gradient-accent);
   border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--primary);
   font-size: 1.5rem;
-  margin: 0 auto 1.5rem;
+  margin: 0 auto var(--space-md);
 `;
 
 const ValueTitle = styled.h3`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 1rem;
+  font-size: var(--text-3xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-sm);
 `;
 
 const ValueDescription = styled.p`
-  color: #64748b;
+  color: var(--text-secondary);
   line-height: 1.6;
 `;
 
 // Stats Section
 const StatsSection = styled.section`
-  padding: 4rem 0;
-  background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
+  padding: var(--space-2xl) 0;
+  background: var(--gradient-accent);
 `;
 
 const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 2rem;
+  gap: var(--space-lg);
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
+    gap: var(--space-md);
   }
 
-  @media (max-width: 480px) {
+  @media ${devices.xs1} {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: var(--space-sm);
   }
 `;
 
 const StatCard = styled.div`
   text-align: center;
-  color: white;
-  padding: 2rem 1rem;
+  color: var(--white);
+  padding: var(--space-lg) var(--space-sm);
 
-  @media (max-width: 480px) {
+  @media ${devices.xs1} {
     padding: 1.5rem 1rem;
   }
 `;
 
 const StatNumber = styled.div`
-  font-size: 3rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+  font-size: var(--text-5xl);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--space-xs);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 
-  @media (max-width: 768px) {
-    font-size: 2.5rem;
+  @media ${devices.md} {
+    font-size: var(--text-4xl);
   }
 `;
 
 const StatLabel = styled.div`
-  font-size: 1rem;
+  font-size: var(--text-base);
   opacity: 0.9;
-  font-weight: 500;
+  font-weight: --font-medium;
 `;
 
 // Team Section
 const TeamSection = styled.section`
   padding: 6rem 0;
-  background: #f8fafc;
+  background: var(--white);
 
-  @media (max-width: 768px) {
-    padding: 4rem 0;
+  @media ${devices.md} {
+    padding: var(--space-2xl) 0;
   }
 `;
 
 const TeamGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 2rem;
+  gap: var(--space-lg);
 
-  @media (max-width: 1024px) {
+  @media ${devices.lg} {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  @media (max-width: 640px) {
+  @media ${devices.sm} {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: var(--space-md);
   }
 `;
 
 const TeamCard = styled.div`
-  background: white;
-  border-radius: 20px;
+  background: var(--white);
+  border-radius: var(--radius-xl);
   overflow: hidden;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
   transition: all 0.3s ease;
 
   &:hover {
     transform: translateY(-10px);
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-xl);
   }
 `;
 
 const TeamImage = styled.div`
   position: relative;
-  height: 300px;
+  height: 30rem;
   overflow: hidden;
 
   img {
@@ -934,161 +931,115 @@ const TeamOverlay = styled.div`
 const TeamSocial = styled.div``;
 
 const SocialLink = styled.a`
-  color: white;
+  color: var(--white);
   text-decoration: none;
-  font-weight: 600;
-  padding: 0.5rem 1rem;
+  font-weight: var(--font-semibold);
+  padding: var(--space-xs) var(--space-sm);
   border: 2px solid white;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   transition: all 0.2s;
 
   &:hover {
-    background: white;
-    color: #1e293b;
+    background: var(--white);
+    color: var(--secondary);
   }
 `;
 
 const TeamContent = styled.div`
-  padding: 2rem;
+  padding: var(--space-lg);
 
-  @media (max-width: 480px) {
-    padding: 1.5rem;
+  @media ${devices.xs1} {
+    padding: var(--space-md);
   }
 `;
 
 const TeamName = styled.h3`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 0.5rem;
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--secondary-light);
+  margin-bottom: var(--space-xs);
 `;
 
 const TeamRole = styled.div`
-  color: #d32f2f;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
+  color: var(--accent);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-sm);
+  font-size: var(--text-sm);
 `;
 
 const TeamBio = styled.p`
-  color: #64748b;
+  color: var(--secondary-light);
   line-height: 1.6;
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
 `;
 
 // CTA Section
 const CTASection = styled.section`
   padding: 6rem 0;
-  background: white;
+  background: var(--white);
 
-  @media (max-width: 768px) {
-    padding: 4rem 0;
+  @media ${devices.md} {
+    padding: var(--space-2xl) 0;
   }
 `;
 
 const CTACard = styled.div`
-  background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
-  border-radius: 30px;
-  padding: 4rem;
+  background: var(--gradient-luxury);
+  border-radius: var(--radius-3xl);
+  padding: var(--space-2xl);
   text-align: center;
-  color: white;
+  color: var(--white);
 
-  @media (max-width: 768px) {
-    padding: 3rem 2rem;
+  @media ${devices.md} {
+    padding: var(--space-xl) var(--space-lg);
   }
 
   @media (max-width: 480px) {
-    padding: 2rem 1.5rem;
-    border-radius: 20px;
+    padding: var(--space-lg) var(--space-md);
+    border-radius: var(--radius-xl);
   }
 `;
 
 const CTAContent = styled.div`
-  max-width: 600px;
+  max-width: 60rem;
   margin: 0 auto;
 `;
 
 const CTATitle = styled.h2`
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 1.5rem;
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--space-m) d;
   line-height: 1.2;
 
-  @media (max-width: 768px) {
-    font-size: 2rem;
+  @media ${devices.md} {
+    font-size: var(--text-4xl);
   }
 
-  @media (max-width: 480px) {
-    font-size: 1.75rem;
+  @media ${devices.xs1} {
+    font-size: var(--text-3xl);
   }
 `;
 
 const CTADescription = styled.p`
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
   opacity: 0.9;
-  margin-bottom: 2.5rem;
+  margin-bottom: var(--space-lg);
   line-height: 1.6;
 
-  @media (max-width: 480px) {
-    font-size: 1rem;
+  @media ${devices.xs1} {
+    font-size: var(--text-base);
   }
 `;
 
 const CTAButtons = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: var(--space-sm);
   justify-content: center;
   flex-wrap: wrap;
 
-  @media (max-width: 480px) {
+  @media ${devices.xs1} {
     flex-direction: column;
     align-items: center;
-  }
-`;
-
-// Button Components
-const BaseButton = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 1rem 2rem;
-  border-radius: 12px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  font-size: 1rem;
-  border: none;
-  cursor: pointer;
-  justify-content: center;
-  font-family: inherit;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
-
-  @media (max-width: 480px) {
-    width: 100%;
-    max-width: 280px;
-  }
-`;
-
-const PrimaryButton = styled(BaseButton)`
-  background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
-  color: white;
-
-  &:hover {
-    box-shadow: 0 10px 25px rgba(211, 47, 47, 0.3);
-  }
-`;
-
-const SecondaryButton = styled(BaseButton)`
-  background: transparent;
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.5);
   }
 `;
 

@@ -3,9 +3,10 @@ import { createGlobalStyle } from "styled-components";
 // Breakpoints (mobile-first)
 export const breakpoints = {
   xs: "320px",
-  xs1: "480",
+  xs1: "480px",
   sm: "640px",
   md: "768px",
+  md2: "968px",
   lg: "1024px",
   xl: "1280px",
   "2xl": "1536px",
@@ -13,8 +14,10 @@ export const breakpoints = {
 
 export const devices = {
   xs: `(max-width: ${breakpoints.xs})`,
+  xs1: `(max-width: ${breakpoints.xs})`,
   sm: `(max-width: ${breakpoints.sm})`,
   md: `(max-width: ${breakpoints.md})`,
+  md2: `(max-width: ${breakpoints.md2})`,
   lg: `(max-width: ${breakpoints.lg})`,
   xl: `(max-width: ${breakpoints.xl})`,
   "2xl": `(max-width: ${breakpoints["2xl"]})`,
@@ -98,6 +101,7 @@ const GlobalStyles = createGlobalStyle`
     --space-lg: 2rem;
     --space-xl: 3rem;
     --space-2xl: 4rem;
+    --space-3xl: 6rem;
 
     // Typography Scale
     --text-xs: 0.75rem;
@@ -110,6 +114,7 @@ const GlobalStyles = createGlobalStyle`
     --text-4xl: 2.25rem;
     --text-5xl: 3rem;
     --text-6xl: 3.75rem;
+    --text-7xl: 4rem;
 
     // Font Weights
     --font-light: 300;
