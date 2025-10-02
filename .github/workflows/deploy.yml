@@ -17,7 +17,7 @@ jobs:
       - name: 🚚 Checkout code
         uses: actions/checkout@v4
 
-      # 2. Setup Node.js (Node 20 is required for Vite 7 + React Router 7)
+      # 2. Setup Node.js
       - name: ⎔ Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -51,37 +51,38 @@ jobs:
             exit 1
           fi
 
-      # Debug: confirm values before deployment
-      - name: 🔍 Debug paths
-        run: |
-          echo "Local build dir: ${{ steps.detect-dir.outputs.directory }}/"
-          echo "Server target dir: public_html/"
-
-      # 6. Deploy build folder to cPanel public_html
-      - name: 📤 Deploy to FTP
+      # 6. Deploy ONLY build output to cPanel public_html
+      - name: 📤 Deploy to FTP (safe build-only)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          # Upload only contents of build folder
           local-dir: ${{ steps.detect-dir.outputs.directory }}/
-          # Always deploy to the hosting root
           server-dir: public_html/
           log-level: verbose
-          dangerous-clean-slate: false
+          dangerous-clean-slate: true # wipes only inside public_html before upload
           exclude: |
-            **/.git*
-            **/.github*
+            **/.git*/**
+            **/.git/**
+            **/.github/**
             **/node_modules/**
+            **/src/**
             **/README.md
             **/package*.json
             **/vite.config.*
-            **/src/**
             **/*.log
             **/*.md
             **/.env*
             **/lost+found/**
+            ssl/**
+            mail/**
+            etc/**
+            tmp/**
+            logs/**
+            nodevenv/**
+            public_ftp/**
+            lscache/**
 
       # 7. Verify deployment
       - name: 🌐 Verify deployment
