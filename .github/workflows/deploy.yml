@@ -60,7 +60,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: /
           # FIXED: Use simple relative path without leading slashes
-          server-dir: public_html/
+          server-dir: ./public_html/
           log-level: verbose
           dangerous-clean-slate: false
 
