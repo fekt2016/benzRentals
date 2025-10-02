@@ -24,9 +24,9 @@ const GlobalStyles = createGlobalStyle`
   
   :root {
     // Mercedes-Benz Luxury Color Palette
-    --primary: #D32F2F;        // Mercedes Red
-    --primary-dark: #B71C1C;   // Dark Red
-    --primary-light: #EF5350;  // Light Red
+    --primary: #006994 ;        // Mercedes Red
+    --primary-dark: #64b2d4;   // Dark Red
+    --primary-light: #2f86c5;  // Light Red
     --secondary: #0D0D0D;      // Jet Black
     --secondary-light: #1A1A1A; // Dark Gray
     --accent: #FFD700;         // Gold Accent

@@ -1,9 +1,9 @@
 // src/styles/theme.js
 export const theme = {
   colors: {
-    primary: "#D32F2F",
-    primaryDark: "#B71C1C",
-    primaryLight: "#EF5350",
+    primary: "#2f86c5",
+    primaryDark: "#2f86c5",
+    primaryLight: "#2f86c5",
     secondary: "#0D0D0D",
     secondaryLight: "#1A1A1A",
     accent: "#FFD700",
@@ -43,7 +43,7 @@ export const theme = {
   },
 
   gradients: {
-    primary: "linear-gradient(135deg, #D32F2F 0%, #B71C1C 100%)",
+    primary: "linear-gradient(135deg, #2f86c5 0%, #2f86c5 100%)",
     secondary: "linear-gradient(135deg, #0D0D0D 0%, #1A1A1A 100%)",
     accent: "linear-gradient(135deg, #FFD700 0%, #B8860B 100%)",
     luxury: "linear-gradient(135deg, #1E293B 0%, #374151 100%)",
