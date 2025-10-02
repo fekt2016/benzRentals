@@ -1,194 +1,33 @@
-name: 🚀 FTP Deployment to cPanel
+name: 🚀 Simple FTP Deployment
 
 on:
   push:
     branches: [main]
-  workflow_dispatch: # Allow manual triggering
-
-env:
-  NODE_VERSION: "20.x"
-  SITE_URL: "https://benzflex.com"
 
 jobs:
   deploy:
-    name: 🎉 Deploy to Production
     runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: ${{ env.SITE_URL }}
 
     steps:
-      # 1. Checkout repository
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Full history for proper versioning
 
-      # 2. Setup Node.js
-      - name: ⚙️ Setup Node.js ${{ env.NODE_VERSION }}
+      - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-          cache-dependency-path: package-lock.json
+          node-version: "20"
 
-      # 3. Install dependencies
-      - name: 📦 Install dependencies
+      - name: 📦 Install and build
         run: |
-          npm ci --audit=false --fund=false
-          echo "✅ Dependencies installed successfully"
-
-      # 4. Build project with validation
-      - name: 🔨 Build project
-        run: |
-          echo "🏗️ Starting build process..."
+          npm install
           npm run build
 
-          # Validate build output
-          if [ -d "dist" ]; then
-            echo "✅ Build completed - dist directory found"
-            BUILD_SIZE=$(du -sh dist | cut -f1)
-            echo "📊 Build size: $BUILD_SIZE"
-          elif [ -d "build" ]; then
-            echo "✅ Build completed - build directory found"
-            BUILD_SIZE=$(du -sh build | cut -f1)
-            echo "📊 Build size: $BUILD_SIZE"
-          else
-            echo "❌ No build directory found!"
-            echo "📁 Current directory contents:"
-            ls -la
-            exit 1
-          fi
-
-      # 5. Detect and validate build directory
-      - name: 📁 Detect build directory
-        id: build-dir
-        run: |
-          if [ -d "dist" ]; then
-            echo "directory=dist" >> $GITHUB_OUTPUT
-            echo "✅ Using dist directory"
-          elif [ -d "build" ]; then
-            echo "directory=build" >> $GITHUB_OUTPUT
-            echo "✅ Using build directory"
-          else
-            echo "❌ ERROR: No build directory found!"
-            echo "Creating emergency build structure..."
-            mkdir -p dist
-            cat > dist/index.html << EOF
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>BenzFlex - Deployment in Progress</title>
-                <style>
-                    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-                    .status { color: #666; margin-top: 20px; }
-                </style>
-            </head>
-            <body>
-                <h1>🚗 BenzFlex</h1>
-                <p>Site deployment in progress...</p>
-                <div class="status">Last updated: $(date)</div>
-            </body>
-            </html>
-            EOF
-            echo "directory=dist" >> $GITHUB_OUTPUT
-            echo "⚠️ Created emergency build structure"
-          fi
-
-      # 6. Validate build contents
-      - name: 🔍 Validate build output
-        run: |
-          BUILD_DIR="${{ steps.build-dir.outputs.directory }}"
-          echo "🔍 Validating build contents in: $BUILD_DIR"
-
-          if [ ! -f "$BUILD_DIR/index.html" ]; then
-            echo "⚠️ WARNING: No index.html found in build output"
-          fi
-
-          echo "📁 Build contents:"
-          find "$BUILD_DIR" -type f -name "*.html" -o -name "*.js" -o -name "*.css" | head -10
-
-          TOTAL_FILES=$(find "$BUILD_DIR" -type f | wc -l)
-          echo "📊 Total files to deploy: $TOTAL_FILES"
-
-      # 7. Deploy to FTP with enhanced configuration
-      - name: 📤 Deploy to FTP Server
+      - name: 📤 Deploy to FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          # FTP Configuration
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftp
-          port: 21
-          timeout: 10000
-
-          # Deployment Paths
-          local-dir: ${{ steps.build-dir.outputs.directory }}/
+          local-dir: ./dist/
           server-dir: ./public_html/
-
-          # Security & Optimization
           dangerous-clean-slate: false
-          exclude: |
-            **/.git*
-            **/.github/**
-            **/.gitignore
-            **/.editorconfig
-            **/.eslintrc.*
-            **/.prettierrc.*
-            **/README.md
-            **/CHANGELOG.md
-            **/LICENSE
-            **/package.json
-            **/package-lock.json
-            **/node_modules/**
-            **/src/**
-            **/public/**
-            **/*.config.js
-            **/*.config.ts
-            **/tsconfig.json
-            **/jsconfig.json
-            **/.env*
-            **/docker-compose.yml
-            **/Dockerfile
-            **/nginx.conf
-            **/backup/
-            **/temp/
-            **/test/
-            **/tests/
-            **/__tests__/
-            **/*.test.js
-            **/*.spec.js
-            **/cypress/
-            **/jest.config.*
-
-          # Performance
-          log-level: normal
-          security: loose
-          dry-run: false
-
-      # 8. Post-deployment verification
-      - name: ✅ Verify deployment
-        run: |
-          echo "🎉 Deployment completed successfully!"
-          echo "🌐 Live Site: ${{ env.SITE_URL }}"
-          echo "📁 Deployed from: ${{ steps.build-dir.outputs.directory }}/"
-          echo "📁 Deployed to: /public_html/"
-          echo "⏰ Deployment time: $(date)"
-          echo "🔗 Commit: ${{ github.sha }}"
-          echo "📝 Message: ${{ github.event.head_commit.message }}"
-
-      # 9. Optional: Health check (if you have API endpoints)
-      - name: 🩺 Health check
-        run: |
-          echo "Performing health check..."
-          if command -v curl &> /dev/null; then
-            curl -f -s -o /dev/null -w "HTTP Status: %{http_code}\n" ${{ env.SITE_URL }} || echo "⚠️ Health check failed - site might be loading"
-          else
-            echo "ℹ️ curl not available - skipping health check"
-          fi
-
-    # Environment variables for the job
-    env:
-      NODE_ENV: production
-      CI: true
