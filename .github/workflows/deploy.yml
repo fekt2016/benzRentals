@@ -1,77 +1,100 @@
-name: 🚀 FTP Deployment to cPanel
-
+name: 🚀 Deploy to FTP
 on:
   push:
-    branches: [main]
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  NODE_VERSION: '18'
 
 jobs:
-  deploy:
-    name: 🎉 Deploy to Production
+  build-and-deploy:
+    name: "🔨 Build & 🚀 Deploy"
     runs-on: ubuntu-latest
-    environment:
-      name: ftp_server
-      url: https://benzflex.com
-
+    
     steps:
-      # 1. Checkout repo
-      - name: 🚚 Checkout code
-        uses: actions/checkout@v4
+    # Step 1: Checkout code
+    - name: "📥 Checkout repository"
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      # 2. Setup Node.js (Node 20 is required for Vite 7 + React Router 7)
-      - name: ⎔ Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.x
-          cache: npm
+    # Step 2: Setup Node.js
+    - name: "⚙️ Setup Node.js ${{ env.NODE_VERSION }}"
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
 
-      # 3. Install dependencies
-      - name: 📦 Install dependencies
-        run: npm ci
+    # Step 3: Install dependencies
+    - name: "📦 Install dependencies"
+      run: |
+        npm ci
+        npm list
 
-      # 4. Build project
-      - name: 🏗️ Build project
-        run: |
-          npm run build
-          if [ ! -d "dist" ] && [ ! -d "build" ]; then
-            echo "❌ No build output found! Creating placeholder..."
-            mkdir -p dist
-            echo "<h1>Site under deployment</h1>" > dist/index.html
-          fi
+    # Step 4: Build project
+    - name: "🔨 Build project"
+      run: |
+        npm run build
+        echo "Build completed successfully!"
 
-      # 5. Detect build folder (dist or build)
-      - name: 📁 Detect build directory
-        id: detect-dir
-        run: |
-          if [ -d "dist" ]; then
-            echo "directory=dist" >> $GITHUB_OUTPUT
-          elif [ -d "build" ]; then
-            echo "directory=build" >> $GITHUB_OUTPUT
-          else
-            echo "::error::No build directory found!"
-            exit 1
-          fi
+    # Step 5: Verify build output
+    - name: "🔍 Verify build output"
+      run: |
+        echo "Build directory contents:"
+        ls -la dist/ || echo "No dist folder found - checking current directory:"
+        ls -la
+        echo "Looking for build artifacts:"
+        find . -name "index.html" -o -name "*.js" -o -name "*.css" | head -10
 
-      # Debug: confirm values before deployment
-      - name: 🔍 Debug paths
-        run: |
-          echo "Local build dir: ${{ steps.detect-dir.outputs.directory }}/"
-          echo "Server target dir: public_html/"
+    # Step 6: Create directory structure on server (if needed)
+    - name: "📁 Ensure server directory exists"
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        local-dir: ./
+        server-dir: /public_html/
+        exclude: |
+          **/*
+          !.gitkeep
+        protocol: ftp
+        dangerous-clean-slate: false
+        dry-run: false
+        # This will create the directory structure without uploading all files
 
-      # 6. Deploy build folder to cPanel public_html
-      - name: 📤 Deploy to FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ${{ steps.detect-dir.outputs.directory }}/ # upload *contents*
-          server-dir: public_html/ # deploy directly to root
-          log-level: verbose
-          dangerous-clean-slate: false
+    # Step 7: Deploy to FTP
+    - name: "🚀 Deploy to FTP Server"
+      uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      with:
+        server: ${{ secrets.FTP_SERVER }}
+        username: ${{ secrets.FTP_USERNAME }}
+        password: ${{ secrets.FTP_PASSWORD }}
+        local-dir: ./dist/
+        server-dir: /public_html/
+        protocol: ftp
+        dangerous-clean-slate: false
+        exclude: |
+          **/.git*
+          **/.git*/**
+          **/node_modules/**
+          **/*.md
+          **/.env*
+          **/README.md
+          **/package*.json
+          **/*.config.js
+          **/src/
+          **/public/
+        # Logging options
+        log-level: verbose
+        # Security options
+        server-dir: /public_html/
 
-      # 7. Verify deployment
-      - name: 🌐 Verify deployment
-        run: |
-          echo "✅ Deployment completed successfully!"
-          echo "🌍 Site: https://benzflex.com"
-          echo "📁 Files deployed to: /home/turtlvhi/public_html/"
+    # Step 8: Deployment success notification
+    - name: "✅ Deployment successful"
+      run: |
+        echo "🎉 Deployment completed successfully!"
+        echo "📁 Files deployed to: /public_html/"
+        echo "🌐 Your site should be live soon..."
