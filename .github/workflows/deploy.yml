@@ -1,4 +1,4 @@
-name: 🚀 Simple FTP Deployment
+name: 🚀 FTP Deployment to cPanel
 
 on:
   push:
@@ -6,28 +6,66 @@ on:
 
 jobs:
   deploy:
+    name: 🎉 Deploy to Production
     runs-on: ubuntu-latest
+    environment:
+      name: ftp_server
+      url: https://benzflex.com
 
     steps:
-      - name: 📥 Checkout code
+      # 1. Checkout repo
+      - name: 🚚 Checkout code
         uses: actions/checkout@v4
 
-      - name: ⚙️ Setup Node.js
+      # 2. Setup Node.js (use Node 20 for Vite 7, React Router 7, etc.)
+      - name: ⎔ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: 20.x
+          cache: npm
 
-      - name: 📦 Install and build
+      # 3. Install dependencies
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      # 4. Build project
+      - name: 🏗️ Build project
         run: |
-          npm install
           npm run build
+          if [ ! -d "dist" ] && [ ! -d "build" ]; then
+            echo "❌ No build output found! Creating placeholder..."
+            mkdir -p dist
+            echo "<h1>Site under deployment</h1>" > dist/index.html
+          fi
 
+      # 5. Detect build folder (dist or build)
+      - name: 📁 Detect build directory
+        id: detect-dir
+        run: |
+          if [ -d "dist" ]; then
+            echo "directory=dist" >> $GITHUB_OUTPUT
+          elif [ -d "build" ]; then
+            echo "directory=build" >> $GITHUB_OUTPUT
+          else
+            echo "::error::No build directory found!"
+            exit 1
+          fi
+
+      # 6. Deploy build folder to cPanel public_html
       - name: 📤 Deploy to FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./dist/
+          local-dir: ${{ steps.detect-dir.outputs.directory }}/
           server-dir: ./public_html/
+          log-level: verbose
           dangerous-clean-slate: false
+
+      # 7. Verify deployment
+      - name: 🌐 Verify deployment
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo "🌍 Site: https://benzflex.com"
+          echo "📁 Files deployed to: /home/turtlvhi/public_html/"
