@@ -6,7 +6,7 @@ export const sendOtpEmail = async (data) => {
   console.log(user, otp);
   try {
     const templateParams = {
-      email: user.email, // must match template variable
+      email: user.email,
       name: user.name, // optional if you want personalization
       otp: otp, // the OTP generated in your backend or frontend
     };
