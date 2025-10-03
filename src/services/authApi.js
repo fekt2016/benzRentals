@@ -2,10 +2,10 @@ import api from "./api";
 
 const authApi = {
   // Login with email/phone and password
-  login: async (email, password) => {
-    const response = await api.post("/auth/login", { email, password });
-    return response.data;
-  },
+  // login: async (email, password) => {
+  //   const response = await api.post("/auth/login", { email, password });
+  //   return response.data;
+  // },
 
   // Get the currently logged-in user
   getCurrentUser: async () => {
