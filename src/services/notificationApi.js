@@ -15,7 +15,7 @@ const notificationApi = {
       if (params.from) queryString.append("from", params.from);
       if (params.to) queryString.append("to", params.to);
 
-      const url = `/notifications${
+      const url = `/notifications/my${
         queryString.toString() ? `?${queryString}` : ""
       }`;
 

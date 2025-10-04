@@ -37,7 +37,7 @@ const NotificationBell = ({ mobileView = false }) => {
   const notifications = useMemo(() => {
     return notificationData?.data;
   }, [notificationData]);
-  console.log("notifications", notifications);
+
   const { data: unreadCountData } = useUnreadCountData();
   const unreadCount = useMemo(() => {
     return unreadCountData?.data?.count;

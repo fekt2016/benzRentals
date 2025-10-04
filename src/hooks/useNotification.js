@@ -20,7 +20,7 @@ export const useGetUserNotification = (options = {}) => {
 // Get unread count
 export const useUnreadCountData = () => {
   const { data: userData } = useCurrentUser();
-  console.log("unread count");
+
   return useQuery({
     queryKey: ["notifications", "unread-count"],
     queryFn: async () => {
@@ -36,11 +36,9 @@ export const useUnreadCountData = () => {
 // Mark as read mutation
 export const useMarkAsRead = () => {
   const queryClient = useQueryClient();
-  console.log("1 mark as read");
 
   return useMutation({
     mutationFn: async (notificationId) => {
-      console.log("notificationId", notificationId);
       const response = await notificationApi.markAsRead(notificationId);
       return response;
     },
@@ -57,7 +55,6 @@ export const useMarkAsRead = () => {
 // Mark all as read mutation
 export const useMarkAllAsRead = () => {
   const queryClient = useQueryClient();
-  console.log("mark all as read");
 
   return useMutation({
     mutationFn: async () => {

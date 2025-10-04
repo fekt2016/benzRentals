@@ -29,7 +29,6 @@ const CarCard = ({
   showBookButton = true,
   showStatus = true, // New prop to show status badge
 }) => {
-  console.log(car);
   const image = getCarImage(car);
 
   // Determine availability status

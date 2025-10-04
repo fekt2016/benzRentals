@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import styled, { keyframes } from "styled-components";
 import OtpModal from "../components/Modal/OtpModal";
-import { PrimaryButton } from "../components/ui/Button";
 import { useSendOtp, useRegister } from "../hooks/useAuth";
 import { sendOtpEmail } from "../utils/Emailservice";
 
