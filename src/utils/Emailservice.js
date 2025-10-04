@@ -1,14 +1,11 @@
 import emailjs from "@emailjs/browser";
 
-export const sendOtpEmail = async (data) => {
-  const user = data?.data.user;
-  const otp = data?.data.otp;
-  console.log(user, otp);
+export const sendOtpEmail = async (email, name, otp) => {
   try {
     const templateParams = {
-      email: user.email,
-      name: user.name, // optional if you want personalization
-      otp: otp, // the OTP generated in your backend or frontend
+      email,
+      name, // optional if you want personalization
+      otp, // the OTP generated in your backend or frontend
     };
     console.log("temp", templateParams);
     const response = await emailjs.send(

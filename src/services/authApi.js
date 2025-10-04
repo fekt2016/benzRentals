@@ -29,7 +29,7 @@ const authApi = {
   },
   verifyOtp: async (payload) => {
     try {
-      const response = await api.post("/auth/verifyotp", payload);
+      const response = await api.post("/auth/verify-otp", payload);
       return response;
     } catch (error) {
       console.error("Error verifying OTP:", error);

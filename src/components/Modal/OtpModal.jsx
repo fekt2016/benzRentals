@@ -6,7 +6,7 @@ import { PrimaryButton, SecondaryButton } from "../../components/ui/Button";
 
 const OtpModal = ({ isOpen, onClose, phone }) => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [countdown, setCountdown] = useState(30);
+  const [countdown, setCountdown] = useState(180); // 3 minutes = 180 seconds
   const [activeInput, setActiveInput] = useState(0);
   const inputRefs = useRef([]);
   const verifyOtpMutation = useVerifyOtp();
@@ -19,10 +19,9 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
   // Reset timer every time modal is opened
   useEffect(() => {
     if (isOpen) {
-      setCountdown(30);
+      setCountdown(180);
       setOtp(["", "", "", "", "", ""]);
       setActiveInput(0);
-      // Focus first input when modal opens
       setTimeout(() => {
         if (inputRefs.current[0]) {
           inputRefs.current[0].focus();
@@ -34,7 +33,6 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
   // Countdown effect
   useEffect(() => {
     if (!isOpen) return;
-
     let timer;
     if (countdown > 0) {
       timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
@@ -43,8 +41,7 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
   }, [isOpen, countdown]);
 
   const handleResend = () => {
-    // TODO: hook up to resendOtp API
-    setCountdown(30);
+    setCountdown(180);
   };
 
   const handleVerifyOtp = () => {
@@ -57,14 +54,10 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
   };
 
   const handleChange = (index, value) => {
-    // Allow only numbers
     if (!/^\d?$/.test(value)) return;
-
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
-
-    // Auto-focus next input
     if (value && index < 5) {
       setActiveInput(index + 1);
       setTimeout(() => {
@@ -78,14 +71,10 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
   const handleKeyDown = (index, e) => {
     if (e.key === "Backspace") {
       e.preventDefault();
-
       const newOtp = [...otp];
-
       if (otp[index]) {
-        // If current input has value, clear it
         newOtp[index] = "";
       } else if (index > 0) {
-        // If current input is empty, move to previous and clear it
         newOtp[index - 1] = "";
         setActiveInput(index - 1);
         setTimeout(() => {
@@ -94,7 +83,6 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
           }
         }, 10);
       }
-
       setOtp(newOtp);
     } else if (e.key === "ArrowLeft" && index > 0) {
       setActiveInput(index - 1);
@@ -135,14 +123,16 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
 
   const isOtpComplete = otp.every((digit) => digit !== "");
 
+  // format time as mm:ss
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`;
+  };
+
   return (
     <Overlay onClick={onClose}>
-      <ModalContainer
-        onClick={(e) => e.stopPropagation()}
-        initial="hidden"
-        animate="visible"
-        exit="hidden"
-      >
+      <ModalContainer onClick={(e) => e.stopPropagation()}>
         <ModalContent>
           <AnimatedIcon>🔐</AnimatedIcon>
 
@@ -176,7 +166,7 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
               {countdown > 0 ? (
                 <>
                   <ClockIcon>⏱️</ClockIcon>
-                  Code expires in {countdown}s
+                  Code expires in {formatTime(countdown)}
                 </>
               ) : (
                 "Code expired"
@@ -189,7 +179,9 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
             disabled={countdown > 0}
             $disabled={countdown > 0}
           >
-            {countdown > 0 ? `Resend in ${countdown}s` : "Resend Code"}
+            {countdown > 0
+              ? `Resend in ${formatTime(countdown)}`
+              : "Resend Code"}
           </ResendButton>
 
           <Actions>

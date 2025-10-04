@@ -20,7 +20,6 @@ import {
   AccentButton,
   ButtonLink,
   SecondaryButtonLink,
-  SuccessButton,
 } from "../components/ui/Button";
 
 // Import hooks and utilities

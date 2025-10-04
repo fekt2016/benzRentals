@@ -4,7 +4,7 @@ import styled, { keyframes } from "styled-components";
 import OtpModal from "../components/Modal/OtpModal";
 import { PrimaryButton } from "../components/ui/Button";
 import { useSendOtp, useRegister } from "../hooks/useAuth";
-import { sendOtpEmail } from "../utils/Emailservice";
+// import { sendOtpEmail } from "../utils/Emailservice";
 
 // Optimized Animations - Only essential ones remain
 const fadeIn = keyframes`
@@ -65,9 +65,12 @@ const LoginPage = () => {
       register.mutate(payload, {
         onSuccess: async (data) => {
           console.log("✅ Registered:", data);
+          // const email = data?.data.user.email;
+          // const otp = data?.data.otp;
+          // const name = data?.data.user.name;
 
           try {
-            await sendOtpEmail(data);
+            // await sendOtpEmail(email, name, otp);
           } catch (err) {
             console.error("❌ Failed to send OTP:", err);
           }
@@ -89,10 +92,17 @@ const LoginPage = () => {
 
       const payload = { phone, password };
       sendOtp.mutate(payload, {
-        onSuccess: (data) => {
+        onSuccess: async (data) => {
           console.log("OTP sent", data);
+
           setOtpOpen(true);
           setIsLoading(false);
+
+          try {
+            // await sendOtpEmail(data.email, data.name, data.otp);
+          } catch (err) {
+            console.error("❌ Failed to send OTP:", err);
+          }
         },
         onError: (err) => {
           setError(err.message || "Login failed");
