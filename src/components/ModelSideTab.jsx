@@ -2,6 +2,7 @@ import React from "react";
 import styled, { keyframes } from "styled-components";
 import CarDetails from "./CarDetails";
 import CarReviews from "./CarReviews";
+import { devices } from "../styles/GlobalStyles";
 
 export default function ModelSideTab({ car, modelId }) {
   const [activeTab, setActiveTab] = React.useState("details");
@@ -81,35 +82,36 @@ const fadeInUp = keyframes`
 
 const DetailsWrapper = styled.div`
   flex: 1 1 35%;
-  min-width: 280px;
+  min-width: 28rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-md);
   position: relative;
 
-  @media (max-width: 968px) {
+  @media ${devices.md2} {
     order: 2;
+    width: 100%;
   }
 `;
 
 const TabNavigation = styled.div`
   display: flex;
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 4px;
-  gap: 4px;
+  background: var(--white);
+  border-radius: var(--radius-md);
+  padding: var(--space-2xl);
+  gap: var(--space-2xl);
 `;
 
 const Tab = styled.button`
   flex: 1;
-  padding: 12px 16px;
+  padding: 1.2rem 1.6rem;
   border: none;
   background: ${(props) => (props.active ? "#3b82f6" : "transparent")};
   color: ${(props) => (props.active ? "white" : "#6b7280")};
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.3s ease;
-  font-weight: 600;
+  font-weight: var(--font-semibold);
   font-size: 0.9rem;
 
   &:hover {
@@ -118,7 +120,7 @@ const Tab = styled.button`
 `;
 
 const TabContent = styled.div`
-  min-height: 300px;
+  min-height: 30rem;
 `;
 
 const TabPanel = styled.div`
@@ -132,14 +134,14 @@ const FeaturesGrid = styled.div`
 `;
 
 const FeatureItem = styled.div`
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 8px;
-  font-weight: 500;
+  padding: var(--space-sm);
+  background: var(--primary-light);
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-medium);
   transition: transform 0.2s ease;
 
   &:hover {
     transform: translateX(5px);
-    background: #f0f4f8;
+    background: var(--white);
   }
 `;

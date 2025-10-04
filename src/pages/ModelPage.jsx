@@ -1,4 +1,4 @@
-// ModelPage.js (modern redesign with driver selection)
+// ModelPage.js (fixed mobile image display)
 import React, { useMemo, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
@@ -23,7 +23,6 @@ import { useCurrentUser } from "../hooks/useAuth";
 import BookingForm from "../components/forms/BookingForm";
 import ReviewSection from "../components/ReviewSection";
 import ModelSideTab from "../components/ModelSideTab";
-// import HeroSection from "../components/Sections/HeroSection";
 import CarCard from "../components/Cards/CarCard";
 import { PrimaryButton, SecondaryButton } from "../components/ui/Button";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
@@ -78,13 +77,14 @@ const ModelPage = () => {
   const drivers = useMemo(() => myDrivers?.data || [], [myDrivers]);
   const car = useMemo(() => carData?.data || null, [carData]);
   const { data: userData } = useCurrentUser();
-  console.log("userData", userData);
+
   const user = useMemo(() => userData?.user || null, [userData]);
 
   const [thumbsSwiper, setThumbsSwiper] = useState(null);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isMobileExpanded, setIsMobileExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 968);
+  const [imageError, setImageError] = useState({});
 
   useEffect(() => {
     // Check bookmarks from localStorage
@@ -93,9 +93,10 @@ const ModelPage = () => {
 
     // Handle resize events
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 968);
+      const mobile = window.innerWidth <= 968;
+      setIsMobile(mobile);
       // Auto-collapse on resize to larger screens
-      if (window.innerWidth > 968) {
+      if (!mobile) {
         setIsMobileExpanded(false);
       }
     };
@@ -122,6 +123,16 @@ const ModelPage = () => {
     if (isMobile) {
       setIsMobileExpanded(!isMobileExpanded);
     }
+  };
+
+  const handleImageError = (index) => {
+    setImageError((prev) => ({ ...prev, [index]: true }));
+  };
+
+  const getFallbackImage = (index) => {
+    return `https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=${
+      window.innerWidth
+    }&h=${Math.floor(window.innerWidth * 0.75)}&fit=crop&auto=format&${index}`;
   };
 
   // Transform car data for similar cars display
@@ -174,30 +185,32 @@ const ModelPage = () => {
           <PriceHighlight>${car.pricePerDay}/day</PriceHighlight>
         </div>
         {isMobile && (
-          <MobileExpandIcon>{isMobileExpanded ? "▼" : "▲"}</MobileExpandIcon>
+          <MobileExpandIcon $expanded={isMobileExpanded}>▼</MobileExpandIcon>
         )}
       </BookingHeader>
 
-      {car.status === "available" ? (
-        <>
-          <AvailabilityBadge $available={true}>
-            ✅ Available for booking
-          </AvailabilityBadge>
-          <BookingForm car={car} drivers={drivers} />
-          <BookingNote>
-            💡 Free cancellation up to 24 hours before pickup
-          </BookingNote>
-        </>
-      ) : (
-        <NotAvailable>
-          <NotAvailableIcon>⏸️</NotAvailableIcon>
-          <NotAvailableTitle>Currently Unavailable</NotAvailableTitle>
-          <NotAvailableText>
-            This car is <strong>{car.status}</strong>. Check back later!
-          </NotAvailableText>
-          <NotifyButton>🔔 Notify me when available</NotifyButton>
-        </NotAvailable>
-      )}
+      {(isMobile && isMobileExpanded) || !isMobile ? (
+        car.status === "available" ? (
+          <>
+            <AvailabilityBadge $available={true}>
+              ✅ Available for booking
+            </AvailabilityBadge>
+            <BookingForm car={car} drivers={drivers} />
+            <BookingNote>
+              💡 Free cancellation up to 24 hours before pickup
+            </BookingNote>
+          </>
+        ) : (
+          <NotAvailable>
+            <NotAvailableIcon>⏸️</NotAvailableIcon>
+            <NotAvailableTitle>Currently Unavailable</NotAvailableTitle>
+            <NotAvailableText>
+              This car is <strong>{car.status}</strong>. Check back later!
+            </NotAvailableText>
+            <NotifyButton>🔔 Notify me when available</NotifyButton>
+          </NotAvailable>
+        )
+      ) : null}
     </>
   );
 
@@ -254,11 +267,11 @@ const ModelPage = () => {
 
       <ContentWrapper>
         <LeftSection>
-          {/* Enhanced Image Slider */}
-          <SliderWrapper>
+          {/* Enhanced Image Slider - Fixed for mobile */}
+          <SliderWrapper $isMobile={isMobile}>
             <MainSwiper
               modules={[Navigation, Pagination, Thumbs, Autoplay, EffectFade]}
-              navigation
+              navigation={!isMobile} // Hide navigation on mobile
               pagination={{
                 clickable: true,
                 dynamicBullets: true,
@@ -272,40 +285,41 @@ const ModelPage = () => {
               {car.images?.map((img, i) => (
                 <SwiperSlide key={i}>
                   <MainImage
-                    src={img}
+                    src={imageError[i] ? getFallbackImage(i) : img}
                     alt={`${car.name} ${i + 1}`}
-                    onError={(e) => {
-                      e.target.src = `https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800&h=600&fit=crop&${i}`;
-                    }}
+                    onError={() => handleImageError(i)}
+                    $isMobile={isMobile}
                   />
                 </SwiperSlide>
               ))}
             </MainSwiper>
 
-            {/* Enhanced Thumbnail Slider */}
-            <ThumbsWrapper>
-              <Swiper
-                onSwiper={setThumbsSwiper}
-                modules={[Thumbs]}
-                spaceBetween={12}
-                slidesPerView={4}
-                watchSlidesProgress
-                freeMode={true}
-                className="thumbs-swiper"
-              >
-                {car.images?.map((img, i) => (
-                  <SwiperSlide key={i}>
-                    <ThumbImage
-                      src={img}
-                      alt={`thumb-${i}`}
-                      onError={(e) => {
-                        e.target.src = `https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=200&h=150&fit=crop&${i}`;
-                      }}
-                    />
-                  </SwiperSlide>
-                ))}
-              </Swiper>
-            </ThumbsWrapper>
+            {/* Enhanced Thumbnail Slider - Hide on mobile */}
+            {!isMobile && (
+              <ThumbsWrapper>
+                <Swiper
+                  onSwiper={setThumbsSwiper}
+                  modules={[Thumbs]}
+                  spaceBetween={12}
+                  slidesPerView={4}
+                  watchSlidesProgress
+                  freeMode={true}
+                  className="thumbs-swiper"
+                >
+                  {car.images?.map((img, i) => (
+                    <SwiperSlide key={i}>
+                      <ThumbImage
+                        src={img}
+                        alt={`thumb-${i}`}
+                        onError={(e) => {
+                          e.target.src = `https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=200&h=150&fit=crop&${i}`;
+                        }}
+                      />
+                    </SwiperSlide>
+                  ))}
+                </Swiper>
+              </ThumbsWrapper>
+            )}
           </SliderWrapper>
 
           {/* Enhanced Booking Card - Sticky on desktop, bottom sheet on mobile */}
@@ -339,18 +353,15 @@ const ModelPage = () => {
       <Section>
         <SectionTitle>🔍 Similar Vehicles</SectionTitle>
         <SimilarCarsGrid>
-          {similarCars.map((similarCar) => {
-            console.log("sim", similarCar);
-            return (
-              <CarCard
-                key={similarCar._id}
-                car={similarCar}
-                showOverlay={true}
-                showBookButton={true}
-                className="similar-car-card"
-              />
-            );
-          })}
+          {similarCars.map((similarCar) => (
+            <CarCard
+              key={similarCar.id}
+              car={similarCar}
+              showOverlay={true}
+              showBookButton={true}
+              className="similar-car-card"
+            />
+          ))}
         </SimilarCarsGrid>
       </Section>
     </PageWrapper>
@@ -359,27 +370,29 @@ const ModelPage = () => {
 
 export default ModelPage;
 
-// Modern Styled Components using CSS Variables from Global Styles
+// Fixed Styled Components with better mobile handling
 const PageWrapper = styled.div`
   max-width: 1200px;
   margin: 2rem auto;
   padding: 0 var(--space-lg);
   animation: ${fadeInUp} 0.6s ease-out;
   font-family: var(--font-body);
+  overflow-x: hidden; /* Prevent horizontal overflow */
 
   @media ${devices.lg} {
     margin: var(--space-xl) auto;
+    padding: 0 var(--space-md);
   }
 
   @media ${devices.md} {
     margin: var(--space-lg) auto;
-    padding: 0 var(--space-md);
+    padding: 0 var(--space-sm);
   }
 
   @media ${devices.sm} {
     margin: var(--space-md) auto;
-    padding: 0 var(--space-sm);
-    padding-bottom: 100px; /* Space for mobile sticky booking form */
+    padding: 0 var(--space-xs);
+    padding-bottom: 120px; /* Space for mobile sticky booking form */
   }
 `;
 
@@ -414,25 +427,39 @@ const HeaderSection = styled.div`
   margin-bottom: var(--space-xl);
   flex-wrap: wrap;
   gap: var(--space-lg);
+  width: 100%;
 
   @media ${devices.md} {
     flex-direction: column;
     text-align: center;
     gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+  }
+
+  @media ${devices.sm} {
+    margin-bottom: var(--space-md);
   }
 `;
 
 const TitleWrapper = styled.div`
   flex: 1;
+  min-width: 0; /* Prevent flex overflow */
 `;
 
 const Title = styled.h1`
-  font-size: clamp(var(--text-3xl), 4vw, var(--text-5xl));
+  font-size: clamp(var(--text-2xl), 4vw, var(--text-5xl));
   color: var(--text-primary);
   margin: 0 0 var(--space-sm) 0;
   font-weight: var(--font-bold);
   line-height: 1.2;
   font-family: var(--font-heading);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+
+  @media ${devices.sm} {
+    font-size: var(--text-2xl);
+    margin-bottom: var(--space-xs);
+  }
 `;
 
 const CarBadges = styled.div`
@@ -447,7 +474,7 @@ const CarBadges = styled.div`
 `;
 
 const StatusBadge = styled.span`
-  padding: var(--space-sm) var(--space-lg);
+  padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-full);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
@@ -463,29 +490,43 @@ const StatusBadge = styled.span`
       : props.$status === "unavailable"
       ? "var(--error-dark)"
       : "var(--text-muted)"};
+  white-space: nowrap;
+
+  @media ${devices.sm} {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-xxs);
+  }
 `;
 
 const RatingBadge = styled.span`
-  padding: var(--space-sm) var(--space-lg);
+  padding: var(--space-xs) var(--space-md);
   border-radius: var(--radius-full);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
   background: var(--warning-light);
   color: var(--warning-dark);
+  white-space: nowrap;
+
+  @media ${devices.sm} {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-xxs);
+  }
 `;
 
 const ActionButtons = styled.div`
   display: flex;
   gap: var(--space-md);
+  flex-shrink: 0;
 
   @media ${devices.sm} {
     width: 100%;
     justify-content: center;
+    gap: var(--space-sm);
   }
 `;
 
 const BookmarkButton = styled.button`
-  padding: var(--space-md) var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
   border: 2px solid
     ${(props) => (props.$isBookmarked ? "var(--error)" : "var(--gray-300)")};
   background: ${(props) =>
@@ -498,6 +539,7 @@ const BookmarkButton = styled.button`
   transition: all var(--transition-normal);
   white-space: nowrap;
   font-family: var(--font-body);
+  font-size: var(--text-sm);
 
   &:hover {
     transform: translateY(-2px);
@@ -505,8 +547,9 @@ const BookmarkButton = styled.button`
   }
 
   @media ${devices.sm} {
-    padding: var(--space-sm) var(--space-md);
-    font-size: var(--text-sm);
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-xs);
+    flex: 1;
   }
 `;
 
@@ -515,10 +558,12 @@ const ShareButton = styled(SecondaryButton)`
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  font-size: var(--text-sm);
 
   @media ${devices.sm} {
-    padding: var(--space-sm) var(--space-md);
-    font-size: var(--text-sm);
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-xs);
+    flex: 1;
   }
 `;
 
@@ -527,48 +572,62 @@ const StatsBar = styled.div`
   align-items: center;
   background: var(--gradient-primary);
   border-radius: var(--radius-xl);
-  padding: var(--space-xl);
+  padding: var(--space-lg);
   margin-bottom: var(--space-2xl);
   color: var(--white);
   animation: ${scaleIn} 0.6s ease-out;
+  flex-wrap: nowrap;
+  overflow-x: auto; /* Allow horizontal scroll if needed */
+  -webkit-overflow-scrolling: touch;
 
   @media ${devices.sm} {
-    padding: var(--space-lg);
+    padding: var(--space-md);
     margin-bottom: var(--space-xl);
+    border-radius: var(--radius-lg);
   }
 `;
 
 const StatItem = styled.div`
   flex: 1;
   text-align: center;
-  padding: 0 var(--space-lg);
+  padding: 0 var(--space-md);
+  min-width: 80px; /* Ensure minimum width */
 
   @media ${devices.sm} {
     padding: 0 var(--space-sm);
+    min-width: 70px;
   }
 `;
 
 const StatValue = styled.div`
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   font-weight: var(--font-bold);
   margin-bottom: var(--space-xs);
   font-family: var(--font-heading);
 
   @media ${devices.sm} {
-    font-size: var(--text-xl);
+    font-size: var(--text-lg);
   }
 `;
 
 const StatLabel = styled.div`
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   opacity: 0.9;
   font-family: var(--font-body);
+
+  @media ${devices.sm} {
+    font-size: var(--text-xxs);
+  }
 `;
 
 const StatDivider = styled.div`
   width: 1px;
-  height: 40px;
+  height: 30px;
   background: rgba(255, 255, 255, 0.3);
+
+  @media ${devices.sm} {
+    height: 25px;
+  }
 `;
 
 const ContentWrapper = styled.div`
@@ -577,7 +636,7 @@ const ContentWrapper = styled.div`
   gap: var(--space-2xl);
   margin-bottom: var(--space-2xl);
   align-items: flex-start;
-  min-height: 100vh;
+  width: 100%;
 
   @media ${devices.lg} {
     gap: var(--space-xl);
@@ -586,13 +645,18 @@ const ContentWrapper = styled.div`
   @media ${devices.md} {
     flex-direction: column;
     gap: var(--space-lg);
-    min-height: auto;
+    margin-bottom: var(--space-xl);
+  }
+
+  @media ${devices.sm} {
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
   }
 `;
 
 const LeftSection = styled.div`
   flex: 1 1 60%;
-  min-width: 300px;
+  min-width: 0; /* Prevent flex overflow */
   display: flex;
   flex-direction: column;
   gap: var(--space-xl);
@@ -602,12 +666,19 @@ const LeftSection = styled.div`
   @media ${devices.md} {
     order: 2;
     gap: var(--space-lg);
+    width: 100%;
+  }
+
+  @media ${devices.sm} {
+    gap: var(--space-md);
   }
 `;
 
 const SliderWrapper = styled.div`
-  min-width: 300px;
+  width: 100%;
+  min-width: 0; /* Prevent flex overflow */
   animation: ${fadeInUp} 0.8s ease-out;
+  overflow: hidden; /* Contain swiper */
 
   @media ${devices.md} {
     order: 1;
@@ -618,38 +689,66 @@ const MainSwiper = styled(Swiper)`
   border-radius: var(--radius-xl);
   overflow: hidden;
   box-shadow: var(--shadow-lg);
+  width: 100%;
 
   .swiper-button-next,
   .swiper-button-prev {
     color: var(--white);
     background: rgba(0, 0, 0, 0.5);
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
 
     &:after {
-      font-size: var(--text-lg);
+      font-size: var(--text-md);
+    }
+
+    @media ${devices.sm} {
+      width: 35px;
+      height: 35px;
+
+      &:after {
+        font-size: var(--text-sm);
+      }
+    }
+  }
+
+  .swiper-pagination-bullet {
+    background: var(--white);
+    opacity: 0.6;
+
+    &-active {
+      opacity: 1;
+      background: var(--primary);
     }
   }
 `;
 
 const MainImage = styled.img`
   width: 100%;
-  height: 500px;
+  height: ${(props) => (props.$isMobile ? "60vh" : "500px")};
   object-fit: cover;
   display: block;
+  background: var(--gray-100); /* Fallback background */
 
   @media ${devices.md} {
     height: 400px;
   }
 
   @media ${devices.sm} {
-    height: 300px;
+    height: 60vh;
+    max-height: 500px;
+    min-height: 300px;
   }
 `;
 
 const ThumbsWrapper = styled.div`
   margin-top: var(--space-lg);
+  width: 100%;
+
+  @media ${devices.sm} {
+    display: none; /* Hide thumbnails on mobile */
+  }
 `;
 
 const ThumbImage = styled.img`
@@ -677,7 +776,7 @@ const DesktopBookingCard = styled.div`
   background: var(--white);
   border: 1px solid var(--gray-200);
   border-radius: var(--radius-xl);
-  padding: var(--space-2xl);
+  padding: var(--space-xl);
   box-shadow: var(--shadow-lg);
   animation: ${scaleIn} 0.6s ease-out 0.2s both;
   position: sticky;
@@ -706,6 +805,8 @@ const MobileStickyContainer = styled.div`
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
     z-index: 1000;
     animation: ${slideUp} 0.3s ease-out;
+    width: 100vw;
+    margin-left: calc(-1 * var(--space-xs)); /* Compensate for page padding */
   }
 
   @media (min-width: 969px) {
@@ -723,6 +824,7 @@ const MobileBookingCard = styled.div`
     overflow: ${(props) => (props.$isExpanded ? "auto" : "hidden")};
     transition: all var(--transition-normal);
     cursor: pointer;
+    width: 100%;
 
     /* Custom scrollbar for mobile */
     &::-webkit-scrollbar {
@@ -751,6 +853,7 @@ const BookingHeader = styled.div`
   margin-bottom: ${(props) =>
     props.$isMobile && !props.$isMobileExpanded ? "0" : "var(--space-xl)"};
   cursor: ${(props) => (props.$isMobile ? "pointer" : "default")};
+  width: 100%;
 
   @media ${devices.sm} {
     margin-bottom: ${(props) =>
@@ -761,6 +864,7 @@ const BookingHeader = styled.div`
     display: flex;
     align-items: center;
     gap: var(--space-lg);
+    flex: 1;
 
     @media ${devices.sm} {
       flex-direction: column;
@@ -773,12 +877,12 @@ const BookingHeader = styled.div`
 const BookingTitle = styled.h3`
   margin: 0;
   color: var(--text-primary);
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   font-family: var(--font-heading);
 
-  @media ${devices.lg} {
-    font-size: var(--text-lg);
+  @media ${devices.sm} {
+    font-size: var(--text-md);
   }
 `;
 
@@ -787,17 +891,18 @@ const MobileExpandIcon = styled.span`
   color: var(--text-muted);
   margin-left: auto;
   transition: transform var(--transition-normal);
+  transform: ${(props) => (props.$expanded ? "rotate(180deg)" : "rotate(0)")};
 `;
 
 const PriceHighlight = styled.span`
-  font-size: var(--text-3xl);
+  font-size: var(--text-2xl);
   font-weight: var(--font-bold);
   color: var(--primary);
   animation: ${pulse} 2s infinite;
   font-family: var(--font-heading);
 
-  @media ${devices.lg} {
-    font-size: var(--text-2xl);
+  @media ${devices.sm} {
+    font-size: var(--text-xl);
   }
 `;
 
@@ -812,6 +917,12 @@ const AvailabilityBadge = styled.div`
   margin-bottom: var(--space-xl);
   text-align: center;
   font-family: var(--font-body);
+
+  @media ${devices.sm} {
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-lg);
+    font-size: var(--text-sm);
+  }
 `;
 
 const BookingNote = styled.div`
@@ -823,74 +934,124 @@ const BookingNote = styled.div`
   font-size: var(--text-sm);
   text-align: center;
   font-family: var(--font-body);
+
+  @media ${devices.sm} {
+    padding: var(--space-md);
+    margin-top: var(--space-md);
+    font-size: var(--text-xs);
+  }
 `;
 
 const NotAvailable = styled.div`
   text-align: center;
-  padding: var(--space-2xl) var(--space-lg);
+  padding: var(--space-xl) var(--space-lg);
   color: var(--text-muted);
   font-family: var(--font-body);
+
+  @media ${devices.sm} {
+    padding: var(--space-lg) var(--space-md);
+  }
 `;
 
 const NotAvailableIcon = styled.div`
-  font-size: 3rem;
+  font-size: 2.5rem;
   margin-bottom: var(--space-lg);
+
+  @media ${devices.sm} {
+    font-size: 2rem;
+    margin-bottom: var(--space-md);
+  }
 `;
 
 const NotAvailableTitle = styled.h3`
   margin: var(--space-lg) 0 var(--space-sm) 0;
   color: var(--error);
   font-family: var(--font-heading);
+  font-size: var(--text-xl);
+
+  @media ${devices.sm} {
+    font-size: var(--text-lg);
+    margin: var(--space-md) 0 var(--space-xs) 0;
+  }
 `;
 
 const NotAvailableText = styled.p`
   margin: 0 0 var(--space-lg) 0;
   font-family: var(--font-body);
+  font-size: var(--text-md);
+
+  @media ${devices.sm} {
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-md);
+  }
 `;
 
 const NotifyButton = styled(PrimaryButton)`
   margin-top: var(--space-lg);
-  padding: var(--space-lg) var(--space-xl);
+  padding: var(--space-md) var(--space-lg);
+  font-size: var(--text-sm);
+
+  @media ${devices.sm} {
+    margin-top: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--text-xs);
+    width: 100%;
+  }
 `;
 
 const Section = styled.section`
   margin: var(--space-2xl) 0;
   animation: ${fadeInUp} 0.8s ease-out;
+  width: 100%;
 
   @media ${devices.lg} {
     margin: var(--space-xl) 0;
   }
+
+  @media ${devices.sm} {
+    margin: var(--space-lg) 0;
+  }
 `;
 
 const SectionTitle = styled.h2`
-  font-size: var(--text-3xl);
+  font-size: var(--text-2xl);
   color: var(--text-primary);
-  margin-bottom: var(--space-2xl);
+  margin-bottom: var(--space-xl);
   text-align: center;
   font-weight: var(--font-bold);
   font-family: var(--font-heading);
 
   @media ${devices.md} {
-    font-size: var(--text-2xl);
-    margin-bottom: var(--space-xl);
+    font-size: var(--text-xl);
+    margin-bottom: var(--space-lg);
+  }
+
+  @media ${devices.sm} {
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-md);
   }
 `;
 
 const SimilarCarsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: var(--space-xl);
+  width: 100%;
 
   @media ${devices.md} {
     grid-template-columns: 1fr;
     gap: var(--space-lg);
   }
 
+  @media ${devices.sm} {
+    gap: var(--space-md);
+  }
+
   .similar-car-card {
-    min-height: 500px;
+    min-height: 450px;
 
     @media ${devices.sm} {
-      min-height: 450px;
+      min-height: 400px;
     }
   }
 `;

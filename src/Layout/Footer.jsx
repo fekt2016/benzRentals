@@ -12,6 +12,7 @@ import {
 } from "react-icons/fa";
 import { PrimaryButton, AccentButtonLink } from "../components/ui/Button";
 import { Link } from "react-router-dom";
+import { devices } from "../styles/GlobalStyles";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -576,11 +577,12 @@ const FloatingCTA = styled.div`
   animation: ${pulse} 2s infinite;
   z-index: 1000;
 
-  @media (max-width: 768px) {
+  @media ${devices.md} {
     bottom: var(--space-md);
     right: var(--space-md);
     left: var(--space-md);
     justify-content: center;
+    width: 40%;
   }
 `;
 

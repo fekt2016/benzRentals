@@ -61,7 +61,8 @@ jobs:
           local-dir: ${{ steps.detect-dir.outputs.directory }}/
           server-dir: public_html/
           log-level: verbose
-          dangerous-clean-slate: true # wipes only inside public_html before upload
+          dangerous-clean-slate: false
+          # wipes only inside public_html before upload
           exclude: |
             **/.git*/**
             **/.git/**
