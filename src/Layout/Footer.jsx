@@ -578,11 +578,12 @@ const FloatingCTA = styled.div`
   z-index: 1000;
 
   @media ${devices.md} {
-    bottom: var(--space-md);
+    bottom: 0;
     right: var(--space-md);
     left: var(--space-md);
     justify-content: center;
-    width: 40%;
+    width: 50%;
+    padding: var(--space-xs) var(--space-md);
   }
 `;
 

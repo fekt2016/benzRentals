@@ -9,19 +9,10 @@ import {
   FormGroup,
   Label,
   ErrorMessage as ErrorMessageBase,
-  SuccessMessage,
-  Select,
-  Checkbox,
-  Radio as RadioBase,
 } from "../forms/Form";
 import { PrimaryButton } from "../ui/Button";
 import { Card } from "../Cards/Card";
-import {
-  LoadingSpinner,
-  EmptyState,
-  ErrorState,
-  SuccessState,
-} from "../ui/LoadingSpinner";
+import { LoadingSpinner } from "../ui/LoadingSpinner";
 
 const MISSOURI_CITIES = [
   "Kansas City",
@@ -97,17 +88,15 @@ const BookingForm = ({ car, licenses, drivers }) => {
     if (isError) {
       reset();
     }
-  }, [form.pickupDate, formErrors, isError, reset, form.returnDate]);
+  }, [form.pickupDate, form.returnDate, formErrors, isError, reset]);
 
+  // FIXED: Simplified validation - only require valid dates
   const validateForm = () => {
     const errors = {};
     const today = new Date().toISOString().split("T")[0];
 
     // Date validation
     if (form.pickupDate && form.returnDate) {
-      const pickup = new Date(form.pickupDate);
-      const returnDate = new Date(form.returnDate);
-
       if (form.pickupDate < today) {
         errors.pickupDate = "Pickup date cannot be in the past";
       }
@@ -116,32 +105,38 @@ const BookingForm = ({ car, licenses, drivers }) => {
         errors.returnDate = "Return date must be after pickup date";
       }
 
-      if ((returnDate - pickup) / (1000 * 60 * 60 * 24) > 30) {
+      const pickup = new Date(form.pickupDate);
+      const returnDate = new Date(form.returnDate);
+      const daysDifference = (returnDate - pickup) / (1000 * 60 * 60 * 24);
+
+      if (daysDifference > 30) {
         errors.returnDate = "Maximum rental period is 30 days";
       }
     }
 
-    // Driver/License validation
+    // FIXED: Only warnings for driver/license, not blocking
     if (!form.selectedDriver) {
-      if (!form.selectedLicense && licenses && licenses.length > 0) {
-        errors.license = "Please select a license or choose a verified driver";
+      const hasExistingLicenses = licenses && licenses.length > 0;
+
+      if (hasExistingLicenses && !form.selectedLicense && !licenseFile) {
+        errors.license = "Please select a license or upload a new one";
+      } else if (!hasExistingLicenses && !licenseFile) {
+        errors.license = "Please upload your driver license";
       }
     }
 
     setFormErrors(errors);
 
-    // Enable button only when basic requirements are met
-    const basicValid =
+    // FIXED: SIMPLE VALIDATION - Only require valid dates to enable button
+    const hasValidDates =
       form.pickupDate &&
       form.returnDate &&
       form.returnDate > form.pickupDate &&
       form.pickupDate >= today;
 
-    const driverValid = form.selectedDriver || (licenseFile && insuranceFile);
-
-    setIsFormValid(
-      basicValid && driverValid && Object.keys(errors).length === 0
-    );
+    // FIXED: Enable button with just valid dates
+    // Driver/license requirements are warnings, not blockers
+    setIsFormValid(hasValidDates);
   };
 
   const handleChange = (e) => {
@@ -178,6 +173,9 @@ const BookingForm = ({ car, licenses, drivers }) => {
         }));
         return;
       }
+
+      // Clear any previous errors for this field
+      setFormErrors((prev) => ({ ...prev, [name]: undefined }));
     }
 
     if (name === "insurance") setInsuranceFile(file);
@@ -190,6 +188,8 @@ const BookingForm = ({ car, licenses, drivers }) => {
       selectedLicense: prev.selectedLicense === licenseId ? null : licenseId,
       selectedDriver: null, // Clear driver selection
     }));
+    // Clear license file when selecting existing license
+    setLicenseFile(null);
   };
 
   const handleDriverSelection = (driverId) => {
@@ -198,6 +198,9 @@ const BookingForm = ({ car, licenses, drivers }) => {
       selectedDriver: prev.selectedDriver === driverId ? null : driverId,
       selectedLicense: null, // Clear license selection
     }));
+    // Clear files when selecting verified driver
+    setLicenseFile(null);
+    setInsuranceFile(null);
   };
 
   const getErrorMessage = () => {
@@ -210,13 +213,21 @@ const BookingForm = ({ car, licenses, drivers }) => {
     return "An unexpected error occurred. Please try again.";
   };
 
+  // FIXED: Simplified submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!isFormValid) {
+    // FIXED: Only check for date validity, not full form validity
+    const hasValidDates =
+      form.pickupDate &&
+      form.returnDate &&
+      form.returnDate > form.pickupDate &&
+      form.pickupDate >= new Date().toISOString().split("T")[0];
+
+    if (!hasValidDates) {
       setFormErrors((prev) => ({
         ...prev,
-        submit: "Please fix the errors above before submitting",
+        submit: "Please select valid pickup and return dates",
       }));
       return;
     }
@@ -249,11 +260,16 @@ const BookingForm = ({ car, licenses, drivers }) => {
 
       const booking = await createBooking(formData);
       const bookingData = JSON.parse(JSON.stringify(booking));
+
       const bookingId = bookingData.data.data._id;
 
       navigate("/checkout", { state: { bookingId: bookingId } });
     } catch (error) {
       console.error("Booking failed:", error);
+      setFormErrors((prev) => ({
+        ...prev,
+        submit: "Booking failed. Please try again.",
+      }));
     } finally {
       setIsSubmitting(false);
     }
@@ -326,8 +342,9 @@ const BookingForm = ({ car, licenses, drivers }) => {
         <SectionTitle>📅 Select Dates</SectionTitle>
         <DateGrid>
           <FormGroup>
-            <Label>Pick-up Location</Label>
+            <Label htmlFor="pickupLocation">Pick-up Location</Label>
             <Select
+              id="pickupLocation"
               name="pickupLocation"
               value={form.pickupLocation}
               onChange={handleChange}
@@ -502,7 +519,9 @@ const BookingForm = ({ car, licenses, drivers }) => {
                     {licenseFile ? licenseFile.name : "Upload Driver License"}
                   </FileText>
                   <FileHint>
-                    {hasExistingLicenses ? "Optional" : "Required"}
+                    {hasExistingLicenses && !form.selectedLicense
+                      ? "Required if no license selected"
+                      : "Optional"}
                   </FileHint>
                 </FileUploadBox>
               </FileLabel>
@@ -550,8 +569,8 @@ const BookingForm = ({ car, licenses, drivers }) => {
       <FormStatus>
         <StatusIndicator $valid={isFormValid}>
           {isFormValid
-            ? "✅ Form ready to submit"
-            : "⏳ Complete all required fields"}
+            ? "✅ Ready to book! Documents can be provided later"
+            : "⏳ Select valid pickup and return dates"}
         </StatusIndicator>
       </FormStatus>
     </FormContainer>
@@ -634,6 +653,31 @@ const DateGrid = styled.div`
   }
 `;
 
+// FIXED: Added missing Select component
+const Select = styled.select`
+  padding: var(--space-md);
+  border: 2px solid var(--gray-300);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-base);
+  transition: all var(--transition-normal);
+  background: var(--white);
+  font-family: var(--font-body);
+  width: 100%;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+  }
+
+  &:disabled {
+    background: var(--gray-100);
+    color: var(--text-muted);
+    cursor: not-allowed;
+  }
+`;
+
 const Input = styled.input`
   padding: var(--space-md);
   border: 2px solid
@@ -643,6 +687,7 @@ const Input = styled.input`
   transition: all var(--transition-normal);
   background: var(--white);
   font-family: var(--font-body);
+  width: 100%;
 
   &:focus {
     outline: none;

@@ -1,4 +1,4 @@
-// ModelPage.js (fixed mobile image display)
+// ModelPage.js (fixed mobile form interaction)
 import React, { useMemo, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
@@ -172,7 +172,7 @@ const ModelPage = () => {
 
   if (!car) return <NotFound>Car not found.</NotFound>;
 
-  // Booking Card Content Component to avoid duplication
+  // FIXED: Booking Card Content with proper mobile interaction
   const BookingCardContent = () => (
     <>
       <BookingHeader
@@ -189,19 +189,23 @@ const ModelPage = () => {
         )}
       </BookingHeader>
 
+      {/* FIXED: Only show form content when expanded on mobile */}
       {(isMobile && isMobileExpanded) || !isMobile ? (
         car.status === "available" ? (
           <>
             <AvailabilityBadge $available={true}>
               ✅ Available for booking
             </AvailabilityBadge>
-            <BookingForm car={car} drivers={drivers} />
+            {/* FIXED: Add click handler to prevent propagation */}
+            <FormContainer onClick={(e) => e.stopPropagation()}>
+              <BookingForm car={car} drivers={drivers} />
+            </FormContainer>
             <BookingNote>
               💡 Free cancellation up to 24 hours before pickup
             </BookingNote>
           </>
         ) : (
-          <NotAvailable>
+          <NotAvailable onClick={(e) => e.stopPropagation()}>
             <NotAvailableIcon>⏸️</NotAvailableIcon>
             <NotAvailableTitle>Currently Unavailable</NotAvailableTitle>
             <NotAvailableText>
@@ -322,12 +326,18 @@ const ModelPage = () => {
             )}
           </SliderWrapper>
 
-          {/* Enhanced Booking Card - Sticky on desktop, bottom sheet on mobile */}
+          {/* FIXED: Enhanced Booking Card with proper mobile interaction */}
           {isMobile ? (
             <MobileStickyContainer $isExpanded={isMobileExpanded}>
               <MobileBookingCard
                 $isExpanded={isMobileExpanded}
-                onClick={toggleMobileExpand}
+                // FIXED: Only toggle when clicking outside form areas
+                onClick={(e) => {
+                  // Only toggle if clicking on the card background, not form elements
+                  if (e.target === e.currentTarget) {
+                    toggleMobileExpand();
+                  }
+                }}
               >
                 <BookingCardContent />
               </MobileBookingCard>
@@ -369,8 +379,35 @@ const ModelPage = () => {
 };
 
 export default ModelPage;
+const BookingHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${(props) =>
+    props.$isMobile && !props.$isMobileExpanded ? "0" : "var(--space-xl)"};
+  cursor: ${(props) => (props.$isMobile ? "pointer" : "default")};
+  width: 100%;
 
-// Fixed Styled Components with better mobile handling
+  @media ${devices.sm} {
+    margin-bottom: ${(props) =>
+      props.$isMobile && !props.$isMobileExpanded ? "0" : "var(--space-lg)"};
+  }
+
+  div {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    flex: 1;
+
+    @media ${devices.sm} {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-sm);
+    }
+  }
+`;
+
+// Fixed Styled Components with better mobile interaction
 const PageWrapper = styled.div`
   max-width: 1200px;
   margin: 2rem auto;
@@ -395,6 +432,134 @@ const PageWrapper = styled.div`
     padding-bottom: 120px; /* Space for mobile sticky booking form */
   }
 `;
+
+// ... (other styled components remain the same until the mobile section)
+
+// FIXED: Mobile Booking Card with better interaction
+const MobileStickyContainer = styled.div`
+  @media ${devices.lg} {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--white);
+    border-top: 1px solid var(--gray-200);
+    padding: 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    animation: ${slideUp} 0.3s ease-out;
+    width: 100vw;
+    margin-left: calc(-1 * var(--space-xs)); /* Compensate for page padding */
+  }
+
+  @media (min-width: 969px) {
+    display: none;
+  }
+`;
+
+const MobileBookingCard = styled.div`
+  @media ${devices.lg} {
+    background: var(--white);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: ${(props) =>
+      props.$isExpanded ? "var(--space-xl)" : "var(--space-lg)"};
+    max-height: ${(props) => (props.$isExpanded ? "80vh" : "80px")};
+    overflow: ${(props) => (props.$isExpanded ? "auto" : "hidden")};
+    transition: all var(--transition-normal);
+    cursor: pointer;
+    width: 100%;
+
+    /* Prevent form interaction from closing the sheet */
+    & > *:not(${BookingHeader}) {
+      cursor: default;
+    }
+
+    /* Custom scrollbar for mobile */
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: var(--gray-100);
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--gray-400);
+      border-radius: 2px;
+    }
+  }
+
+  @media (min-width: 969px) {
+    display: none;
+  }
+`;
+
+// FIXED: Form container to prevent event propagation
+const FormContainer = styled.div`
+  width: 100%;
+
+  /* Prevent form clicks from closing the mobile sheet */
+  & > * {
+    pointer-events: auto;
+  }
+
+  /* Ensure form elements are clickable */
+  input,
+  select,
+  textarea,
+  button,
+  label {
+    pointer-events: auto !important;
+  }
+`;
+
+const BookingTitle = styled.h3`
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  font-family: var(--font-heading);
+
+  @media ${devices.sm} {
+    font-size: var(--text-md);
+  }
+`;
+
+const MobileExpandIcon = styled.span`
+  font-size: var(--text-lg);
+  color: var(--text-muted);
+  margin-left: auto;
+  transition: transform var(--transition-normal);
+  transform: ${(props) => (props.$expanded ? "rotate(180deg)" : "rotate(0)")};
+`;
+
+// ... (rest of the styled components remain the same)
+
+// Fixed Styled Components with better mobile handling
+// const PageWrapper = styled.div`
+//   max-width: 1200px;
+//   margin: 2rem auto;
+//   padding: 0 var(--space-lg);
+//   animation: ${fadeInUp} 0.6s ease-out;
+//   font-family: var(--font-body);
+//   overflow-x: hidden; /* Prevent horizontal overflow */
+
+//   @media ${devices.lg} {
+//     margin: var(--space-xl) auto;
+//     padding: 0 var(--space-md);
+//   }
+
+//   @media ${devices.md} {
+//     margin: var(--space-lg) auto;
+//     padding: 0 var(--space-sm);
+//   }
+
+//   @media ${devices.sm} {
+//     margin: var(--space-md) auto;
+//     padding: 0 var(--space-xs);
+//     padding-bottom: 120px; /* Space for mobile sticky booking form */
+//   }
+// `;
 
 const LoadingWrapper = styled.div`
   display: flex;
@@ -793,106 +958,106 @@ const DesktopBookingCard = styled.div`
 `;
 
 // Mobile Booking Card (Bottom Sheet)
-const MobileStickyContainer = styled.div`
-  @media ${devices.lg} {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--white);
-    border-top: 1px solid var(--gray-200);
-    padding: 0;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
-    animation: ${slideUp} 0.3s ease-out;
-    width: 100vw;
-    margin-left: calc(-1 * var(--space-xs)); /* Compensate for page padding */
-  }
+// const MobileStickyContainer = styled.div`
+//   @media ${devices.lg} {
+//     position: fixed;
+//     bottom: 0;
+//     left: 0;
+//     right: 0;
+//     background: var(--white);
+//     border-top: 1px solid var(--gray-200);
+//     padding: 0;
+//     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+//     z-index: 1000;
+//     animation: ${slideUp} 0.3s ease-out;
+//     width: 100vw;
+//     margin-left: calc(-1 * var(--space-xs)); /* Compensate for page padding */
+//   }
 
-  @media (min-width: 969px) {
-    display: none;
-  }
-`;
+//   @media (min-width: 969px) {
+//     display: none;
+//   }
+// `;
 
-const MobileBookingCard = styled.div`
-  @media ${devices.lg} {
-    background: var(--white);
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    padding: ${(props) =>
-      props.$isExpanded ? "var(--space-xl)" : "var(--space-lg)"};
-    max-height: ${(props) => (props.$isExpanded ? "80vh" : "80px")};
-    overflow: ${(props) => (props.$isExpanded ? "auto" : "hidden")};
-    transition: all var(--transition-normal);
-    cursor: pointer;
-    width: 100%;
+// const MobileBookingCard = styled.div`
+//   @media ${devices.lg} {
+//     background: var(--white);
+//     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+//     padding: ${(props) =>
+//       props.$isExpanded ? "var(--space-xl)" : "var(--space-lg)"};
+//     max-height: ${(props) => (props.$isExpanded ? "80vh" : "80px")};
+//     overflow: ${(props) => (props.$isExpanded ? "auto" : "hidden")};
+//     transition: all var(--transition-normal);
+//     cursor: pointer;
+//     width: 100%;
 
-    /* Custom scrollbar for mobile */
-    &::-webkit-scrollbar {
-      width: 4px;
-    }
+//     /* Custom scrollbar for mobile */
+//     &::-webkit-scrollbar {
+//       width: 4px;
+//     }
 
-    &::-webkit-scrollbar-track {
-      background: var(--gray-100);
-    }
+//     &::-webkit-scrollbar-track {
+//       background: var(--gray-100);
+//     }
 
-    &::-webkit-scrollbar-thumb {
-      background: var(--gray-400);
-      border-radius: 2px;
-    }
-  }
+//     &::-webkit-scrollbar-thumb {
+//       background: var(--gray-400);
+//       border-radius: 2px;
+//     }
+//   }
 
-  @media (min-width: 969px) {
-    display: none;
-  }
-`;
+//   @media (min-width: 969px) {
+//     display: none;
+//   }
+// `;
 
-const BookingHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${(props) =>
-    props.$isMobile && !props.$isMobileExpanded ? "0" : "var(--space-xl)"};
-  cursor: ${(props) => (props.$isMobile ? "pointer" : "default")};
-  width: 100%;
+// const BookingHeader = styled.div`
+//   display: flex;
+//   justify-content: space-between;
+//   align-items: center;
+//   margin-bottom: ${(props) =>
+//     props.$isMobile && !props.$isMobileExpanded ? "0" : "var(--space-xl)"};
+//   cursor: ${(props) => (props.$isMobile ? "pointer" : "default")};
+//   width: 100%;
 
-  @media ${devices.sm} {
-    margin-bottom: ${(props) =>
-      props.$isMobile && !props.$isMobileExpanded ? "0" : "var(--space-lg)"};
-  }
+//   @media ${devices.sm} {
+//     margin-bottom: ${(props) =>
+//       props.$isMobile && !props.$isMobileExpanded ? "0" : "var(--space-lg)"};
+//   }
 
-  div {
-    display: flex;
-    align-items: center;
-    gap: var(--space-lg);
-    flex: 1;
+//   div {
+//     display: flex;
+//     align-items: center;
+//     gap: var(--space-lg);
+//     flex: 1;
 
-    @media ${devices.sm} {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: var(--space-sm);
-    }
-  }
-`;
+//     @media ${devices.sm} {
+//       flex-direction: column;
+//       align-items: flex-start;
+//       gap: var(--space-sm);
+//     }
+//   }
+// `;
 
-const BookingTitle = styled.h3`
-  margin: 0;
-  color: var(--text-primary);
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  font-family: var(--font-heading);
+// const BookingTitle = styled.h3`
+//   margin: 0;
+//   color: var(--text-primary);
+//   font-size: var(--text-lg);
+//   font-weight: var(--font-semibold);
+//   font-family: var(--font-heading);
 
-  @media ${devices.sm} {
-    font-size: var(--text-md);
-  }
-`;
+//   @media ${devices.sm} {
+//     font-size: var(--text-md);
+//   }
+// `;
 
-const MobileExpandIcon = styled.span`
-  font-size: var(--text-lg);
-  color: var(--text-muted);
-  margin-left: auto;
-  transition: transform var(--transition-normal);
-  transform: ${(props) => (props.$expanded ? "rotate(180deg)" : "rotate(0)")};
-`;
+// const MobileExpandIcon = styled.span`
+//   font-size: var(--text-lg);
+//   color: var(--text-muted);
+//   margin-left: auto;
+//   transition: transform var(--transition-normal);
+//   transform: ${(props) => (props.$expanded ? "rotate(180deg)" : "rotate(0)")};
+// `;
 
 const PriceHighlight = styled.span`
   font-size: var(--text-2xl);
