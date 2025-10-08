@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import styled, { keyframes } from "styled-components";
 import OtpModal from "../components/Modal/OtpModal";
-import { useSendOtp, useRegister } from "../hooks/useAuth";
+import { useLogin, useRegister } from "../hooks/useAuth";
 import { sendOtpEmail } from "../utils/Emailservice";
 
 // Optimized Animations - Only essential ones remain
@@ -39,7 +39,7 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeInput, setActiveInput] = useState(null);
 
-  const sendOtp = useSendOtp();
+  const login = useLogin();
   const register = useRegister();
 
   const handleSubmit = async (e) => {
@@ -64,12 +64,11 @@ const LoginPage = () => {
       register.mutate(payload, {
         onSuccess: async (data) => {
           console.log("✅ Registered:", data);
-          // const email = data?.data.user.email;
-          // const otp = data?.data.otp;
-          // const name = data?.data.user.name;
-
+          const email = data?.data.user.email;
+          const otp = data?.data.otp;
+          const name = data?.data.user.name;
           try {
-            // await sendOtpEmail(email, name, otp);
+            await sendOtpEmail(email, name, otp);
           } catch (err) {
             console.error("❌ Failed to send OTP:", err);
           }
@@ -90,7 +89,7 @@ const LoginPage = () => {
       }
 
       const payload = { phone, password };
-      sendOtp.mutate(payload, {
+      login.mutate(payload, {
         onSuccess: async (data) => {
           console.log("OTP sent", data);
 

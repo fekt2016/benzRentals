@@ -43,11 +43,11 @@ const UserReviews = () => {
   usePageTitle(seoConfig.title, seoConfig.description);
   const { data: userData } = useCurrentUser();
   const user = userData?.user || null;
-  console.log("user", user);
+
   const { mutate: deleteReview } = useDeleteReview();
   const { mutate: updateReview, isLoading: isUpdating } = useUpdateReview();
-  const { data: reviewsData } = useGetUserReviews(user?._id);
-  console.log(reviewsData);
+  const { data: reviewsData } = useGetUserReviews();
+
   const reviews = useMemo(() => reviewsData?.data || [], [reviewsData]);
 
   const [editingReview, setEditingReview] = useState(null);

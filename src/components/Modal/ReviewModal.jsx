@@ -1,20 +1,12 @@
 // components/Modal/ReviewModal.js
 import React, { useState } from "react";
 import styled from "styled-components";
-import {
-  FaStar,
-  FaRegStar,
-  FaTimes,
-  FaRegSmile,
-  FaComment,
-} from "react-icons/fa";
+import { FaStar, FaRegStar, FaTimes, FaRegSmile } from "react-icons/fa";
 import { useCreateReview } from "../../hooks/useReview";
 
 const ReviewModal = ({ show, onClose, booking }) => {
-  console.log("booking", booking);
   const [reviewForm, setReviewForm] = useState({
     rating: 5,
-    title: "",
     comment: "",
   });
 
@@ -22,20 +14,17 @@ const ReviewModal = ({ show, onClose, booking }) => {
   const { mutate: createReview } = useCreateReview();
 
   const handleSubmit = async (e) => {
-    console.log("reviewForm", reviewForm);
     e.preventDefault();
-    if (!reviewForm.comment.trim()) return;
+    if (!reviewForm.rating) return;
 
     setIsSubmitting(true);
     try {
       createReview({
-        userId: booking.user,
-        carId: booking.car._id,
-        title: reviewForm.title,
+        bookingId: booking._id, // Use bookingId as required by backend
         rating: reviewForm.rating,
-        comment: reviewForm.comment.trim(),
+        comment: reviewForm.comment.trim() || null, // Allow null if empty
       });
-      setReviewForm({ rating: 5, title: "", comment: "" });
+      setReviewForm({ rating: 5, comment: "" });
       onClose();
     } catch (error) {
       console.error("Review submission failed:", error);
@@ -52,6 +41,7 @@ const ReviewModal = ({ show, onClose, booking }) => {
             key={star}
             onClick={() => onRatingChange(star)}
             type="button"
+            $active={star <= rating}
           >
             {star <= rating ? <FaStar /> : <FaRegStar />}
           </StarButton>
@@ -67,7 +57,7 @@ const ReviewModal = ({ show, onClose, booking }) => {
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
           <ModalTitle>
-            <FaRegSmile /> Review Your Experience
+            <FaRegSmile /> Rate Your Experience
           </ModalTitle>
           <CloseButton onClick={onClose}>
             <FaTimes />
@@ -91,8 +81,10 @@ const ReviewModal = ({ show, onClose, booking }) => {
           </ReviewCarInfo>
 
           <ReviewForm onSubmit={handleSubmit}>
+            {/* Rating Section - REQUIRED */}
             <FormGroup>
               <Label>Overall Rating *</Label>
+              <RequiredIndicator>(Required)</RequiredIndicator>
               <StarRating
                 rating={reviewForm.rating}
                 onRatingChange={(rating) =>
@@ -108,24 +100,12 @@ const ReviewModal = ({ show, onClose, booking }) => {
               </RatingText>
             </FormGroup>
 
+            {/* Comment - OPTIONAL */}
             <FormGroup>
-              <Label>Review Title</Label>
-              <Input
-                type="text"
-                placeholder="Summarize your experience (optional)"
-                value={reviewForm.title}
-                onChange={(e) =>
-                  setReviewForm((prev) => ({ ...prev, title: e.target.value }))
-                }
-                maxLength={100}
-              />
-              <CharCount>{reviewForm.title.length}/100</CharCount>
-            </FormGroup>
-
-            <FormGroup>
-              <Label>Your Review *</Label>
+              <Label>Your Review</Label>
+              <OptionalIndicator>(Optional)</OptionalIndicator>
               <Textarea
-                placeholder="Share details about your experience with this vehicle. What did you like? Was there anything that could be improved?"
+                placeholder="Share more details about your experience (optional)"
                 value={reviewForm.comment}
                 onChange={(e) =>
                   setReviewForm((prev) => ({
@@ -133,21 +113,54 @@ const ReviewModal = ({ show, onClose, booking }) => {
                     comment: e.target.value,
                   }))
                 }
-                rows={5}
+                rows={4}
                 maxLength={500}
               />
               <CharCount>{reviewForm.comment.length}/500</CharCount>
             </FormGroup>
 
             <TipsSection>
-              <TipsTitle>💡 Writing Tips:</TipsTitle>
+              <TipsTitle>💡 Quick Tips:</TipsTitle>
               <TipsList>
-                <li>Describe the car's condition and performance</li>
-                <li>Mention the pickup/drop-off experience</li>
-                <li>Share how the car met your expectations</li>
-                <li>Be honest and constructive</li>
+                <li>
+                  <strong>Rating is required</strong> - just tap the stars
+                </li>
+                <li>Comments are completely optional</li>
+                <li>Your rating helps other renters make better choices</li>
+                <li>You can always add details later if you want</li>
               </TipsList>
             </TipsSection>
+
+            {/* Quick Rating Options */}
+            <QuickRatingSection>
+              <QuickRatingTitle>Quick Rate:</QuickRatingTitle>
+              <QuickRatingButtons>
+                <QuickRatingButton
+                  onClick={() =>
+                    setReviewForm((prev) => ({ ...prev, rating: 5 }))
+                  }
+                  $active={reviewForm.rating === 5}
+                >
+                  Excellent
+                </QuickRatingButton>
+                <QuickRatingButton
+                  onClick={() =>
+                    setReviewForm((prev) => ({ ...prev, rating: 4 }))
+                  }
+                  $active={reviewForm.rating === 4}
+                >
+                  Very Good
+                </QuickRatingButton>
+                <QuickRatingButton
+                  onClick={() =>
+                    setReviewForm((prev) => ({ ...prev, rating: 3 }))
+                  }
+                  $active={reviewForm.rating === 3}
+                >
+                  Good
+                </QuickRatingButton>
+              </QuickRatingButtons>
+            </QuickRatingSection>
           </ReviewForm>
         </ModalBody>
 
@@ -158,8 +171,8 @@ const ReviewModal = ({ show, onClose, booking }) => {
           <SubmitButton
             type="submit"
             onClick={handleSubmit}
-            disabled={!reviewForm.comment.trim() || isSubmitting}
-            isSubmitting={isSubmitting}
+            disabled={!reviewForm.rating || isSubmitting}
+            $isSubmitting={isSubmitting}
           >
             {isSubmitting ? (
               <>
@@ -168,7 +181,7 @@ const ReviewModal = ({ show, onClose, booking }) => {
               </>
             ) : (
               <>
-                <FaComment /> Submit Review
+                <FaStar /> Submit {reviewForm.rating}-Star Rating
               </>
             )}
           </SubmitButton>
@@ -323,6 +336,22 @@ const Label = styled.label`
   font-weight: 600;
   color: #374151;
   font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const RequiredIndicator = styled.span`
+  color: #ef4444;
+  font-size: 0.8rem;
+  font-weight: normal;
+`;
+
+const OptionalIndicator = styled.span`
+  color: #6b7280;
+  font-size: 0.8rem;
+  font-weight: normal;
+  font-style: italic;
 `;
 
 const StarsContainer = styled.div`
@@ -335,13 +364,15 @@ const StarButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
-  color: #fbbf24;
-  font-size: 2rem;
+  color: ${(props) => (props.$active ? "#f59e0b" : "#d1d5db")};
+  font-size: 2.5rem;
   transition: all 0.2s;
   padding: 0.25rem;
+  border-radius: 4px;
 
   &:hover {
     transform: scale(1.2);
+    color: #f59e0b;
   }
 
   &:focus {
@@ -355,25 +386,10 @@ const RatingText = styled.div`
   color: #64748b;
   font-weight: 500;
   margin-top: 0.5rem;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  transition: border-color 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-
-  &::placeholder {
-    color: #9ca3af;
-  }
+  padding: 0.5rem;
+  background: #f0fdf4;
+  border-radius: 6px;
+  border-left: 3px solid #10b981;
 `;
 
 const Textarea = styled.textarea`
@@ -429,6 +445,44 @@ const TipsList = styled.ul`
   }
 `;
 
+// New Quick Rating Section
+const QuickRatingSection = styled.div`
+  background: #f8fafc;
+  padding: 1.25rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+`;
+
+const QuickRatingTitle = styled.h4`
+  margin: 0 0 0.75rem 0;
+  color: #374151;
+  font-size: 0.9rem;
+  font-weight: 600;
+`;
+
+const QuickRatingButtons = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+`;
+
+const QuickRatingButton = styled.button`
+  padding: 0.5rem 1rem;
+  border: 2px solid ${(props) => (props.$active ? "#10b981" : "#e5e7eb")};
+  background: ${(props) => (props.$active ? "#10b981" : "white")};
+  color: ${(props) => (props.$active ? "white" : "#374151")};
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #10b981;
+    background: ${(props) => (props.$active ? "#10b981" : "#f0fdf4")};
+  }
+`;
+
 const ModalActions = styled.div`
   display: flex;
   gap: 1rem;
@@ -465,13 +519,13 @@ const SubmitButton = styled.button`
   padding: 0.75rem 1.5rem;
   border: none;
   background: ${(props) =>
-    props.isSubmitting
+    props.$isSubmitting
       ? "#9ca3af"
       : "linear-gradient(135deg, #10b981, #059669)"};
   color: white;
   border-radius: 8px;
   font-weight: 600;
-  cursor: ${(props) => (props.isSubmitting ? "not-allowed" : "pointer")};
+  cursor: ${(props) => (props.$isSubmitting ? "not-allowed" : "pointer")};
   transition: all 0.2s;
   display: flex;
   align-items: center;

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
+import { motion, AnimatePresence } from "framer-motion";
 import { formatDate } from "../utils/helper";
 import UpdateDocumentsModal from "../components/Modal/UpdateDocumentsModal";
 import {
@@ -11,6 +12,10 @@ import {
   FiShield,
   FiMapPin,
   FiCalendar,
+  FiUser,
+  FiAlertCircle,
+  FiUpload,
+  FiLoader,
 } from "react-icons/fi";
 import { useMyDrivers } from "../hooks/useDriver";
 import { useAddBookingDriver, useGetBookingById } from "../hooks/useBooking";
@@ -19,12 +24,21 @@ import usePageTitle from "../hooks/usePageTitle";
 
 import { ROUTE_CONFIG, PATHS } from "../routes/routePaths";
 
+// Import your design system components
+import { Card, LuxuryCard } from "../components/Cards/Card";
+import {
+  PrimaryButton,
+  SecondaryButton,
+  GhostButton,
+} from "../components/ui/Button";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner";
+
 const paymentMethods = [{ id: "stripe", name: "Stripe", icon: FiCreditCard }];
 
 export default function CheckoutPage() {
   const seoConfig = ROUTE_CONFIG[PATHS.CHECKOUT];
-
   usePageTitle(seoConfig.title, seoConfig.description);
+
   const location = useLocation();
   const navigate = useNavigate();
   const { bookingId } = location?.state || {};
@@ -35,24 +49,26 @@ export default function CheckoutPage() {
     useStripePayment();
 
   const drivers = useMemo(() => myDrivers?.data || [], [myDrivers]);
-
   const booking = useMemo(
     () => bookingResponse?.data?.data || {},
     [bookingResponse]
   );
 
-  const { mutate: addBookingDriver } = useAddBookingDriver(booking?._id);
+  // Add loading state for document upload
+  const { mutate: addBookingDriver, isPending: isUploadingDocuments } =
+    useAddBookingDriver(booking?._id);
 
   const [showModal, setShowModal] = useState(false);
 
   // Calculate total price
   const totalDays = useMemo(() => {
-    const pickup = new Date(booking?.pickupDate);
-    const ret = new Date(booking?.returnDate);
+    if (!booking?.pickupDate || !booking?.returnDate) return 1;
+    const pickup = new Date(booking.pickupDate);
+    const ret = new Date(booking.returnDate);
     return Math.max(1, Math.ceil((ret - pickup) / (1000 * 60 * 60 * 24)));
   }, [booking?.pickupDate, booking?.returnDate]);
 
-  const subtotal = totalDays * booking?.car?.pricePerDay;
+  const subtotal = totalDays * (booking?.car?.pricePerDay || 0);
   const tax = subtotal * 0.08;
   const totalPrice = subtotal + tax;
 
@@ -60,8 +76,10 @@ export default function CheckoutPage() {
   const allVerified =
     booking?.driver?.insurance?.verified && booking?.driver?.license?.verified;
 
-  // In your CheckoutPage component - update the handleStripePayment function
-  const handleStripePayment = () => {
+  // Check if documents are currently being processed
+  const isDocumentsProcessing = isUploadingDocuments;
+
+  const handleStripePayment = async () => {
     if (!allVerified) {
       alert("Documents are pending verification. Cannot proceed to payment.");
       return;
@@ -90,34 +108,20 @@ export default function CheckoutPage() {
       },
     };
 
-    // Debug log
-    processStripePayment(paymentData, {
-      onSuccess: (response) => {
-        navigate(PATHS.CONFIRMATION, {
-          state: {
-            bookingId: booking._id,
-            booking: booking, // Pass the entire booking object
-            sessionId: response.id,
-            totalPrice: totalPrice,
-            totalDays: totalDays,
-          },
-        });
-      },
-    });
+    processStripePayment(paymentData);
   };
 
-  const handleOpenModal = () => {
-    setShowModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-  };
+  const handleOpenModal = () => setShowModal(true);
+  const handleCloseModal = () => setShowModal(false);
 
   const handleUpdateDocuments = (formData) => {
     try {
       if (formData instanceof FormData) {
-        addBookingDriver(formData);
+        addBookingDriver(formData, {
+          onSuccess: () => {
+            handleCloseModal();
+          },
+        });
       }
     } catch (err) {
       console.error("Update failed:", err);
@@ -127,395 +131,583 @@ export default function CheckoutPage() {
   return (
     <PageWrapper>
       <Header>
-        <BackButton onClick={() => navigate(-1)}>
+        <BackButton
+          onClick={() => navigate(-1)}
+          as={motion.div}
+          whileHover={{ x: -4 }}
+          whileTap={{ scale: 0.95 }}
+          disabled={isDocumentsProcessing}
+        >
           <FiArrowLeft />
-          Back
+          Back to Booking
         </BackButton>
-        <Title>Checkout</Title>
+        <Title>Complete Your Booking</Title>
         <SecurityBadge>
           <FiShield />
           Secure Checkout
         </SecurityBadge>
       </Header>
+
       <ContentGrid>
+        {/* Left Column - Booking Summary */}
         <SummarySection>
-          <SectionHeader>
-            <SectionTitle>Booking Summary</SectionTitle>
-            <EditLink>Edit</EditLink>
-          </SectionHeader>
-          <CarCard>
-            <CarImage
-              src={booking?.car?.images[0] || "/default-car.jpg"}
-              alt={booking?.car?.model}
-            />
-            <CarDetails>
-              <CarName>{booking?.car?.name}</CarName>
-              <CarSpecs>Automatic • 5 Seats • Premium</CarSpecs>
-              <CarPrice>${booking?.car?.pricePerDay}/day</CarPrice>
-            </CarDetails>
-          </CarCard>
-          <DetailsCard>
-            <DetailItem>
-              <DetailIcon>
-                <FiCalendar />
-              </DetailIcon>
-              <DetailContent>
-                <DetailLabel>Pickup Date</DetailLabel>
-                <DetailValue>{formatDate(booking.pickupDate)}</DetailValue>
-              </DetailContent>
-            </DetailItem>
+          <SectionCard>
+            <SectionHeader>
+              <SectionTitle>Booking Summary</SectionTitle>
+              <EditLink disabled={isDocumentsProcessing}>Edit Details</EditLink>
+            </SectionHeader>
 
-            <DetailItem>
-              <DetailIcon>
-                <FiCalendar />
-              </DetailIcon>
-              <DetailContent>
-                <DetailLabel>Return Date</DetailLabel>
-                <DetailValue>{formatDate(booking?.returnDate)}</DetailValue>
-              </DetailContent>
-            </DetailItem>
+            <CarCard>
+              <CarImage
+                src={booking?.car?.images?.[0] || "/default-car.jpg"}
+                alt={booking?.car?.model}
+              />
+              <CarDetails>
+                <CarName>{booking?.car?.name || "Car"}</CarName>
+                <CarSpecs>
+                  {booking?.car?.specifications ||
+                    "Automatic • 5 Seats • Premium"}
+                </CarSpecs>
+                <CarPrice>${booking?.car?.pricePerDay || 0}/day</CarPrice>
+              </CarDetails>
+            </CarCard>
+          </SectionCard>
 
-            <DetailItem>
-              <DetailIcon>
-                <FiClock />
-              </DetailIcon>
-              <DetailContent>
-                <DetailLabel>Pickup Time</DetailLabel>
-                <DetailValue>Assigned after payment</DetailValue>
-              </DetailContent>
-            </DetailItem>
+          <SectionCard>
+            <SectionTitle>Rental Details</SectionTitle>
+            <DetailsGrid>
+              <DetailItem>
+                <DetailIcon>
+                  <FiCalendar />
+                </DetailIcon>
+                <DetailContent>
+                  <DetailLabel>Pickup Date</DetailLabel>
+                  <DetailValue>
+                    {booking?.pickupDate
+                      ? formatDate(booking.pickupDate)
+                      : "Not set"}
+                  </DetailValue>
+                </DetailContent>
+              </DetailItem>
 
-            <DetailItem>
-              <DetailIcon>
-                <FiMapPin />
-              </DetailIcon>
-              <DetailContent>
-                <DetailLabel>Location</DetailLabel>
-                <DetailValue>{booking.pickupLocation}</DetailValue>
-              </DetailContent>
-            </DetailItem>
-          </DetailsCard>
-          <PriceCard>
-            <PriceTitle>Price Breakdown</PriceTitle>
-            <PriceItem>
-              <span>
-                ${booking?.car?.pricePerDay} × {totalDays} days
-              </span>
-              <span>${subtotal.toFixed(2)}</span>
-            </PriceItem>
-            <PriceItem>
-              <span>Tax (8%)</span>
-              <span>${tax.toFixed(2)}</span>
-            </PriceItem>
-            <Divider />
-            <TotalPrice>
-              <span>Total Amount</span>
-              <span>${totalPrice.toFixed(2)}</span>
-            </TotalPrice>
-          </PriceCard>
+              <DetailItem>
+                <DetailIcon>
+                  <FiCalendar />
+                </DetailIcon>
+                <DetailContent>
+                  <DetailLabel>Return Date</DetailLabel>
+                  <DetailValue>
+                    {booking?.returnDate
+                      ? formatDate(booking.returnDate)
+                      : "Not set"}
+                  </DetailValue>
+                </DetailContent>
+              </DetailItem>
 
-          {/* Document Verification */}
-          <DocumentsCard>
-            <SectionTitle>Driver info</SectionTitle>
-            {!booking?.driver && (
-              <SecureBadge>Driver required to complete booking</SecureBadge>
+              <DetailItem>
+                <DetailIcon>
+                  <FiClock />
+                </DetailIcon>
+                <DetailContent>
+                  <DetailLabel>Duration</DetailLabel>
+                  <DetailValue>{totalDays} days</DetailValue>
+                </DetailContent>
+              </DetailItem>
+
+              <DetailItem>
+                <DetailIcon>
+                  <FiMapPin />
+                </DetailIcon>
+                <DetailContent>
+                  <DetailLabel>Pickup Location</DetailLabel>
+                  <DetailValue>
+                    {booking?.pickupLocation || "Not specified"}
+                  </DetailValue>
+                </DetailContent>
+              </DetailItem>
+            </DetailsGrid>
+          </SectionCard>
+
+          <SectionCard>
+            <SectionTitle>Price Breakdown</SectionTitle>
+            <PriceList>
+              <PriceItem>
+                <span>
+                  ${booking?.car?.pricePerDay || 0} × {totalDays} days
+                </span>
+                <span>${subtotal.toFixed(2)}</span>
+              </PriceItem>
+              <PriceItem>
+                <span>Tax (8%)</span>
+                <span>${tax.toFixed(2)}</span>
+              </PriceItem>
+              <PriceDivider />
+              <TotalPrice>
+                <span>Total Amount</span>
+                <span>${totalPrice.toFixed(2)}</span>
+              </TotalPrice>
+            </PriceList>
+          </SectionCard>
+
+          {/* Driver Documents Section */}
+          <SectionCard $disabled={isDocumentsProcessing}>
+            {isDocumentsProcessing && <ProcessingOverlay />}
+            <SectionHeader>
+              <SectionTitle>Driver Information</SectionTitle>
+              {!booking?.driver && (
+                <StatusBadge $status="required">Required</StatusBadge>
+              )}
+              {isDocumentsProcessing && (
+                <StatusBadge $status="processing">
+                  <FiLoader className="spinner" />
+                  Processing...
+                </StatusBadge>
+              )}
+            </SectionHeader>
+
+            {!booking?.driver ? (
+              <EmptyDriverState>
+                <EmptyStateIcon>
+                  <FiUser />
+                </EmptyStateIcon>
+                <EmptyStateContent>
+                  <h4>Driver Required</h4>
+                  <p>Add driver information to complete your booking</p>
+                </EmptyStateContent>
+                <PrimaryButton
+                  onClick={handleOpenModal}
+                  $size="md"
+                  disabled={isDocumentsProcessing}
+                >
+                  <FiUpload />
+                  {isDocumentsProcessing ? "Uploading..." : "Add Driver"}
+                </PrimaryButton>
+              </EmptyDriverState>
+            ) : (
+              <DriverStatusSection>
+                <DocumentStatus
+                  verified={allVerified}
+                  $processing={isDocumentsProcessing}
+                >
+                  <StatusIcon
+                    verified={allVerified}
+                    $processing={isDocumentsProcessing}
+                  >
+                    {isDocumentsProcessing ? (
+                      <FiLoader className="spinner" />
+                    ) : allVerified ? (
+                      <FiCheck />
+                    ) : (
+                      <FiClock />
+                    )}
+                  </StatusIcon>
+                  <StatusContent>
+                    <StatusTitle>
+                      {isDocumentsProcessing
+                        ? "Processing Documents..."
+                        : allVerified
+                        ? "All Documents Verified"
+                        : "Pending Verification"}
+                    </StatusTitle>
+                    <StatusDescription>
+                      {isDocumentsProcessing
+                        ? "Please wait while we process your documents..."
+                        : allVerified
+                        ? "Your driver information has been verified and approved"
+                        : "Waiting for admin approval of your documents"}
+                    </StatusDescription>
+                  </StatusContent>
+                </DocumentStatus>
+
+                <DocumentsGrid>
+                  <DocumentItem
+                    verified={booking?.driver.insurance?.verified}
+                    $processing={isDocumentsProcessing}
+                  >
+                    <DocumentIcon $processing={isDocumentsProcessing}>
+                      <FiShield />
+                    </DocumentIcon>
+                    <DocumentInfo>
+                      <DocumentName>Insurance Document</DocumentName>
+                      <DocumentStatusText
+                        verified={booking?.driver.insurance?.verified}
+                        $processing={isDocumentsProcessing}
+                      >
+                        {isDocumentsProcessing
+                          ? "Processing..."
+                          : booking?.driver.insurance?.verified
+                          ? "Verified"
+                          : "Pending"}
+                      </DocumentStatusText>
+                    </DocumentInfo>
+                  </DocumentItem>
+
+                  <DocumentItem
+                    verified={booking?.driver.license?.verified}
+                    $processing={isDocumentsProcessing}
+                  >
+                    <DocumentIcon $processing={isDocumentsProcessing}>
+                      <FiCreditCard />
+                    </DocumentIcon>
+                    <DocumentInfo>
+                      <DocumentName>Driver License</DocumentName>
+                      <DocumentStatusText
+                        verified={booking?.driver.license?.verified}
+                        $processing={isDocumentsProcessing}
+                      >
+                        {isDocumentsProcessing
+                          ? "Processing..."
+                          : booking?.driver.license?.verified
+                          ? "Verified"
+                          : "Pending"}
+                      </DocumentStatusText>
+                    </DocumentInfo>
+                  </DocumentItem>
+                </DocumentsGrid>
+
+                {!allVerified && !isDocumentsProcessing && (
+                  <UpdateDocumentsPrompt>
+                    <FiAlertCircle />
+                    <span>Documents pending verification</span>
+                    <GhostButton onClick={handleOpenModal} $size="sm">
+                      Update Documents
+                    </GhostButton>
+                  </UpdateDocumentsPrompt>
+                )}
+
+                {isDocumentsProcessing && (
+                  <ProcessingMessage>
+                    <FiLoader className="spinner" />
+                    <div>
+                      <strong>Documents are being processed</strong>
+                      <p>
+                        This may take a few moments. Please don't refresh the
+                        page.
+                      </p>
+                    </div>
+                  </ProcessingMessage>
+                )}
+              </DriverStatusSection>
             )}
-            {booking?.driver && (
-              <DocumentStatus verified={allVerified}>
-                <StatusIcon verified={allVerified}>
-                  {allVerified ? <FiCheck /> : <FiClock />}
-                </StatusIcon>
-                <StatusText>
-                  <strong>
-                    {allVerified
-                      ? "All documents verified"
-                      : "Pending verification"}
-                  </strong>
-                  <span>
-                    {allVerified
-                      ? "You're ready to book!"
-                      : "Waiting for admin approval"}
-                  </span>
-                </StatusText>
-              </DocumentStatus>
-            )}
-            {booking?.driver && (
-              <DocumentsGrid>
-                <DocumentItem verified={booking?.driver.insurance?.verified}>
-                  <DocumentIcon>
-                    <FiShield />
-                  </DocumentIcon>
-                  <DocumentInfo>
-                    <DocumentName>Insurance</DocumentName>
-                    <DocumentStatusText
-                      verified={booking?.driver.insurance?.verified}
-                    >
-                      {booking?.driver.insurance?.verified
-                        ? "Verified"
-                        : "Pending"}
-                    </DocumentStatusText>
-                  </DocumentInfo>
-                </DocumentItem>
-                <DocumentItem verified={booking?.driver.license?.verified}>
-                  <DocumentIcon>
-                    <FiCreditCard />
-                  </DocumentIcon>
-                  <DocumentInfo>
-                    <DocumentName>Driver License</DocumentName>
-                    <DocumentStatusText
-                      verified={booking?.driver.license?.verified}
-                    >
-                      {booking?.driver.license?.verified
-                        ? "Verified"
-                        : "Pending"}
-                    </DocumentStatusText>
-                  </DocumentInfo>
-                </DocumentItem>
-              </DocumentsGrid>
-            )}
-          </DocumentsCard>
-
-          {!booking?.driver && (
-            <>
-              <SectionTitle>Driver documents</SectionTitle>
-              <SubmitButton onClick={handleOpenModal}>upload</SubmitButton>
-            </>
-          )}
+          </SectionCard>
         </SummarySection>
 
-        {/* Right Column - Payment Form */}
-        <FormSection>
-          <FormWrapper>
-            <FormHeader>
+        {/* Right Column - Payment Section */}
+        <PaymentSection>
+          <PaymentCard $disabled={isDocumentsProcessing}>
+            {isDocumentsProcessing && <ProcessingOverlay />}
+            <PaymentHeader>
               <SectionTitle>Payment Details</SectionTitle>
               <SecureBadge>
                 <FiShield />
                 256-bit SSL Secure
               </SecureBadge>
-            </FormHeader>
+            </PaymentHeader>
 
-            <PaymentMethodCard>
+            <PaymentMethodSection>
               <SectionSubtitle>Payment Method</SectionSubtitle>
-              <PaymentGrid>
+              <PaymentOptions>
                 {paymentMethods.map((method) => {
                   const IconComponent = method.icon;
                   return (
-                    <PaymentCard key={method.id} selected={true}>
-                      <PaymentIcon>
+                    <PaymentOption
+                      key={method.id}
+                      $selected={true}
+                      $disabled={isDocumentsProcessing}
+                    >
+                      <PaymentIcon $disabled={isDocumentsProcessing}>
                         <IconComponent />
                       </PaymentIcon>
                       <PaymentName>{method.name}</PaymentName>
-                      <RadioDot selected={true} />
-                    </PaymentCard>
+                      <RadioIndicator
+                        $selected={true}
+                        $disabled={isDocumentsProcessing}
+                      />
+                    </PaymentOption>
                   );
                 })}
-              </PaymentGrid>
-            </PaymentMethodCard>
+              </PaymentOptions>
+            </PaymentMethodSection>
 
-            {/* Stripe Message */}
-            <PaymentMessage>
+            <PaymentMessage $disabled={isDocumentsProcessing}>
               <p>
-                You will be redirected to Stripe to complete your payment
-                securely.
+                {isDocumentsProcessing
+                  ? "Document processing in progress. Payment will be available once complete."
+                  : "You will be redirected to Stripe to complete your payment securely. All transactions are encrypted and protected."}
               </p>
-              {isStripeProcessing && (
-                <div style={{ marginTop: "10px", color: "#3b82f6" }}>
-                  <FiClock /> Redirecting to Stripe...
-                </div>
-              )}
             </PaymentMessage>
 
-            <PaymentDetailsCard>
+            <PaymentSummarySection>
               <SectionSubtitle>Payment Summary</SectionSubtitle>
-              <PaymentSummary>
+              <PaymentBreakdown>
                 <SummaryItem>
                   <span>Subtotal</span>
                   <span>${subtotal.toFixed(2)}</span>
                 </SummaryItem>
                 <SummaryItem>
-                  <span>Tax</span>
+                  <span>Tax (8%)</span>
                   <span>${tax.toFixed(2)}</span>
                 </SummaryItem>
                 <SummaryDivider />
                 <SummaryTotal>
-                  <span>Total to pay</span>
+                  <span>Total Amount</span>
                   <span>${totalPrice.toFixed(2)}</span>
                 </SummaryTotal>
-              </PaymentSummary>
-            </PaymentDetailsCard>
+              </PaymentBreakdown>
+            </PaymentSummarySection>
 
-            <ActionCard>
-              <SubmitButton
-                type="button"
+            <ActionSection>
+              <PaymentButton
                 onClick={handleStripePayment}
-                disabled={!allVerified || isStripeProcessing}
-                processing={isStripeProcessing}
+                disabled={
+                  !allVerified || isStripeProcessing || isDocumentsProcessing
+                }
+                $processing={isStripeProcessing}
+                $disabled={isDocumentsProcessing}
+                as={motion.button}
+                whileHover={
+                  !allVerified || isStripeProcessing || isDocumentsProcessing
+                    ? {}
+                    : { scale: 1.02 }
+                }
+                whileTap={
+                  !allVerified || isStripeProcessing || isDocumentsProcessing
+                    ? {}
+                    : { scale: 0.98 }
+                }
               >
                 {isStripeProcessing ? (
-                  <LoadingSpinner>
-                    <div></div>
-                    <div></div>
-                    <div></div>
-                  </LoadingSpinner>
+                  <>
+                    <LoadingSpinner size="sm" />
+                    Processing Payment...
+                  </>
+                ) : isDocumentsProcessing ? (
+                  <>
+                    <FiLoader className="spinner" />
+                    Documents Processing...
+                  </>
                 ) : (
                   <>
                     <FiCreditCard />
-                    Pay with Stripe
+                    Pay Securely
                   </>
                 )}
                 <Amount>${totalPrice.toFixed(2)}</Amount>
-              </SubmitButton>
+              </PaymentButton>
 
-              {!allVerified && (
+              {!allVerified && !isDocumentsProcessing && (
                 <WarningMessage>
-                  <FiClock />
-                  Waiting for document verification to complete payment
+                  <FiAlertCircle />
+                  Complete driver verification to proceed with payment
                 </WarningMessage>
+              )}
+
+              {isDocumentsProcessing && (
+                <InfoMessage>
+                  <FiLoader className="spinner" />
+                  Please wait for document processing to complete
+                </InfoMessage>
               )}
 
               <SecurityNote>
                 <FiShield />
                 Your payment information is secure and encrypted
               </SecurityNote>
-            </ActionCard>
-          </FormWrapper>
-        </FormSection>
+            </ActionSection>
+          </PaymentCard>
+        </PaymentSection>
       </ContentGrid>
 
-      {showModal && (
-        <UpdateDocumentsModal
-          show={showModal}
-          onClose={handleCloseModal}
-          drivers={drivers}
-          onSubmit={handleUpdateDocuments}
-        />
-      )}
+      {/* Update Documents Modal */}
+      <AnimatePresence>
+        {showModal && (
+          <UpdateDocumentsModal
+            show={showModal}
+            onClose={handleCloseModal}
+            drivers={drivers}
+            onSubmit={handleUpdateDocuments}
+            isLoading={isUploadingDocuments}
+          />
+        )}
+      </AnimatePresence>
     </PageWrapper>
   );
 }
 
-// Styled components (removed unused ones)
+//
+// 💅 Styled Components
+//
 const PageWrapper = styled.div`
-  max-width: 1200px;
-  margin: 4rem auto;
-  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--space-2xl);
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: var(--surface);
+
+  @media (max-width: 768px) {
+    padding: var(--space-lg);
+  }
 `;
 
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 3rem;
-  padding: 1rem 0;
-`;
+  margin-bottom: var(--space-2xl);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--gray-200);
 
-const BackButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 0.75rem 1.5rem;
-  color: #64748b;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    border-color: #3b82f6;
-    color: #3b82f6;
-    transform: translateX(-2px);
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: var(--space-md);
+    align-items: stretch;
   }
 `;
 
+const BackButton = styled(SecondaryButton)`
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: var(--font-medium);
+
+  ${(props) =>
+    props.disabled &&
+    `
+    opacity: 0.6;
+    cursor: not-allowed;
+    
+    &:hover {
+      transform: none;
+    }
+  `}
+`;
+
 const Title = styled.h1`
-  font-size: 2.5rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #1e293b 0%, #3b82f6 100%);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
-  background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
   margin: 0;
+  font-family: var(--font-heading);
+
+  @media (max-width: 768px) {
+    font-size: var(--text-3xl);
+    order: -1;
+  }
 `;
 
 const SecurityBadge = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  background: #10b981;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 600;
+  gap: var(--space-sm);
+  background: var(--success);
+  color: var(--white);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+
+  @media (max-width: 768px) {
+    justify-content: center;
+  }
 `;
 
 const ContentGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  grid-template-columns: 1fr 400px;
+  gap: var(--space-2xl);
   align-items: start;
 
-  @media (max-width: 968px) {
+  @media (max-width: 1024px) {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: var(--space-xl);
   }
 `;
 
 const SummarySection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-xl);
+`;
+
+const SectionCard = styled(Card)`
+  padding: var(--space-xl);
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--gray-200);
+  position: relative;
+  transition: all var(--transition-normal);
+
+  ${(props) =>
+    props.$disabled &&
+    `
+    opacity: 0.7;
+    pointer-events: none;
+  `}
+`;
+
+const ProcessingOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(2px);
+  border-radius: inherit;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 const SectionHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-lg);
+`;
+
+const SectionTitle = styled.h2`
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0;
+  font-family: var(--font-heading);
 `;
 
 const EditLink = styled.button`
   background: none;
   border: none;
-  color: #3b82f6;
-  font-size: 0.875rem;
-  cursor: pointer;
+  color: ${(props) => (props.disabled ? "var(--gray-400)" : "var(--primary)")};
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
   text-decoration: underline;
-`;
+  transition: color var(--transition-fast);
 
-const SectionTitle = styled.h2`
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
-`;
-
-const SectionSubtitle = styled.h3`
-  font-size: 1.125rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: #1e293b;
+  &:hover {
+    color: ${(props) =>
+      props.disabled ? "var(--gray-400)" : "var(--primary-dark)"};
+  }
 `;
 
 const CarCard = styled.div`
   display: flex;
-  gap: 1rem;
-  padding: 1.5rem;
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  border: 1px solid #f1f5f9;
+  gap: var(--space-lg);
+  align-items: center;
 `;
 
 const CarImage = styled.img`
-  width: 100px;
-  height: 80px;
-  border-radius: 12px;
+  width: 120px;
+  height: 90px;
+  border-radius: var(--radius-lg);
   object-fit: cover;
+  box-shadow: var(--shadow-sm);
 `;
 
 const CarDetails = styled.div`
@@ -523,52 +715,52 @@ const CarDetails = styled.div`
 `;
 
 const CarName = styled.h3`
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0 0 0.25rem 0;
-  color: #1e293b;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-xs) 0;
+  font-family: var(--font-heading);
 `;
 
 const CarSpecs = styled.p`
-  color: #64748b;
-  margin: 0 0 0.5rem 0;
-  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-sm) 0;
+  font-size: var(--text-sm);
 `;
 
 const CarPrice = styled.div`
-  color: #3b82f6;
-  font-weight: 600;
-  font-size: 1.125rem;
+  color: var(--primary);
+  font-weight: var(--font-bold);
+  font-size: var(--text-lg);
 `;
 
-const DetailsCard = styled.div`
-  background: white;
-  border-radius: 20px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  border: 1px solid #f1f5f9;
+const DetailsGrid = styled.div`
+  display: grid;
+  gap: var(--space-md);
 `;
 
 const DetailItem = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem 0;
+  gap: var(--space-lg);
+  padding: var(--space-md) 0;
 
   &:not(:last-child) {
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--gray-200);
   }
 `;
 
 const DetailIcon = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: #f1f5f9;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  background: var(--gray-100);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: var(--primary);
+  font-size: var(--text-lg);
+  flex-shrink: 0;
 `;
 
 const DetailContent = styled.div`
@@ -576,121 +768,208 @@ const DetailContent = styled.div`
 `;
 
 const DetailLabel = styled.div`
-  font-size: 0.875rem;
-  color: #64748b;
-  margin-bottom: 0.25rem;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-xs);
 `;
 
 const DetailValue = styled.div`
-  font-weight: 600;
-  color: #1e293b;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  font-size: var(--text-base);
 `;
 
-const PriceCard = styled.div`
-  background: white;
-  border-radius: 20px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  border: 1px solid #f1f5f9;
-`;
-
-const PriceTitle = styled.h4`
-  font-size: 1.125rem;
-  font-weight: 600;
-  margin-bottom: 1rem;
-  color: #1e293b;
+const PriceList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
 `;
 
 const PriceItem = styled.div`
   display: flex;
   justify-content: space-between;
-  padding: 0.5rem 0;
-  color: #64748b;
+  color: var(--text-secondary);
+  font-size: var(--text-base);
 `;
 
-const Divider = styled.div`
+const PriceDivider = styled.div`
   height: 1px;
-  background: #e2e8f0;
-  margin: 1rem 0;
+  background: var(--gray-300);
+  margin: var(--space-sm) 0;
 `;
 
 const TotalPrice = styled.div`
   display: flex;
   justify-content: space-between;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1e293b;
-  padding-top: 0.5rem;
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  padding-top: var(--space-sm);
 `;
 
-const DocumentsCard = styled.div`
-  background: white;
-  border-radius: 20px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  border: 1px solid #f1f5f9;
+const StatusBadge = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  background: ${(props) => {
+    switch (props.$status) {
+      case "required":
+        return "var(--warning)";
+      case "processing":
+        return "var(--primary)";
+      default:
+        return "var(--gray-200)";
+    }
+  }};
+  color: var(--white);
+
+  .spinner {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const EmptyDriverState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-2xl);
+  gap: var(--space-lg);
+`;
+
+const EmptyStateIcon = styled.div`
+  font-size: 3rem;
+  color: var(--primary);
+  opacity: 0.7;
+`;
+
+const EmptyStateContent = styled.div`
+  h4 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    margin: 0 0 var(--space-xs) 0;
+  }
+
+  p {
+    color: var(--text-muted);
+    margin: 0;
+    font-size: var(--text-base);
+  }
+`;
+
+const DriverStatusSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
 `;
 
 const DocumentStatus = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: ${(props) => (props.verified ? "#f0fdf4" : "#fffbeb")};
-  border-radius: 12px;
-  margin-bottom: 1rem;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  background: ${(props) => {
+    if (props.$processing) return "var(--gradient-primary)";
+    return props.verified
+      ? "linear-gradient(135deg, var(--success) 0%, #34d399 100%)"
+      : "linear-gradient(135deg, var(--warning) 0%, #f59e0b 100%)";
+  }};
+  color: var(--white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  position: relative;
 `;
 
 const StatusIcon = styled.div`
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  background: ${(props) => (props.verified ? "#10b981" : "#f59e0b")};
-  color: white;
+  background: rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: var(--text-xl);
+  flex-shrink: 0;
+
+  .spinner {
+    animation: spin 1s linear infinite;
+  }
 `;
 
-const StatusText = styled.div`
-  display: flex;
-  flex-direction: column;
+const StatusContent = styled.div`
+  flex: 1;
+`;
 
-  strong {
-    color: ${(props) => (props.verified ? "#10b981" : "#f59e0b")};
-  }
+const StatusTitle = styled.div`
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-xs);
+`;
 
-  span {
-    font-size: 0.875rem;
-    color: #64748b;
-  }
+const StatusDescription = styled.div`
+  font-size: var(--text-sm);
+  opacity: 0.9;
 `;
 
 const DocumentsGrid = styled.div`
   display: grid;
-  gap: 1rem;
+  gap: var(--space-md);
 `;
 
 const DocumentItem = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: #f8fafc;
-  border-radius: 12px;
-  border-left: 4px solid ${(props) => (props.verified ? "#10b981" : "#f59e0b")};
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  background: var(--gray-50);
+  border-radius: var(--radius-lg);
+  border-left: 4px solid
+    ${(props) => {
+      if (props.$processing) return "var(--primary)";
+      return props.verified ? "var(--success)" : "var(--warning)";
+    }};
+  transition: all var(--transition-normal);
+
+  ${(props) =>
+    props.$processing &&
+    `
+    background: var(--primary-light);
+    border-left-color: var(--primary);
+  `}
 `;
 
 const DocumentIcon = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  background: #f1f5f9;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: ${(props) =>
+    props.$processing ? "var(--primary)" : "var(--white)"};
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
-  font-size: 1.25rem;
+  color: ${(props) => {
+    if (props.$processing) return "var(--white)";
+    return "var(--gray-600)";
+  }};
+  font-size: var(--text-lg);
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+  transition: all var(--transition-normal);
 `;
 
 const DocumentInfo = styled.div`
@@ -701,91 +980,183 @@ const DocumentInfo = styled.div`
 `;
 
 const DocumentName = styled.span`
-  font-weight: 500;
-  color: #1e293b;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  font-size: var(--text-base);
 `;
 
 const DocumentStatusText = styled.span`
-  color: ${(props) => (props.verified ? "#10b981" : "#f59e0b")};
-  font-weight: 600;
-  font-size: 0.875rem;
+  color: ${(props) => {
+    if (props.$processing) return "var(--primary)";
+    return props.verified ? "var(--success)" : "var(--warning)";
+  }};
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: color var(--transition-normal);
 `;
 
-const FormSection = styled.div`
-  background: white;
-  border-radius: 24px;
-  padding: 2rem;
-  box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1);
-  border: 1px solid #f1f5f9;
-  position: sticky;
-  top: 2rem;
-`;
-
-const FormWrapper = styled.form`
+const UpdateDocumentsPrompt = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--gray-100);
+  border-radius: var(--radius-lg);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    text-align: center;
+  }
 `;
 
-const FormHeader = styled.div`
+const ProcessingMessage = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--primary-light);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-lg);
+  color: var(--primary-dark);
+
+  strong {
+    display: block;
+    margin-bottom: var(--space-xs);
+  }
+
+  p {
+    margin: 0;
+    font-size: var(--text-sm);
+    opacity: 0.8;
+  }
+
+  .spinner {
+    animation: spin 1s linear infinite;
+    font-size: var(--text-xl);
+    flex-shrink: 0;
+  }
+`;
+
+const PaymentSection = styled.div`
+  position: sticky;
+  top: var(--space-2xl);
+
+  @media (max-width: 1024px) {
+    position: static;
+  }
+`;
+
+const PaymentCard = styled(LuxuryCard)`
+  padding: var(--space-2xl);
+  background: var(--white);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--gray-100);
+  position: relative;
+  transition: all var(--transition-normal);
+
+  ${(props) =>
+    props.$disabled &&
+    `
+    opacity: 0.7;
+    pointer-events: none;
+  `}
+`;
+
+const PaymentHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--space-xl);
 `;
 
 const SecureBadge = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  color: #10b981;
-  font-size: 0.875rem;
-  font-weight: 600;
+  gap: var(--space-sm);
+  color: var(--success);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
 `;
 
-const PaymentMethodCard = styled.div`
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 1.5rem;
+const PaymentMethodSection = styled.div`
+  margin-bottom: var(--space-xl);
 `;
 
-const PaymentGrid = styled.div`
-  display: grid;
-  gap: 0.75rem;
+const SectionSubtitle = styled.h3`
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-lg);
+  font-family: var(--font-heading);
 `;
 
-const PaymentCard = styled.div`
+const PaymentOptions = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+`;
+
+const PaymentOption = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  border: 2px solid ${(props) => (props.selected ? "#3b82f6" : "#e2e8f0")};
-  border-radius: 12px;
-  background: ${(props) => (props.selected ? "#f0f9ff" : "white")};
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  border: 2px solid
+    ${(props) => {
+      if (props.$disabled) return "var(--gray-300)";
+      return props.$selected ? "var(--primary)" : "var(--gray-200)";
+    }};
+  border-radius: var(--radius-lg);
+  background: ${(props) => {
+    if (props.$disabled) return "var(--gray-100)";
+    return props.$selected ? "var(--primary-light)" : "var(--white)";
+  }};
+  cursor: ${(props) => (props.$disabled ? "not-allowed" : "pointer")};
+  transition: all var(--transition-normal);
+
+  &:hover {
+    border-color: ${(props) =>
+      props.$disabled ? "var(--gray-300)" : "var(--primary)"};
+  }
 `;
 
 const PaymentIcon = styled.div`
   width: 40px;
   height: 40px;
-  border-radius: 8px;
-  background: #f1f5f9;
+  border-radius: var(--radius-md);
+  background: ${(props) =>
+    props.$disabled ? "var(--gray-200)" : "var(--gray-100)"};
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: ${(props) => (props.$disabled ? "var(--gray-400)" : "var(--primary)")};
+  font-size: var(--text-lg);
 `;
 
 const PaymentName = styled.span`
   flex: 1;
-  font-weight: 500;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
 `;
 
-const RadioDot = styled.div`
+const RadioIndicator = styled.div`
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 2px solid ${(props) => (props.selected ? "#3b82f6" : "#cbd5e1")};
-  background: ${(props) => (props.selected ? "#3b82f6" : "transparent")};
+  border: 2px solid
+    ${(props) => {
+      if (props.$disabled) return "var(--gray-400)";
+      return props.$selected ? "var(--primary)" : "var(--gray-400)";
+    }};
+  background: ${(props) => {
+    if (props.$disabled) return "var(--gray-300)";
+    return props.$selected ? "var(--primary)" : "transparent";
+  }};
   position: relative;
 
   &::after {
@@ -797,144 +1168,141 @@ const RadioDot = styled.div`
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: white;
-    display: ${(props) => (props.selected ? "block" : "none")};
+    background: var(--white);
+    display: ${(props) => (props.$selected ? "block" : "none")};
   }
 `;
 
-const PaymentDetailsCard = styled.div`
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 1.5rem;
+const PaymentMessage = styled.div`
+  background: ${(props) =>
+    props.$disabled ? "var(--gray-100)" : "var(--primary-light)"};
+  border: 1px solid
+    ${(props) => (props.$disabled ? "var(--gray-300)" : "var(--primary)")};
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-xl);
+
+  p {
+    margin: 0;
+    color: ${(props) =>
+      props.$disabled ? "var(--gray-600)" : "var(--primary-dark)"};
+    font-weight: var(--font-medium);
+    text-align: center;
+    font-size: var(--text-sm);
+  }
 `;
 
-const PaymentSummary = styled.div`
+const PaymentSummarySection = styled.div`
+  margin-bottom: var(--space-xl);
+`;
+
+const PaymentBreakdown = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--space-md);
 `;
 
 const SummaryItem = styled.div`
   display: flex;
   justify-content: space-between;
-  color: #64748b;
+  color: var(--text-secondary);
+  font-size: var(--text-base);
 `;
 
 const SummaryDivider = styled.div`
   height: 1px;
-  background: #e2e8f0;
-  margin: 0.5rem 0;
+  background: var(--gray-300);
+  margin: var(--space-sm) 0;
 `;
 
 const SummaryTotal = styled.div`
   display: flex;
   justify-content: space-between;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1e293b;
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
 `;
 
-const ActionCard = styled.div`
+const ActionSection = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-lg);
 `;
 
-const SubmitButton = styled.button`
+const PaymentButton = styled(PrimaryButton)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 1.25rem 2rem;
-  border-radius: 16px;
-  background: ${(props) => (props.processing ? "#9ca3af" : "#3b82f6")};
-  color: white;
-  font-weight: 600;
+  gap: var(--space-lg);
+  padding: var(--space-lg) var(--space-xl);
+  border-radius: var(--radius-xl);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  background: ${(props) => {
+    if (props.$disabled) return "var(--gray-400)";
+    if (props.$processing) return "var(--primary)";
+    return "var(--gradient-primary)";
+  }};
+  color: var(--white);
   cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
   border: none;
-  font-size: 1.125rem;
-  transition: all 0.2s;
-  position: relative;
+  transition: all var(--transition-normal);
 
   &:hover:not(:disabled) {
-    background: ${(props) => (props.processing ? "#9ca3af" : "#2563eb")};
     transform: ${(props) => (props.disabled ? "none" : "translateY(-2px)")};
-    box-shadow: ${(props) =>
-      props.disabled ? "none" : "0 10px 25px -5px rgb(59 130 246 / 0.5)"};
+    box-shadow: ${(props) => (props.disabled ? "none" : "var(--shadow-lg)")};
   }
 
   &:disabled {
-    background: #9ca3af;
+    opacity: 0.7;
   }
-`;
 
-const LoadingSpinner = styled.div`
-  display: flex;
-  gap: 4px;
-
-  div {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: white;
-    animation: bounce 1.4s infinite ease-in-out both;
-
-    &:nth-child(1) {
-      animation-delay: -0.32s;
-    }
-    &:nth-child(2) {
-      animation-delay: -0.16s;
-    }
-
-    @keyframes bounce {
-      0%,
-      80%,
-      100% {
-        transform: scale(0);
-      }
-      40% {
-        transform: scale(1);
-      }
-    }
+  .spinner {
+    animation: spin 1s linear infinite;
   }
 `;
 
 const Amount = styled.span`
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
 `;
 
 const WarningMessage = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem;
-  background: #fffbeb;
-  border: 1px solid #f59e0b;
-  border-radius: 12px;
-  color: #f59e0b;
-  font-weight: 500;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  background: var(--warning);
+  color: var(--white);
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  text-align: center;
+`;
+
+const InfoMessage = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+  text-align: center;
+
+  .spinner {
+    animation: spin 1s linear infinite;
+  }
 `;
 
 const SecurityNote = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-sm);
   justify-content: center;
-  color: #64748b;
-  font-size: 0.875rem;
-`;
-
-const PaymentMessage = styled.div`
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  border-radius: 12px;
-  padding: 1.5rem;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
   text-align: center;
-  color: #0369a1;
-
-  p {
-    margin: 0;
-    font-weight: 500;
-  }
 `;

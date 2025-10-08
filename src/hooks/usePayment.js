@@ -2,9 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import paymentApi from "../services/paymentApi";
 import { loadStripe } from "@stripe/stripe-js";
 
-const stripePromise = loadStripe(
-  "pk_test_51SAuoMLIgC1tNQyvfyFJu4A8dyVPzLUlMDVAclXeCXRV5CWEItfCHFisgrgWF7okHex1Nv5FoUldgzXu0Y4faMVj00bdq5i8EJ"
-);
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 export const useStripePayment = () => {
   //   const queryClient = useQueryClient();
@@ -16,6 +14,7 @@ export const useStripePayment = () => {
     },
     onSuccess: async (response) => {
       const stripe = await stripePromise;
+
       const result = await stripe.redirectToCheckout({
         sessionId: response.data.id,
       });
@@ -43,6 +42,7 @@ export const useVerifyPayment = (sessionId, bookingId) => {
 };
 
 export const useGetBookingConfirmation = (bookingId) => {
+  console.log("confirmed");
   return useQuery({
     queryKey: ["payment", "confirmation", bookingId],
     queryFn: async () => {

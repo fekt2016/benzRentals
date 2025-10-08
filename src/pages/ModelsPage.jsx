@@ -295,11 +295,12 @@ const ContentSection = styled.section`
 
 const CarsSection = styled.section`
   margin-top: var(--space-xl);
+
 `;
 
 // ===== STATS COMPONENTS =====
 const StatsGrid = styled(Grid)`
-  max-width: 800px;
+  max-width: 80rem;
   margin: 0 auto;
 `;
 

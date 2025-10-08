@@ -55,6 +55,9 @@ const HomePage = () => {
 
   const { data: carData } = useGetCars();
   const cars = useMemo(() => carData?.data?.data || [], [carData]);
+  const availableCars = useMemo(() => {
+    return cars.filter((car) => car.status === "available");
+  }, [cars]);
 
   const heroControls = useAnimation();
   const featuresControls = useAnimation();
@@ -98,12 +101,13 @@ const HomePage = () => {
 
   // Featured cars data - use actual cars if available, otherwise fallback
   const featuredCars = useMemo(() => {
-    if (cars && cars.length > 0) {
-      return getRandomItems(cars, 3).map((car, index) => ({
+    if (availableCars && availableCars.length > 0) {
+      return getRandomItems(availableCars, 3).map((car, index) => ({
         id: car._id || index + 1,
         model: car.model || "Mercedes-Benz Model",
         series: car.series || "Premium Series",
         price: car.price || 199,
+        status: car.status || "availabe",
         image:
           car.images[0] ||
           "https://images.unsplash.com/photo-1563720223182-8e41e09c2396?auto=format&fit=crop&w=800&q=80",
@@ -145,7 +149,7 @@ const HomePage = () => {
         features: ["Luxury Interior", "MBUX System", "Driver Assist"],
       },
     ];
-  }, [cars]);
+  }, [availableCars]);
 
   // Stats data
   const stats = [
@@ -279,15 +283,18 @@ const HomePage = () => {
             />
 
             <CarGrid columns={3}>
-              {featuredCars.map((car, index) => (
-                <motion.div
-                  key={car._id}
-                  variants={carCardVariants}
-                  custom={index}
-                >
-                  <CarCard car={car} />
-                </motion.div>
-              ))}
+              {featuredCars.map((car, index) => {
+                // console.log(car);
+                return (
+                  <motion.div
+                    key={car.id}
+                    variants={carCardVariants}
+                    custom={index}
+                  >
+                    <CarCard car={car} />
+                  </motion.div>
+                );
+              })}
             </CarGrid>
 
             <ViewAllWrapper>

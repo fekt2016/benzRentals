@@ -3,6 +3,7 @@ import styled from "styled-components";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import { FaSearch, FaChevronDown, FaCheck } from "react-icons/fa";
+import { devices } from "../../styles/GlobalStyles";
 
 // Input Component
 export const Input = ({
@@ -578,8 +579,11 @@ const RadioLabel = styled.span`
 export const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
   margin-bottom: var(--space-md);
+
+  @media ${devices.sm} {
+    margin-bottom: 0.2rem;
+  }
 `;
 
 // Label Component

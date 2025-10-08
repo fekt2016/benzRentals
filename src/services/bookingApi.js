@@ -8,7 +8,6 @@ const bookingApi = {
 
   getBookingById: async (id) => {
     try {
-      console.log("id api", id);
       const response = await api.get(`/bookings/${id}`);
       return response;
     } catch (error) {
@@ -29,18 +28,15 @@ const bookingApi = {
     const response = await api.patch(`/bookings/${id}`, formData);
     return response;
   },
+  cancelBooking: async (id) => {
+    const response = await api.patch(`/bookings/cancel/${id}`);
+    return response;
+  },
   getUserBookings: async () => {
-    console.log("api Fetching user bookings...");
     const response = await api.get(`bookings/my-bookings`);
     return response;
   },
-  // verifyDocuments: async (formData) => {
-  //   const response = await api.patch(
-  //     `/bookings/${formData.id}/verify-documents`,
-  //     formData
-  //   );
-  //   return response;
-  // },
+
   updateUserBooking: async (id, data) => {
     const headers =
       data instanceof FormData
@@ -66,6 +62,10 @@ const bookingApi = {
       headers,
     });
     return response.data;
+  },
+  CheckInBooking: async (bookingId, formData) => {
+    const response = await api.post(`/booking/${bookingId}/check-in`, formData);
+    return response;
   },
 };
 export default bookingApi;

@@ -1,4 +1,4 @@
-// ModelPage.js (fixed mobile form interaction)
+// ModelPage.js (FIXED - Header Button Alignment)
 import React, { useMemo, useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
@@ -72,6 +72,7 @@ const slideUp = keyframes`
 
 const ModelPage = () => {
   const { modelId } = useParams();
+
   const { data: carData, isLoading } = useGetCarById(modelId);
   const { data: myDrivers } = useMyDrivers();
   const drivers = useMemo(() => myDrivers?.data || [], [myDrivers]);
@@ -85,6 +86,34 @@ const ModelPage = () => {
   const [isMobileExpanded, setIsMobileExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 968);
   const [imageError, setImageError] = useState({});
+
+  // Calculate mileage-related information
+  const mileageInfo = useMemo(() => {
+    if (!car) return null;
+
+    const dailyAllowance = car.mileagePolicy?.dailyAllowance || 200;
+    const extraMileRate = car.mileagePolicy?.extraMileRate || 0.5;
+    const unlimitedMileage = car.mileagePolicy?.unlimitedMileage || false;
+    const currentMileage = car.currentMileage || 0;
+    const milesUntilService =
+      car.milesUntilService ||
+      car.maintenance?.nextServiceMileage - currentMileage ||
+      0;
+    const needsService =
+      car.needsService ||
+      car.maintenance?.nextServiceMileage <= currentMileage ||
+      false;
+
+    return {
+      dailyAllowance,
+      extraMileRate,
+      unlimitedMileage,
+      currentMileage,
+      milesUntilService,
+      needsService,
+      isWellMaintained: milesUntilService > 1000, // Good if more than 1000 miles until service
+    };
+  }, [car]);
 
   useEffect(() => {
     // Check bookmarks from localStorage
@@ -158,6 +187,8 @@ const ModelPage = () => {
           : carData.pricePerDay - 15,
       series: variant === "premium" ? "Luxury Edition" : "Economy Option",
       features: features.slice(0, 4), // Limit features for similar cards
+      currentMileage: carData.currentMileage || 0,
+      mileagePolicy: carData.mileagePolicy,
     };
   };
 
@@ -172,50 +203,132 @@ const ModelPage = () => {
 
   if (!car) return <NotFound>Car not found.</NotFound>;
 
-  // FIXED: Booking Card Content with proper mobile interaction
+  // FIXED: Booking Card Content with proper button for mobile
   const BookingCardContent = () => (
-    <>
+    <BookingCardContentWrapper>
       <BookingHeader
-        onClick={isMobile ? toggleMobileExpand : undefined}
         $isMobile={isMobile}
         $isMobileExpanded={isMobileExpanded}
+        className="booking-header"
       >
         <div>
-          <BookingTitle>🚗 Book This Car</BookingTitle>
+          <BookingTitle> Book This Car</BookingTitle>
           <PriceHighlight>${car.pricePerDay}/day</PriceHighlight>
         </div>
         {isMobile && (
-          <MobileExpandIcon $expanded={isMobileExpanded}>▼</MobileExpandIcon>
+          <MobileExpandButton
+            onClick={toggleMobileExpand}
+            $expanded={isMobileExpanded}
+            aria-label={
+              isMobileExpanded ? "Collapse booking form" : "Expand booking form"
+            }
+          >
+            <span>{isMobileExpanded ? "Hide Form" : "Show Booking Form"}</span>
+            <span>{isMobileExpanded ? "▼" : "▲"}</span>
+          </MobileExpandButton>
         )}
       </BookingHeader>
 
-      {/* FIXED: Only show form content when expanded on mobile */}
-      {(isMobile && isMobileExpanded) || !isMobile ? (
-        car.status === "available" ? (
+      {/* FIXED: Always render form content but control visibility with CSS */}
+      <BookingCardBody
+        $isMobile={isMobile}
+        $isMobileExpanded={isMobileExpanded}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {car.status === "available" ? (
           <>
             <AvailabilityBadge $available={true}>
-              ✅ Available for booking
+              Available for booking
             </AvailabilityBadge>
-            {/* FIXED: Add click handler to prevent propagation */}
-            <FormContainer onClick={(e) => e.stopPropagation()}>
-              <BookingForm car={car} drivers={drivers} />
+
+            {/* Mileage Policy Display */}
+            {mileageInfo && (
+              <MileagePolicyCard>
+                <MileagePolicyTitle> Mileage Policy</MileagePolicyTitle>
+                <MileagePolicyDetails>
+                  {mileageInfo.unlimitedMileage ? (
+                    <UnlimitedMileage>
+                      <span>🚀 Unlimited Mileage</span>
+                      <small>
+                        Drive as much as you want with no extra charges
+                      </small>
+                    </UnlimitedMileage>
+                  ) : (
+                    <Mil>
+                      <MileageAllowance>
+                        <strong>{mileageInfo.dailyAllowance} miles</strong> Per
+                        day
+                      </MileageAllowance>
+                      <MileageRate>
+                        <strong>${mileageInfo.extraMileRate}/mile</strong> Extra
+                        milages
+                      </MileageRate>
+                    </Mil>
+                  )}
+                </MileagePolicyDetails>
+              </MileagePolicyCard>
+            )}
+
+            {/* Car Condition Indicator */}
+            {/* {mileageInfo && (
+              <CarConditionCard>
+                <CarConditionHeader>
+                  <span>🔧 Vehicle Condition</span>
+                  <ConditionStatus $good={mileageInfo.isWellMaintained}>
+                    {mileageInfo.isWellMaintained
+                      ? "Excellent"
+                      : "Needs Attention"}
+                  </ConditionStatus>
+                </CarConditionHeader>
+                <CarConditionDetails>
+                  <MileageInfo>
+                    <span>Current Mileage:</span>
+                    <strong>
+                      {mileageInfo.currentMileage?.toLocaleString()} miles
+                    </strong>
+                  </MileageInfo>
+                  {!mileageInfo.unlimitedMileage && (
+                    <ServiceInfo $needsService={mileageInfo.needsService}>
+                      <span>Next Service:</span>
+                      <strong>
+                        {mileageInfo.needsService
+                          ? "Due Now"
+                          : `in ${mileageInfo.milesUntilService?.toLocaleString()} miles`}
+                      </strong>
+                    </ServiceInfo>
+                  )}
+                </CarConditionDetails>
+              </CarConditionCard>
+            )} */}
+
+            <FormContainer className="booking-form">
+              <BookingForm
+                car={car}
+                drivers={drivers}
+                mileageInfo={mileageInfo}
+              />
             </FormContainer>
             <BookingNote>
               💡 Free cancellation up to 24 hours before pickup
             </BookingNote>
           </>
         ) : (
-          <NotAvailable onClick={(e) => e.stopPropagation()}>
+          <NotAvailable>
             <NotAvailableIcon>⏸️</NotAvailableIcon>
             <NotAvailableTitle>Currently Unavailable</NotAvailableTitle>
             <NotAvailableText>
               This car is <strong>{car.status}</strong>. Check back later!
             </NotAvailableText>
+            {car.status === "maintenance" && mileageInfo?.needsService && (
+              <MaintenanceNote>
+                🔧 This vehicle is undergoing scheduled maintenance
+              </MaintenanceNote>
+            )}
             <NotifyButton>🔔 Notify me when available</NotifyButton>
           </NotAvailable>
-        )
-      ) : null}
-    </>
+        )}
+      </BookingCardBody>
+    </BookingCardContentWrapper>
   );
 
   // Create similar cars data
@@ -226,27 +339,35 @@ const ModelPage = () => {
 
   return (
     <PageWrapper>
-      {/* Modern Header with Actions */}
+      {/* FIXED: Modern Header with Properly Aligned Actions */}
       <HeaderSection>
-        <TitleWrapper>
-          <Title>{car.name}</Title>
-          <CarBadges>
-            <StatusBadge $status={car.status}>
-              {car.status?.toUpperCase() || "UNAVAILABLE"}
-            </StatusBadge>
-            <RatingBadge>⭐ {car.rating || "4.8"} / 5</RatingBadge>
-          </CarBadges>
-        </TitleWrapper>
+        <HeaderContent>
+          <TitleWrapper>
+            <Title>{car.name}</Title>
+            <CarBadges>
+              <StatusBadge $status={car.status}>
+                {car.status?.toUpperCase() || "UNAVAILABLE"}
+              </StatusBadge>
+              <RatingBadge>⭐ {car.rating || "4.8"} / 5</RatingBadge>
+              {mileageInfo?.unlimitedMileage && (
+                <MileageBadge>🚀 Unlimited Miles</MileageBadge>
+              )}
+            </CarBadges>
+          </TitleWrapper>
 
-        <ActionButtons>
-          <BookmarkButton onClick={handleBookmark} $isBookmarked={isBookmarked}>
-            {isBookmarked ? "❤️ Bookmarked" : "🤍 Bookmark"}
-          </BookmarkButton>
-          <ShareButton>📤 Share</ShareButton>
-        </ActionButtons>
+          <ActionButtons>
+            <BookmarkButton
+              onClick={handleBookmark}
+              $isBookmarked={isBookmarked}
+            >
+              {isBookmarked ? "❤️ Bookmarked" : "🤍 Bookmark"}
+            </BookmarkButton>
+            <ShareButton>📤 Share</ShareButton>
+          </ActionButtons>
+        </HeaderContent>
       </HeaderSection>
 
-      {/* Quick Stats Bar */}
+      {/* Quick Stats Bar - Updated with Mileage */}
       <StatsBar>
         <StatItem>
           <StatValue>${car.pricePerDay}</StatValue>
@@ -267,6 +388,24 @@ const ModelPage = () => {
           <StatValue>{car.transmission || "Automatic"}</StatValue>
           <StatLabel>Transmission</StatLabel>
         </StatItem>
+        <StatDivider />
+        <StatItem>
+          <StatValue>
+            {mileageInfo?.currentMileage
+              ? `${(mileageInfo.currentMileage / 1000).toFixed(0)}k`
+              : "0"}
+          </StatValue>
+          <StatLabel>Miles</StatLabel>
+        </StatItem>
+        {!mileageInfo?.unlimitedMileage && (
+          <>
+            <StatDivider />
+            <StatItem>
+              <StatValue>{mileageInfo?.dailyAllowance || 200}</StatValue>
+              <StatLabel>Miles/day</StatLabel>
+            </StatItem>
+          </>
+        )}
       </StatsBar>
 
       <ContentWrapper>
@@ -326,19 +465,10 @@ const ModelPage = () => {
             )}
           </SliderWrapper>
 
-          {/* FIXED: Enhanced Booking Card with proper mobile interaction */}
+          {/* FIXED: Enhanced Booking Card with proper button for mobile */}
           {isMobile ? (
             <MobileStickyContainer $isExpanded={isMobileExpanded}>
-              <MobileBookingCard
-                $isExpanded={isMobileExpanded}
-                // FIXED: Only toggle when clicking outside form areas
-                onClick={(e) => {
-                  // Only toggle if clicking on the card background, not form elements
-                  if (e.target === e.currentTarget) {
-                    toggleMobileExpand();
-                  }
-                }}
-              >
+              <MobileBookingCard $isExpanded={isMobileExpanded}>
                 <BookingCardContent />
               </MobileBookingCard>
             </MobileStickyContainer>
@@ -349,8 +479,8 @@ const ModelPage = () => {
           )}
         </LeftSection>
 
-        {/* Enhanced Details Section with Tabs */}
-        <ModelSideTab car={car} modelId={modelId} />
+        {/* Enhanced Details Section with Tabs - Now includes mileage info */}
+        <ModelSideTab car={car} modelId={modelId} mileageInfo={mileageInfo} />
       </ContentWrapper>
 
       {/* Enhanced Review Section */}
@@ -369,6 +499,7 @@ const ModelPage = () => {
               car={similarCar}
               showOverlay={true}
               showBookButton={true}
+              showMileage={true} // New prop to show mileage
               className="similar-car-card"
             />
           ))}
@@ -379,42 +510,18 @@ const ModelPage = () => {
 };
 
 export default ModelPage;
-const BookingHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${(props) =>
-    props.$isMobile && !props.$isMobileExpanded ? "0" : "var(--space-xl)"};
-  cursor: ${(props) => (props.$isMobile ? "pointer" : "default")};
-  width: 100%;
 
-  @media ${devices.sm} {
-    margin-bottom: ${(props) =>
-      props.$isMobile && !props.$isMobileExpanded ? "0" : "var(--space-lg)"};
-  }
+// ============================================================================
+// STYLED COMPONENTS - FIXED HEADER ALIGNMENT
+// ============================================================================
 
-  div {
-    display: flex;
-    align-items: center;
-    gap: var(--space-lg);
-    flex: 1;
-
-    @media ${devices.sm} {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: var(--space-sm);
-    }
-  }
-`;
-
-// Fixed Styled Components with better mobile interaction
 const PageWrapper = styled.div`
   max-width: 1200px;
   margin: 2rem auto;
   padding: 0 var(--space-lg);
   animation: ${fadeInUp} 0.6s ease-out;
   font-family: var(--font-body);
-  overflow-x: hidden; /* Prevent horizontal overflow */
+  overflow-x: hidden;
 
   @media ${devices.lg} {
     margin: var(--space-xl) auto;
@@ -429,175 +536,17 @@ const PageWrapper = styled.div`
   @media ${devices.sm} {
     margin: var(--space-md) auto;
     padding: 0 var(--space-xs);
-    padding-bottom: 120px; /* Space for mobile sticky booking form */
+    padding-bottom: 120px;
   }
 `;
 
-// ... (other styled components remain the same until the mobile section)
-
-// FIXED: Mobile Booking Card with better interaction
-const MobileStickyContainer = styled.div`
-  @media ${devices.lg} {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: var(--white);
-    border-top: 1px solid var(--gray-200);
-    padding: 0;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
-    animation: ${slideUp} 0.3s ease-out;
-    width: 100vw;
-    margin-left: calc(-1 * var(--space-xs)); /* Compensate for page padding */
-  }
-
-  @media (min-width: 969px) {
-    display: none;
-  }
-`;
-
-const MobileBookingCard = styled.div`
-  @media ${devices.lg} {
-    background: var(--white);
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    padding: ${(props) =>
-      props.$isExpanded ? "var(--space-xl)" : "var(--space-lg)"};
-    max-height: ${(props) => (props.$isExpanded ? "80vh" : "80px")};
-    overflow: ${(props) => (props.$isExpanded ? "auto" : "hidden")};
-    transition: all var(--transition-normal);
-    cursor: pointer;
-    width: 100%;
-
-    /* Prevent form interaction from closing the sheet */
-    & > *:not(${BookingHeader}) {
-      cursor: default;
-    }
-
-    /* Custom scrollbar for mobile */
-    &::-webkit-scrollbar {
-      width: 4px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: var(--gray-100);
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: var(--gray-400);
-      border-radius: 2px;
-    }
-  }
-
-  @media (min-width: 969px) {
-    display: none;
-  }
-`;
-
-// FIXED: Form container to prevent event propagation
-const FormContainer = styled.div`
-  width: 100%;
-
-  /* Prevent form clicks from closing the mobile sheet */
-  & > * {
-    pointer-events: auto;
-  }
-
-  /* Ensure form elements are clickable */
-  input,
-  select,
-  textarea,
-  button,
-  label {
-    pointer-events: auto !important;
-  }
-`;
-
-const BookingTitle = styled.h3`
-  margin: 0;
-  color: var(--text-primary);
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  font-family: var(--font-heading);
-
-  @media ${devices.sm} {
-    font-size: var(--text-md);
-  }
-`;
-
-const MobileExpandIcon = styled.span`
-  font-size: var(--text-lg);
-  color: var(--text-muted);
-  margin-left: auto;
-  transition: transform var(--transition-normal);
-  transform: ${(props) => (props.$expanded ? "rotate(180deg)" : "rotate(0)")};
-`;
-
-// ... (rest of the styled components remain the same)
-
-// Fixed Styled Components with better mobile handling
-// const PageWrapper = styled.div`
-//   max-width: 1200px;
-//   margin: 2rem auto;
-//   padding: 0 var(--space-lg);
-//   animation: ${fadeInUp} 0.6s ease-out;
-//   font-family: var(--font-body);
-//   overflow-x: hidden; /* Prevent horizontal overflow */
-
-//   @media ${devices.lg} {
-//     margin: var(--space-xl) auto;
-//     padding: 0 var(--space-md);
-//   }
-
-//   @media ${devices.md} {
-//     margin: var(--space-lg) auto;
-//     padding: 0 var(--space-sm);
-//   }
-
-//   @media ${devices.sm} {
-//     margin: var(--space-md) auto;
-//     padding: 0 var(--space-xs);
-//     padding-bottom: 120px; /* Space for mobile sticky booking form */
-//   }
-// `;
-
-const LoadingWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 50vh;
-  gap: var(--space-lg);
-`;
-
-const LoadingText = styled.p`
-  color: var(--text-secondary);
-  font-size: var(--text-lg);
-  font-weight: var(--font-medium);
-  font-family: var(--font-body);
-`;
-
-const NotFound = styled.div`
-  text-align: center;
-  padding: var(--space-2xl) var(--space-xl);
-  font-size: var(--text-xl);
-  color: var(--text-muted);
-  font-family: var(--font-body);
-`;
-
+// FIXED: Improved Header Section with better alignment
 const HeaderSection = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: var(--space-xl);
-  flex-wrap: wrap;
-  gap: var(--space-lg);
   width: 100%;
+  margin-bottom: var(--space-xl);
+  animation: ${fadeInUp} 0.6s ease-out;
 
   @media ${devices.md} {
-    flex-direction: column;
-    text-align: center;
-    gap: var(--space-md);
     margin-bottom: var(--space-lg);
   }
 
@@ -606,24 +555,60 @@ const HeaderSection = styled.div`
   }
 `;
 
-const TitleWrapper = styled.div`
-  flex: 1;
-  min-width: 0; /* Prevent flex overflow */
+// NEW: Header content wrapper for proper alignment
+const HeaderContent = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-lg);
+  width: 100%;
+
+  @media ${devices.md} {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space-md);
+  }
+
+  @media ${devices.sm} {
+    gap: var(--space-sm);
+  }
 `;
 
+const TitleWrapper = styled.div`
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-items: flex-start;
+
+  @media ${devices.md} {
+    align-items: center;
+    width: 100%;
+  }
+`;
+const Mil = styled.div`
+  display: flex;
+  justify-content: space-around;
+`;
 const Title = styled.h1`
   font-size: clamp(var(--text-2xl), 4vw, var(--text-5xl));
   color: var(--text-primary);
-  margin: 0 0 var(--space-sm) 0;
+  margin: 0;
   font-weight: var(--font-bold);
   line-height: 1.2;
   font-family: var(--font-heading);
   word-wrap: break-word;
   overflow-wrap: break-word;
+  text-align: left;
+
+  @media ${devices.md} {
+    text-align: center;
+    font-size: var(--text-2xl);
+  }
 
   @media ${devices.sm} {
-    font-size: var(--text-2xl);
-    margin-bottom: var(--space-xs);
+    font-size: var(--text-xl);
   }
 `;
 
@@ -631,10 +616,15 @@ const CarBadges = styled.div`
   display: flex;
   gap: var(--space-md);
   flex-wrap: wrap;
+  justify-content: flex-start;
 
-  @media ${devices.sm} {
+  @media ${devices.md} {
     justify-content: center;
     gap: var(--space-sm);
+  }
+
+  @media ${devices.sm} {
+    gap: var(--space-xs);
   }
 `;
 
@@ -678,15 +668,36 @@ const RatingBadge = styled.span`
   }
 `;
 
+const MileageBadge = styled.span`
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  white-space: nowrap;
+
+  @media ${devices.sm} {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-xxs);
+  }
+`;
+
+// FIXED: Action Buttons with proper alignment
 const ActionButtons = styled.div`
   display: flex;
   gap: var(--space-md);
   flex-shrink: 0;
+  align-items: center;
 
-  @media ${devices.sm} {
+  @media ${devices.md} {
     width: 100%;
     justify-content: center;
     gap: var(--space-sm);
+  }
+
+  @media ${devices.sm} {
+    gap: var(--space-xs);
   }
 `;
 
@@ -705,16 +716,23 @@ const BookmarkButton = styled.button`
   white-space: nowrap;
   font-family: var(--font-body);
   font-size: var(--text-sm);
+  height: fit-content;
 
   &:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
   }
 
-  @media ${devices.sm} {
+  @media ${devices.md} {
     padding: var(--space-xs) var(--space-sm);
     font-size: var(--text-xs);
     flex: 1;
+    max-width: 140px;
+  }
+
+  @media ${devices.sm} {
+    max-width: 120px;
+    font-size: var(--text-xxs);
   }
 `;
 
@@ -724,11 +742,18 @@ const ShareButton = styled(SecondaryButton)`
   align-items: center;
   gap: var(--space-sm);
   font-size: var(--text-sm);
+  height: fit-content;
 
-  @media ${devices.sm} {
+  @media ${devices.md} {
     padding: var(--space-xs) var(--space-sm);
     font-size: var(--text-xs);
     flex: 1;
+    max-width: 140px;
+  }
+
+  @media ${devices.sm} {
+    max-width: 120px;
+    font-size: var(--text-xxs);
   }
 `;
 
@@ -742,7 +767,7 @@ const StatsBar = styled.div`
   color: var(--white);
   animation: ${scaleIn} 0.6s ease-out;
   flex-wrap: nowrap;
-  overflow-x: auto; /* Allow horizontal scroll if needed */
+  overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 
   @media ${devices.sm} {
@@ -756,7 +781,7 @@ const StatItem = styled.div`
   flex: 1;
   text-align: center;
   padding: 0 var(--space-md);
-  min-width: 80px; /* Ensure minimum width */
+  min-width: 80px;
 
   @media ${devices.sm} {
     padding: 0 var(--space-sm);
@@ -821,7 +846,7 @@ const ContentWrapper = styled.div`
 
 const LeftSection = styled.div`
   flex: 1 1 60%;
-  min-width: 0; /* Prevent flex overflow */
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-xl);
@@ -841,9 +866,9 @@ const LeftSection = styled.div`
 
 const SliderWrapper = styled.div`
   width: 100%;
-  min-width: 0; /* Prevent flex overflow */
+  min-width: 0;
   animation: ${fadeInUp} 0.8s ease-out;
-  overflow: hidden; /* Contain swiper */
+  overflow: hidden;
 
   @media ${devices.md} {
     order: 1;
@@ -894,7 +919,7 @@ const MainImage = styled.img`
   height: ${(props) => (props.$isMobile ? "60vh" : "500px")};
   object-fit: cover;
   display: block;
-  background: var(--gray-100); /* Fallback background */
+  background: var(--gray-100);
 
   @media ${devices.md} {
     height: 400px;
@@ -912,7 +937,7 @@ const ThumbsWrapper = styled.div`
   width: 100%;
 
   @media ${devices.sm} {
-    display: none; /* Hide thumbnails on mobile */
+    display: none;
   }
 `;
 
@@ -935,7 +960,6 @@ const ThumbImage = styled.img`
   }
 `;
 
-// Desktop Booking Card (Sticky)
 const DesktopBookingCard = styled.div`
   width: 100%;
   background: var(--white);
@@ -949,7 +973,7 @@ const DesktopBookingCard = styled.div`
   z-index: 10;
   transition: all var(--transition-normal);
   flex: 1 1 35%;
-  min-width: 280px;
+  min-width: 28rem;
   align-self: flex-start;
 
   @media ${devices.lg} {
@@ -957,107 +981,197 @@ const DesktopBookingCard = styled.div`
   }
 `;
 
-// Mobile Booking Card (Bottom Sheet)
-// const MobileStickyContainer = styled.div`
-//   @media ${devices.lg} {
-//     position: fixed;
-//     bottom: 0;
-//     left: 0;
-//     right: 0;
-//     background: var(--white);
-//     border-top: 1px solid var(--gray-200);
-//     padding: 0;
-//     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-//     z-index: 1000;
-//     animation: ${slideUp} 0.3s ease-out;
-//     width: 100vw;
-//     margin-left: calc(-1 * var(--space-xs)); /* Compensate for page padding */
-//   }
+const MobileStickyContainer = styled.div`
+  @media ${devices.lg} {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--white);
+    border-top: 1px solid var(--gray-200);
+    padding: 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    animation: ${slideUp} 0.3s ease-out;
+    width: 100vw;
+    margin-left: calc(-1 * var(--space-xs));
+  }
 
-//   @media (min-width: 969px) {
-//     display: none;
-//   }
-// `;
+  @media ${devices.md} {
+    display: block;
+  }
+`;
 
-// const MobileBookingCard = styled.div`
-//   @media ${devices.lg} {
-//     background: var(--white);
-//     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-//     padding: ${(props) =>
-//       props.$isExpanded ? "var(--space-xl)" : "var(--space-lg)"};
-//     max-height: ${(props) => (props.$isExpanded ? "80vh" : "80px")};
-//     overflow: ${(props) => (props.$isExpanded ? "auto" : "hidden")};
-//     transition: all var(--transition-normal);
-//     cursor: pointer;
-//     width: 100%;
+const MobileBookingCard = styled.div`
+  @media ${devices.lg} {
+    background: var(--white);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: ${(props) =>
+      props.$isExpanded ? "var(--space-xl)" : "var(--space-lg)"};
+    max-height: ${(props) => (props.$isExpanded ? "80vh" : "auto")};
+    overflow: ${(props) => (props.$isExpanded ? "auto" : "hidden")};
+    transition: all var(--transition-normal);
+    width: 100%;
 
-//     /* Custom scrollbar for mobile */
-//     &::-webkit-scrollbar {
-//       width: 4px;
-//     }
+    /* Allow form elements to be clickable */
+    .booking-form * {
+      pointer-events: auto;
+    }
 
-//     &::-webkit-scrollbar-track {
-//       background: var(--gray-100);
-//     }
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
 
-//     &::-webkit-scrollbar-thumb {
-//       background: var(--gray-400);
-//       border-radius: 2px;
-//     }
-//   }
+    &::-webkit-scrollbar-track {
+      background: var(--gray-100);
+    }
 
-//   @media (min-width: 969px) {
-//     display: none;
-//   }
-// `;
+    &::-webkit-scrollbar-thumb {
+      background: var(--gray-400);
+      border-radius: 2px;
+    }
+  }
 
-// const BookingHeader = styled.div`
-//   display: flex;
-//   justify-content: space-between;
-//   align-items: center;
-//   margin-bottom: ${(props) =>
-//     props.$isMobile && !props.$isMobileExpanded ? "0" : "var(--space-xl)"};
-//   cursor: ${(props) => (props.$isMobile ? "pointer" : "default")};
-//   width: 100%;
+  @media ${devices.sm} {
+    padding: ${(props) =>
+      props.$isExpanded ? "var(--space-lg)" : "var(--space-md)"};
+  }
+`;
 
-//   @media ${devices.sm} {
-//     margin-bottom: ${(props) =>
-//       props.$isMobile && !props.$isMobileExpanded ? "0" : "var(--space-lg)"};
-//   }
+const BookingCardContentWrapper = styled.div`
+  width: 100%;
+  height: 100%;
+`;
 
-//   div {
-//     display: flex;
-//     align-items: center;
-//     gap: var(--space-lg);
-//     flex: 1;
+const BookingHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${(props) =>
+    props.$isMobile && !props.$isMobileExpanded ? "0" : "var(--space-lg)"};
+  width: 100%;
+  padding: ${(props) => (props.$isMobile ? "var(--space-sm) 0" : "0")};
 
-//     @media ${devices.sm} {
-//       flex-direction: column;
-//       align-items: flex-start;
-//       gap: var(--space-sm);
-//     }
-//   }
-// `;
+  @media ${devices.sm} {
+    margin-bottom: ${(props) =>
+      props.$isMobile && !props.$isMobileExpanded ? "0" : "var(--space-sm)"};
+  }
 
-// const BookingTitle = styled.h3`
-//   margin: 0;
-//   color: var(--text-primary);
-//   font-size: var(--text-lg);
-//   font-weight: var(--font-semibold);
-//   font-family: var(--font-heading);
+  div {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    flex: 1;
 
-//   @media ${devices.sm} {
-//     font-size: var(--text-md);
-//   }
-// `;
+    @media ${devices.sm} {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-sm);
+    }
+  }
+`;
 
-// const MobileExpandIcon = styled.span`
-//   font-size: var(--text-lg);
-//   color: var(--text-muted);
-//   margin-left: auto;
-//   transition: transform var(--transition-normal);
-//   transform: ${(props) => (props.$expanded ? "rotate(180deg)" : "rotate(0)")};
-// `;
+// NEW: Mobile Expand Button Components
+const MobileExpandButton = styled.button`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  background: var(--primary);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl) var(--space-md);
+  cursor: pointer;
+
+  /* font-weight: var(--font-semibold); */
+  transition: all var(--transition-normal);
+  min-width: 160px;
+  margin-left: auto;
+
+  &:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  @media ${devices.sm} {
+    min-width: 140px;
+    padding: var(--space-xs) var(--space-sm);
+    font-size: var(--text-xs);
+  }
+  span {
+    font-size: var(--text-xl);
+  }
+`;
+
+const ButtonContent = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+`;
+
+const ButtonText = styled.span`
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+
+  @media ${devices.sm} {
+    font-size: var(--text-xs);
+  }
+`;
+
+const ButtonIcon = styled.span`
+  font-size: var(--text-sm);
+  transition: transform var(--transition-normal);
+  transform: ${(props) => (props.$expanded ? "rotate(180deg)" : "rotate(0)")};
+
+  @media ${devices.sm} {
+    font-size: var(--text-xs);
+  }
+`;
+
+const BookingCardBody = styled.div`
+  display: ${(props) =>
+    props.$isMobile && !props.$isMobileExpanded ? "none" : "block"};
+  animation: ${(props) =>
+      props.$isMobile && props.$isMobileExpanded ? slideUp : "none"}
+    0.3s ease-out;
+  pointer-events: auto;
+`;
+
+const FormContainer = styled.div`
+  width: 100%;
+
+  & > * {
+    pointer-events: auto;
+  }
+
+  input,
+  select,
+  textarea,
+  button,
+  label {
+    pointer-events: auto !important;
+  }
+`;
+
+const BookingTitle = styled.h3`
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  font-family: var(--font-heading);
+
+  @media ${devices.sm} {
+    font-size: var(--text-md);
+  }
+`;
 
 const PriceHighlight = styled.span`
   font-size: var(--text-2xl);
@@ -1072,21 +1186,207 @@ const PriceHighlight = styled.span`
 `;
 
 const AvailabilityBadge = styled.div`
-  padding: var(--space-md) var(--space-lg);
+  /* padding: var(--space-md) var(--space-lg); */
   background: ${(props) =>
     props.$available ? "var(--success-light)" : "var(--error-light)"};
   color: ${(props) =>
     props.$available ? "var(--success-dark)" : "var(--error-dark)"};
   border-radius: var(--radius-lg);
   font-weight: var(--font-semibold);
-  margin-bottom: var(--space-xl);
+  /* margin-bottom: var(--space-xl); */
   text-align: center;
   font-family: var(--font-body);
 
-  @media ${devices.sm} {
+  /* @media ${devices.sm} {
     padding: var(--space-sm) var(--space-md);
     margin-bottom: var(--space-lg);
     font-size: var(--text-sm);
+  } */
+`;
+
+const MileagePolicyCard = styled.div`
+  background: var(--accent);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-md);
+  animation: ${fadeInUp} 0.6s ease-out;
+
+  @media ${devices.sm} {
+    padding: var(--space-md);
+    margin-bottom: var(--space-sm);
+  }
+`;
+
+const MileagePolicyTitle = styled.h4`
+  margin: 0 0 var(--space-md) 0;
+  color: var(--primary-dark);
+  font-size: var(--text-3xxl);
+  font-weight: var(--font-bold);
+  font-family: var(--font-heading);
+
+  @media ${devices.sm} {
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-sm);
+  }
+`;
+
+const MileagePolicyDetails = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+`;
+
+const UnlimitedMileage = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+
+  span {
+    font-weight: var(--font-bold);
+    color: var(--primary-dark);
+    font-size: var(--text-md);
+  }
+
+  small {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  @media ${devices.sm} {
+    span {
+      font-size: var(--text-sm);
+    }
+
+    small {
+      font-size: var(--text-xs);
+    }
+  }
+`;
+
+const MileageAllowance = styled.div`
+  color: var(--text-primary);
+  font-size: var(--text-2xl);
+
+  strong {
+    color: var(--primary-dark);
+  }
+
+  @media ${devices.sm} {
+    font-size: var(--text-lg);
+  }
+`;
+
+const MileageRate = styled.div`
+  color: var(--text-primary);
+  font-size: var(--text-2xl);
+
+  strong {
+    color: var(--primary-dark);
+  }
+
+  @media ${devices.sm} {
+    font-size: var(--text-lg);
+  }
+`;
+
+const CarConditionCard = styled.div`
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-lg);
+  animation: ${fadeInUp} 0.6s ease-out 0.1s both;
+
+  @media ${devices.sm} {
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+`;
+
+const CarConditionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+
+  span {
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    font-size: var(--text-md);
+  }
+
+  @media ${devices.sm} {
+    margin-bottom: var(--space-sm);
+
+    span {
+      font-size: var(--text-sm);
+    }
+  }
+`;
+
+const ConditionStatus = styled.span`
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  background: ${(props) =>
+    props.$good ? "var(--success-light)" : "var(--warning-light)"};
+  color: ${(props) =>
+    props.$good ? "var(--success-dark)" : "var(--warning-dark)"};
+`;
+
+const CarConditionDetails = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+`;
+
+const MileageInfo = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  span {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  strong {
+    color: var(--text-primary);
+    font-size: var(--text-md);
+  }
+
+  @media ${devices.sm} {
+    span,
+    strong {
+      font-size: var(--text-sm);
+    }
+  }
+`;
+
+const ServiceInfo = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  span {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+  }
+
+  strong {
+    color: ${(props) =>
+      props.$needsService ? "var(--error)" : "var(--success)"};
+    font-size: var(--text-md);
+    font-weight: var(--font-semibold);
+  }
+
+  @media ${devices.sm} {
+    span,
+    strong {
+      font-size: var(--text-sm);
+    }
   }
 `;
 
@@ -1148,6 +1448,22 @@ const NotAvailableText = styled.p`
   @media ${devices.sm} {
     font-size: var(--text-sm);
     margin-bottom: var(--space-md);
+  }
+`;
+
+const MaintenanceNote = styled.div`
+  padding: var(--space-md);
+  background: var(--warning-light);
+  border-radius: var(--radius-lg);
+  color: var(--warning-dark);
+  font-weight: var(--font-medium);
+  margin-bottom: var(--space-lg);
+  font-size: var(--text-sm);
+
+  @media ${devices.sm} {
+    padding: var(--space-sm);
+    margin-bottom: var(--space-md);
+    font-size: var(--text-xs);
   }
 `;
 
@@ -1213,10 +1529,34 @@ const SimilarCarsGrid = styled.div`
   }
 
   .similar-car-card {
-    min-height: 450px;
+    min-height: 45rem;
 
     @media ${devices.sm} {
-      min-height: 400px;
+      min-height: 40rem;
     }
   }
+`;
+
+const LoadingWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: var(--space-lg);
+`;
+
+const LoadingText = styled.p`
+  color: var(--text-secondary);
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
+  font-family: var(--font-body);
+`;
+
+const NotFound = styled.div`
+  text-align: center;
+  padding: var(--space-2xl) var(--space-xl);
+  font-size: var(--text-xl);
+  color: var(--text-muted);
+  font-family: var(--font-body);
 `;

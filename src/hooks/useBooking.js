@@ -119,3 +119,40 @@ export const useAddBookingDriver = (bookingId) => {
     },
   });
 };
+
+export const useCancelBooking = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ bookingId, reason }) => {
+      console.log("Cancelling booking:", { bookingId, reason });
+
+      // If your API expects the bookingId in the URL and reason in the body
+      const response = await bookingApi.cancelBooking(bookingId, { reason });
+      return response.data;
+    },
+    onSuccess: (data, variables) => {
+      console.log("Booking cancelled successfully:", data);
+
+      // Invalidate and refetch bookings
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+
+      // Also invalidate specific booking if needed
+      queryClient.invalidateQueries({
+        queryKey: ["booking", variables.bookingId],
+      });
+    },
+    onError: (error, variables) => {
+      console.error("Failed to cancel booking:", error, variables);
+    },
+  });
+};
+
+export const useCheckInBooking = (bookingId) => {
+  return useMutation({
+    mutationFn: async (formData) => {
+      const response = await bookingApi.CheckInBooking(bookingId, formData);
+      return response;
+    },
+  });
+};

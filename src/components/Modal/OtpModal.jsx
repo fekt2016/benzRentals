@@ -1,15 +1,17 @@
 // src/components/OtpModal.jsx
 import React, { useState, useEffect, useRef } from "react";
 import styled, { keyframes } from "styled-components";
-import { useVerifyOtp } from "../../hooks/useAuth";
+import { useVerifyOtp, useResendOtp } from "../../hooks/useAuth";
 import { PrimaryButton, SecondaryButton } from "../../components/ui/Button";
 
 const OtpModal = ({ isOpen, onClose, phone }) => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [countdown, setCountdown] = useState(180); // 3 minutes = 180 seconds
   const [activeInput, setActiveInput] = useState(0);
+  const [clear, setClear] = useState(false);
   const inputRefs = useRef([]);
   const verifyOtpMutation = useVerifyOtp();
+  const resendOtpMutation = useResendOtp();
 
   // Initialize refs array
   useEffect(() => {
@@ -18,7 +20,7 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
 
   // Reset timer every time modal is opened
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen || clear) {
       setCountdown(180);
       setOtp(["", "", "", "", "", ""]);
       setActiveInput(0);
@@ -28,7 +30,7 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
         }
       }, 300);
     }
-  }, [isOpen]);
+  }, [isOpen, clear]);
 
   // Countdown effect
   useEffect(() => {
@@ -41,7 +43,8 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
   }, [isOpen, countdown]);
 
   const handleResend = () => {
-    setCountdown(180);
+    resendOtpMutation.mutate(phone);
+    setClear(true);
   };
 
   const handleVerifyOtp = () => {

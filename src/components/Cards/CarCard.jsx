@@ -29,6 +29,8 @@ const CarCard = ({
   showBookButton = true,
   showStatus = true, // New prop to show status badge
 }) => {
+  // console.log(car.status);
+  const carId = car?.id || car?._id;
   const image = getCarImage(car);
 
   // Determine availability status
@@ -57,7 +59,7 @@ const CarCard = ({
 
         {showOverlay && (
           <CarOverlay>
-            <ButtonLink to={`/model/${car._id}`} $size="md">
+            <ButtonLink to={`/model/${carId}`} $size="md">
               View Details
             </ButtonLink>
           </CarOverlay>
@@ -105,14 +107,14 @@ const CardWrapper = styled.div`
   height: 100%;
   display: flex;
   flex-direction: column;
-  min-height: 500px; /* Ensure minimum height for consistent grid */
+  min-height: 50rem; /* Ensure minimum height for consistent grid */
 
   &:hover {
     transform: translateY(-10px);
     box-shadow: var(--shadow-lg);
   }
   @media ${devices.md} {
-    margin: 0 5rem;
+    margin: 0 1rem;
   }
 `;
 

@@ -10,8 +10,8 @@ const reviewApi = {
     const response = await api.get(`/reviews/car/${carId}`);
     return response;
   },
-  getUserReviews: async (userId) => {
-    const response = await api.get(`/reviews/user/${userId}`);
+  getUserReviews: async () => {
+    const response = await api.get(`/reviews/user-reviews`);
     return response;
   },
   deleteReview: async (id) => {

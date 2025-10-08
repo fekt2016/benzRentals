@@ -26,12 +26,13 @@ export const useGetCarReviews = (carId) => {
     },
   });
 };
-export const useGetUserReviews = (userId) => {
+export const useGetUserReviews = () => {
   const queryClient = useQueryClient();
   return useQuery({
     queryKey: ["reviews"],
     queryFn: async () => {
-      const response = await reviewApi.getUserReviews(userId);
+      console.log("hook reviews");
+      const response = await reviewApi.getUserReviews();
       return response.data;
     },
     onSuccess: () => {

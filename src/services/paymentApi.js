@@ -2,8 +2,6 @@ import api from "./api";
 
 const paymentApi = {
   stripePayment: async (body) => {
-    console.log("Sending payment data:", body);
-
     try {
       // Your api.post likely already returns parsed JSON
       const response = await api.post("/payment/create-checkout-session", body);

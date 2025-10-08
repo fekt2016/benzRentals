@@ -49,7 +49,7 @@ const BookingDetailPage = () => {
 
   const booking = useMemo(() => bookingData?.data?.data || null, [bookingData]);
   const navigate = useNavigate();
-
+  console.log(booking);
   // State for file uploads
   const [driverLicenseFile, setDriverLicenseFile] = useState(null);
   const [insuranceFile, setInsuranceFile] = useState(null);
@@ -61,10 +61,7 @@ const BookingDetailPage = () => {
           <ErrorIcon>⚠️</ErrorIcon>
           <ErrorTitle>Booking Not Found</ErrorTitle>
           <ErrorText>The booking you're looking for doesn't exist.</ErrorText>
-          <SecondaryButton
-            onClick={() => navigate("/check-bookings")}
-            $size="lg"
-          >
+          <SecondaryButton onClick={() => navigate("/bookings")} $size="lg">
             <FaArrowLeft />
             Back to My Bookings
           </SecondaryButton>
@@ -209,7 +206,7 @@ const BookingDetailPage = () => {
   return (
     <PageWrapper>
       <Header>
-        <SecondaryButton onClick={() => navigate("/check-bookings")} $size="sm">
+        <SecondaryButton onClick={() => navigate("/bookings")} $size="sm">
           <FaArrowLeft />
           Back to Bookings
         </SecondaryButton>
@@ -595,7 +592,7 @@ const BookingDetailPage = () => {
 
       {/* Action Buttons */}
       <ActionSection>
-        <SecondaryButton onClick={() => navigate("/check-bookings")} $size="lg">
+        <SecondaryButton onClick={() => navigate("/bookings")} $size="lg">
           <FaArrowLeft />
           Back to My Bookings
         </SecondaryButton>

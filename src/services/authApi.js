@@ -1,12 +1,6 @@
 import api from "./api";
 
 const authApi = {
-  // Login with email/phone and password
-  // login: async (email, password) => {
-  //   const response = await api.post("/auth/login", { email, password });
-  //   return response.data;
-  // },
-
   // Get the currently logged-in user
   getCurrentUser: async () => {
     try {
@@ -22,8 +16,7 @@ const authApi = {
     const response = await api.post("/auth/logout");
     return response.data;
   },
-  sendOtp: async (payload) => {
-    console.log("api payload", payload);
+  login: async (payload) => {
     const response = await api.post("/auth/login", payload);
     return response.data;
   },
@@ -35,6 +28,10 @@ const authApi = {
       console.error("Error verifying OTP:", error);
       throw error; // Propagate error to React Query
     }
+  },
+  resendOtp: async (phone) => {
+    const response = await api.post("/auth/resend-otp", { phone });
+    return response;
   },
   register: async (payload) => {
     const response = await api.post("/auth/signup", payload);

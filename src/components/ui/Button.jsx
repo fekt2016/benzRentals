@@ -137,6 +137,52 @@ export const ErrorButton = styled(Button)`
   }
 `;
 
+// NEW: DangerButton - More prominent than ErrorButton for critical actions
+export const DangerButton = styled(Button)`
+  background: var(--error);
+  color: var(--white);
+  border: 2px solid var(--error);
+  box-shadow: var(--shadow-md);
+  font-weight: var(--font-bold);
+
+  &:hover:not(:disabled) {
+    background: #dc2626;
+    border-color: #dc2626;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px) scale(1.02);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0) scale(1);
+    box-shadow: var(--shadow-md);
+  }
+
+  &:focus {
+    outline: 2px solid var(--error-light);
+    outline-offset: 2px;
+  }
+`;
+
+// Alternative DangerButton with outline variant
+export const DangerOutlineButton = styled(Button)`
+  background: transparent;
+  color: var(--error);
+  border: 2px solid var(--error);
+  font-weight: var(--font-semibold);
+
+  &:hover:not(:disabled) {
+    background: var(--error);
+    color: var(--white);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: var(--shadow-sm);
+  }
+`;
+
 // Link variant of buttons
 export const ButtonLink = styled(PrimaryButton).attrs({ as: Link })``;
 export const SecondaryButtonLink = styled(SecondaryButton).attrs({
@@ -144,3 +190,27 @@ export const SecondaryButtonLink = styled(SecondaryButton).attrs({
 })``;
 export const AccentButtonLink = styled(AccentButton).attrs({ as: Link })``;
 export const GhostButtonLink = styled(GhostButton).attrs({ as: Link })``;
+export const DangerButtonLink = styled(DangerButton).attrs({ as: Link })``;
+export const DangerOutlineButtonLink = styled(DangerOutlineButton).attrs({
+  as: Link,
+})``;
+
+// Export all buttons for easy importing
+export default {
+  Button,
+  PrimaryButton,
+  SecondaryButton,
+  AccentButton,
+  GhostButton,
+  SuccessButton,
+  WarningButton,
+  ErrorButton,
+  DangerButton,
+  DangerOutlineButton,
+  ButtonLink,
+  SecondaryButtonLink,
+  AccentButtonLink,
+  GhostButtonLink,
+  DangerButtonLink,
+  DangerOutlineButtonLink,
+};

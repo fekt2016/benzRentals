@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import styled, { keyframes } from "styled-components";
 import { useCreateBooking } from "../../hooks/useBooking";
 import { useNavigate } from "react-router-dom";
+import { devices } from "../../styles/GlobalStyles";
 
 // Import UI Components
 import {
@@ -26,6 +27,9 @@ const MISSOURI_CITIES = [
   "St. Charles",
   "Blue Springs",
 ];
+
+// Time options for dropdown
+const TIME_OPTIONS = ["08:00", "08:30", "09:00", "17:00", "17:30", "18:00"];
 
 // Animations
 const slideUp = keyframes`
@@ -63,9 +67,12 @@ const BookingForm = ({ car, licenses, drivers }) => {
   const [form, setForm] = useState({
     pickupLocation: MISSOURI_CITIES[0],
     pickupDate: "",
+    pickupTime: "10:00",
     returnDate: "",
+    returnTime: "10:00",
     selectedLicense: null,
     selectedDriver: null,
+    driverName: "", // NEW: Added driver name field
   });
 
   const [insuranceFile, setInsuranceFile] = useState(null);
@@ -101,7 +108,13 @@ const BookingForm = ({ car, licenses, drivers }) => {
         errors.pickupDate = "Pickup date cannot be in the past";
       }
 
-      if (form.returnDate <= form.pickupDate) {
+      // Check if it's the same date but return time is before pickup time
+      if (form.pickupDate === form.returnDate) {
+        if (form.returnTime <= form.pickupTime) {
+          errors.returnTime =
+            "Return time must be after pickup time on the same day";
+        }
+      } else if (form.returnDate <= form.pickupDate) {
         errors.returnDate = "Return date must be after pickup date";
       }
 
@@ -123,6 +136,12 @@ const BookingForm = ({ car, licenses, drivers }) => {
       } else if (!hasExistingLicenses && !licenseFile) {
         errors.license = "Please upload your driver license";
       }
+
+      // NEW: Validate driver name when uploading new license
+      if (!form.selectedLicense && licenseFile && !form.driverName.trim()) {
+        errors.driverName =
+          "Driver name is required when uploading a new license";
+      }
     }
 
     setFormErrors(errors);
@@ -131,7 +150,11 @@ const BookingForm = ({ car, licenses, drivers }) => {
     const hasValidDates =
       form.pickupDate &&
       form.returnDate &&
-      form.returnDate > form.pickupDate &&
+      form.pickupTime &&
+      form.returnTime &&
+      (form.returnDate > form.pickupDate ||
+        (form.returnDate === form.pickupDate &&
+          form.returnTime > form.pickupTime)) &&
       form.pickupDate >= today;
 
     // FIXED: Enable button with just valid dates
@@ -187,6 +210,7 @@ const BookingForm = ({ car, licenses, drivers }) => {
       ...prev,
       selectedLicense: prev.selectedLicense === licenseId ? null : licenseId,
       selectedDriver: null, // Clear driver selection
+      driverName: "", // Clear driver name when selecting existing license
     }));
     // Clear license file when selecting existing license
     setLicenseFile(null);
@@ -197,6 +221,7 @@ const BookingForm = ({ car, licenses, drivers }) => {
       ...prev,
       selectedDriver: prev.selectedDriver === driverId ? null : driverId,
       selectedLicense: null, // Clear license selection
+      driverName: "", // Clear driver name when selecting verified driver
     }));
     // Clear files when selecting verified driver
     setLicenseFile(null);
@@ -221,13 +246,17 @@ const BookingForm = ({ car, licenses, drivers }) => {
     const hasValidDates =
       form.pickupDate &&
       form.returnDate &&
-      form.returnDate > form.pickupDate &&
+      form.pickupTime &&
+      form.returnTime &&
+      (form.returnDate > form.pickupDate ||
+        (form.returnDate === form.pickupDate &&
+          form.returnTime > form.pickupTime)) &&
       form.pickupDate >= new Date().toISOString().split("T")[0];
 
     if (!hasValidDates) {
       setFormErrors((prev) => ({
         ...prev,
-        submit: "Please select valid pickup and return dates",
+        submit: "Please select valid pickup and return dates/times",
       }));
       return;
     }
@@ -238,9 +267,12 @@ const BookingForm = ({ car, licenses, drivers }) => {
     const {
       pickupLocation,
       pickupDate,
+      pickupTime,
       returnDate,
+      returnTime,
       selectedLicense,
       selectedDriver,
+      driverName, // NEW: Include driver name
     } = form;
 
     try {
@@ -249,6 +281,8 @@ const BookingForm = ({ car, licenses, drivers }) => {
       formData.append("pickupLocation", pickupLocation);
       formData.append("pickupDate", pickupDate);
       formData.append("returnDate", returnDate);
+      formData.append("pickupTime", pickupTime);
+      formData.append("returnTime", returnTime);
 
       if (selectedDriver) {
         formData.append("driverId", selectedDriver);
@@ -256,9 +290,17 @@ const BookingForm = ({ car, licenses, drivers }) => {
         if (selectedLicense) formData.append("license", selectedLicense);
         if (insuranceFile) formData.append("insurance", insuranceFile);
         if (licenseFile) formData.append("driverLicense", licenseFile);
+        // NEW: Add driver name when uploading new license
+        if (driverName.trim() && !selectedLicense) {
+          formData.append("driverName", driverName.trim());
+        }
       }
 
+      for (let [key, value] of formData) {
+        console.log(`${key}:${value}`);
+      }
       const booking = await createBooking(formData);
+
       const bookingData = JSON.parse(JSON.stringify(booking));
 
       const bookingId = bookingData.data.data._id;
@@ -284,10 +326,17 @@ const BookingForm = ({ car, licenses, drivers }) => {
   // Calculate total days and price
   const calculateTotal = () => {
     if (!form.pickupDate || !form.returnDate) return 0;
-    const start = new Date(form.pickupDate);
-    const end = new Date(form.returnDate);
-    const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-    return days > 0 ? days * car.pricePerDay : 0;
+
+    const start = new Date(`${form.pickupDate}T${form.pickupTime}`);
+    const end = new Date(`${form.returnDate}T${form.returnTime}`);
+
+    // Calculate hours difference
+    const hoursDifference = (end - start) / (1000 * 60 * 60);
+
+    // Minimum 1 day charge
+    const days = Math.max(hoursDifference / 24, 1);
+
+    return days > 0 ? Math.ceil(days) * car.pricePerDay : 0;
   };
 
   const totalDays = calculateTotal() / car.pricePerDay;
@@ -295,12 +344,10 @@ const BookingForm = ({ car, licenses, drivers }) => {
   const serviceFee = 29.99;
   const grandTotal = totalPrice + serviceFee;
 
-  // Get minimum date for return date (pickup date + 1 day)
+  // Get minimum date for return date (pickup date)
   const getMinReturnDate = () => {
     if (!form.pickupDate) return "";
-    const minDate = new Date(form.pickupDate);
-    minDate.setDate(minDate.getDate() + 1);
-    return minDate.toISOString().split("T")[0];
+    return form.pickupDate;
   };
 
   // Get maximum date (30 days from pickup)
@@ -311,10 +358,20 @@ const BookingForm = ({ car, licenses, drivers }) => {
     return maxDate.toISOString().split("T")[0];
   };
 
+  // Get available return times based on pickup date and time
+  const getAvailableReturnTimes = () => {
+    if (form.pickupDate !== form.returnDate) {
+      return TIME_OPTIONS;
+    }
+
+    // If same day, only show times after pickup time
+    return TIME_OPTIONS.filter((time) => time > form.pickupTime);
+  };
+
   return (
     <FormContainer onSubmit={handleSubmit}>
       <FormHeader>
-        <h2>🚗 Book Your Adventure</h2>
+        <h2>Book Your Adventure</h2>
         <PriceDisplay>
           <Price>${car.pricePerDay}</Price>
           <PriceLabel>/day</PriceLabel>
@@ -337,10 +394,10 @@ const BookingForm = ({ car, licenses, drivers }) => {
         </ErrorBox>
       )}
 
-      {/* Date Selection */}
+      {/* Date & Time Selection */}
       <FormSection>
-        <SectionTitle>📅 Select Dates</SectionTitle>
-        <DateGrid>
+        <SectionTitle> Select Dates & Times</SectionTitle>
+        <DateTimeGrid>
           <FormGroup>
             <Label htmlFor="pickupLocation">Pick-up Location</Label>
             <Select
@@ -356,51 +413,91 @@ const BookingForm = ({ car, licenses, drivers }) => {
               ))}
             </Select>
           </FormGroup>
+          <FormRow>
+            <FormGroup>
+              <Label htmlFor="pickupDate">Pick-up Date *</Label>
+              <Input
+                id="pickupDate"
+                type="date"
+                name="pickupDate"
+                value={form.pickupDate}
+                onChange={handleChange}
+                min={new Date().toISOString().split("T")[0]}
+                required
+                $error={!!formErrors.pickupDate}
+              />
+              {formErrors.pickupDate && (
+                <FieldError>{formErrors.pickupDate}</FieldError>
+              )}
+            </FormGroup>
 
-          <FormGroup>
-            <Label htmlFor="pickupDate">Pick-up Date *</Label>
-            <Input
-              id="pickupDate"
-              type="date"
-              name="pickupDate"
-              value={form.pickupDate}
-              onChange={handleChange}
-              min={new Date().toISOString().split("T")[0]}
-              required
-              $error={!!formErrors.pickupDate}
-            />
-            {formErrors.pickupDate && (
-              <FieldError>{formErrors.pickupDate}</FieldError>
-            )}
-          </FormGroup>
-
-          <FormGroup>
-            <Label htmlFor="returnDate">Return Date *</Label>
-            <Input
-              id="returnDate"
-              type="date"
-              name="returnDate"
-              value={form.returnDate}
-              onChange={handleChange}
-              min={getMinReturnDate()}
-              max={getMaxReturnDate()}
-              disabled={!form.pickupDate}
-              required
-              $error={!!formErrors.returnDate}
-            />
-            {formErrors.returnDate && (
-              <FieldError>{formErrors.returnDate}</FieldError>
-            )}
-          </FormGroup>
-        </DateGrid>
+            <FormGroup>
+              <Label htmlFor="returnDate">Return Date *</Label>
+              <Input
+                id="returnDate"
+                type="date"
+                name="returnDate"
+                value={form.returnDate}
+                onChange={handleChange}
+                min={getMinReturnDate()}
+                max={getMaxReturnDate()}
+                disabled={!form.pickupDate}
+                required
+                $error={!!formErrors.returnDate}
+              />
+              {formErrors.returnDate && (
+                <FieldError>{formErrors.returnDate}</FieldError>
+              )}
+            </FormGroup>
+          </FormRow>
+          <FormRow>
+            <FormGroup>
+              <Label htmlFor="pickupTime">Pick-up Time *</Label>
+              <Select
+                id="pickupTime"
+                name="pickupTime"
+                value={form.pickupTime}
+                onChange={handleChange}
+                required
+              >
+                {TIME_OPTIONS.map((time) => (
+                  <option key={time} value={time}>
+                    {time}
+                  </option>
+                ))}
+              </Select>
+            </FormGroup>
+            <FormGroup>
+              <Label htmlFor="returnTime">Return Time *</Label>
+              <Select
+                id="returnTime"
+                name="returnTime"
+                value={form.returnTime}
+                onChange={handleChange}
+                disabled={!form.returnDate}
+                required
+                $error={!!formErrors.returnTime}
+              >
+                {getAvailableReturnTimes().map((time) => (
+                  <option key={time} value={time}>
+                    {time}
+                  </option>
+                ))}
+              </Select>
+              {formErrors.returnTime && (
+                <FieldError>{formErrors.returnTime}</FieldError>
+              )}
+            </FormGroup>
+          </FormRow>
+        </DateTimeGrid>
 
         {/* Price Summary */}
         {totalDays > 0 && (
           <PriceSummary>
             <SummaryItem>
               <span>
-                ${car.pricePerDay} × {totalDays}{" "}
-                {totalDays === 1 ? "day" : "days"}
+                ${car.pricePerDay} × {Math.ceil(totalDays)}{" "}
+                {Math.ceil(totalDays) === 1 ? "day" : "days"}
               </span>
               <span>${totalPrice.toFixed(2)}</span>
             </SummaryItem>
@@ -419,7 +516,7 @@ const BookingForm = ({ car, licenses, drivers }) => {
       {/* Driver Selection */}
       {verifiedDrivers.length > 0 && (
         <FormSection>
-          <SectionTitle>👥 Select Verified Driver</SectionTitle>
+          <SectionTitle> Select Verified Driver</SectionTitle>
           <CardsContainer>
             {verifiedDrivers.map((driver) => (
               <DriverCard
@@ -433,7 +530,7 @@ const BookingForm = ({ car, licenses, drivers }) => {
                   </DriverAvatar>
                   <DriverDetails>
                     <DriverName>{driver.name}</DriverName>
-                    <DriverBadge>✅ Verified</DriverBadge>
+                    <DriverBadge> Verified</DriverBadge>
                   </DriverDetails>
                 </DriverInfo>
                 <Radio selected={form.selectedDriver === driver._id}>
@@ -464,7 +561,6 @@ const BookingForm = ({ car, licenses, drivers }) => {
                   <LicenseDetails>
                     <span>{license.state}</span>
                     <span>
-                      Expires:{" "}
                       {new Date(license.expiryDate).toLocaleDateString()}
                     </span>
                   </LicenseDetails>
@@ -482,7 +578,33 @@ const BookingForm = ({ car, licenses, drivers }) => {
       {/* File Uploads */}
       {!form.selectedDriver && (
         <FormSection>
-          <SectionTitle>📎 Upload Documents</SectionTitle>
+          <SectionTitle> Upload Documents</SectionTitle>
+
+          {/* NEW: Driver Name Field - Only show when uploading new license */}
+          {/* {showDriverNameField && ( */}
+          <DriverNameSection>
+            <FormGroup>
+              <Label htmlFor="driverName">👤 Driver Name *</Label>
+              <Input
+                id="driverName"
+                type="text"
+                name="driverName"
+                value={form.driverName}
+                onChange={handleChange}
+                placeholder="Enter the driver's full name"
+                $error={!!formErrors.driverName}
+              />
+              {formErrors.driverName && (
+                <FieldError>{formErrors.driverName}</FieldError>
+              )}
+              <DriverNameHint>
+                Please enter the name exactly as it appears on the driver's
+                license
+              </DriverNameHint>
+            </FormGroup>
+          </DriverNameSection>
+          {/* )} */}
+
           <FileUploadGrid>
             <FileUploadGroup>
               <FileLabel>
@@ -557,7 +679,7 @@ const BookingForm = ({ car, licenses, drivers }) => {
           </>
         ) : (
           <>
-            🚀 Reserve Now - $
+            Reserve Now - $
             {grandTotal > serviceFee
               ? grandTotal.toFixed(2)
               : (car.pricePerDay + serviceFee).toFixed(2)}
@@ -569,8 +691,8 @@ const BookingForm = ({ car, licenses, drivers }) => {
       <FormStatus>
         <StatusIndicator $valid={isFormValid}>
           {isFormValid
-            ? "✅ Ready to book! Documents can be provided later"
-            : "⏳ Select valid pickup and return dates"}
+            ? "✅ Ready to book!"
+            : "⏳ Select valid pickup and return dates/times"}
         </StatusIndicator>
       </FormStatus>
     </FormContainer>
@@ -588,6 +710,10 @@ const FormContainer = styled.form`
   box-shadow: var(--shadow-lg);
   animation: ${slideUp} 0.6s ease-out;
   border: 1px solid var(--gray-200);
+
+  @media ${devices.sm} {
+    padding: var(--space-sm);
+  }
 `;
 
 const FormHeader = styled.div`
@@ -601,9 +727,14 @@ const FormHeader = styled.div`
   h2 {
     margin: 0;
     color: var(--text-primary);
-    font-size: var(--text-2xl);
+    font-size: var(--text-3xl);
     font-family: var(--font-heading);
     font-weight: var(--font-semibold);
+  }
+
+  @media ${devices.sm} {
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-sm);
   }
 `;
 
@@ -614,39 +745,60 @@ const PriceDisplay = styled.div`
 const Price = styled.span`
   font-size: var(--text-3xl);
   font-weight: var(--font-bold);
-  color: var(--primary);
+  color: var(--primary-dark);
   font-family: var(--font-heading);
 `;
 
 const PriceLabel = styled.span`
   font-size: var(--text-base);
-  color: var(--text-muted);
+  color: var(--secondary);
   margin-left: var(--space-xs);
 `;
 
 const FormSection = styled(Card)`
-  margin-bottom: var(--space-lg);
-  padding: var(--space-lg);
+  margin-bottom: var(--space-sm);
+  padding: var(--space-sm);
   background: var(--surface);
   border-radius: var(--radius-lg);
   border: 1px solid var(--gray-200);
 `;
 
 const SectionTitle = styled.h3`
-  margin: 0 0 var(--space-md) 0;
+  margin: 0 0 var(--space-sm) 0;
   color: var(--text-primary);
-  font-size: var(--text-xl);
+  font-size: var(--text-2xl);
   font-family: var(--font-heading);
   font-weight: var(--font-semibold);
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
 `;
 
-const DateGrid = styled.div`
+// NEW: Driver Name Section
+const DriverNameSection = styled.div`
+  margin-bottom: var(--space-xs);
+  /* padding: var(--space-xs); */
+  /* background: var(--primary-light); */
+  /* border-radius: var(--radius-lg); */
+  /* border-left: 4px solid var(--primary); */
+`;
+
+const DriverNameHint = styled.div`
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  padding: 0 0 0 var(--space-md);
+  /* margin-top: var(--space-xs); */
+  font-style: italic;
+`;
+
+// NEW: Updated grid for date and time fields
+const DateTimeGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: var(--space-md);
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr 1fr;
+  }
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -655,10 +807,10 @@ const DateGrid = styled.div`
 
 // FIXED: Added missing Select component
 const Select = styled.select`
-  padding: var(--space-md);
+  padding: var(--space-sm);
   border: 2px solid var(--gray-300);
   border-radius: var(--radius-lg);
-  font-size: var(--text-base);
+  font-size: var(--text-lg);
   transition: all var(--transition-normal);
   background: var(--white);
   font-family: var(--font-body);
@@ -744,14 +896,14 @@ const TotalPrice = styled.div`
 const CardsContainer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  /* gap: var(--space-md); */
 `;
 
 const DriverCard = styled(Card)`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   border: 2px solid
     ${(props) => (props.selected ? "var(--primary)" : "var(--gray-300)")};
   border-radius: var(--radius-lg);
@@ -773,8 +925,8 @@ const DriverInfo = styled.div`
 `;
 
 const DriverAvatar = styled.div`
-  width: 40px;
-  height: 40px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: var(--gradient-primary);
   display: flex;
@@ -789,6 +941,11 @@ const DriverDetails = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
+  @media ${devices.sm} {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+  }
 `;
 
 const DriverName = styled.strong`
@@ -812,7 +969,7 @@ const LicenseCard = styled(DriverCard)``;
 const LicenseInfo = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  /* gap: var(--space-sm); */
 `;
 
 const LicenseNumber = styled.strong`
@@ -823,14 +980,14 @@ const LicenseNumber = styled.strong`
 
 const LicenseDetails = styled.div`
   display: flex;
-  gap: var(--space-md);
+  /* gap: var(--space-md); */
   font-size: var(--text-sm);
   color: var(--text-muted);
   font-family: var(--font-body);
 
   @media (max-width: 480px) {
     flex-direction: column;
-    gap: var(--space-xs);
+    /* gap: var(--space-xs); */
   }
 `;
 
@@ -913,11 +1070,11 @@ const FileHint = styled.div`
 const NoticeBox = styled.div`
   display: flex;
   align-items: flex-start;
-  gap: var(--space-md);
-  padding: var(--space-lg);
-  background: var(--gray-50);
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--accent);
   border-radius: var(--radius-lg);
-  border-left: 4px solid var(--primary);
+  /* border-left: 4px solid var(--primary); */
   margin: var(--space-lg) 0;
 `;
 
@@ -927,9 +1084,10 @@ const NoticeIcon = styled.div`
 
 const NoticeText = styled.p`
   margin: 0;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
+  color: var(--white);
+  font-size: var(--text-base);
   line-height: 1.5;
+  font-weight: var(--font-semibold);
   font-family: var(--font-body);
 `;
 
@@ -1029,4 +1187,9 @@ const CloseButton = styled.button`
   &:hover {
     background: var(--gray-200);
   }
+`;
+const FormRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 `;

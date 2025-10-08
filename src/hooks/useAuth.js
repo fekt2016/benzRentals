@@ -23,10 +23,10 @@ export const useCurrentUser = () => {
   });
 };
 
-export const useSendOtp = () => {
+export const useLogin = () => {
   return useMutation({
     mutationFn: async (payload) => {
-      const response = await authApi.sendOtp(payload);
+      const response = await authApi.login(payload);
       return response;
     },
     onSuccess: (data) => {
@@ -38,26 +38,13 @@ export const useSendOtp = () => {
   });
 };
 
-// export const useVerifyOtp = () =>
-//   useMutation({
-//     mutationFn: async (payload) => await authApi.verifyOtp(payload),
-//     onSuccess: (data) => {
-//       console.log(data);
-//       const token = data.token;
-
-//       // token returned from your backend
-//       Cookies.set("token", token, { expires: 7 });
-//       // then you can close OTP modal and navigate
-//     },
-//     onError: (err) => console.error("OTP error", err),
-//   });
 export const useVerifyOtp = () => {
   const navigate = useNavigate();
 
   return useMutation({
     mutationFn: async (payload) => {
       const response = await authApi.verifyOtp(payload);
-      console.log("response", response);
+
       return response;
     },
     onSuccess: (data) => {
@@ -78,6 +65,17 @@ export const useVerifyOtp = () => {
     },
     onError: (err) => {
       console.error("OTP error", err);
+    },
+  });
+};
+export const useResendOtp = () => {
+  return useMutation({
+    mutationFn: async (phone) => {
+      const response = await authApi.resendOtp(phone);
+      return response;
+    },
+    onSuccess: (data) => {
+      console.log("otp resend successfully!!", data);
     },
   });
 };

@@ -166,7 +166,7 @@ const Footer = () => {
         </CopyrightContainer>
       </CopyrightSection>
 
-      {/* Floating CTA */}
+      {/* Floating CTA - Hidden on mobile */}
       <FloatingCTA>
         <CTAText>Ready to experience luxury?</CTAText>
         <CTAButton
@@ -212,12 +212,6 @@ const pulse = keyframes`
     box-shadow: 0 0 0 0 rgba(211, 47, 47, 0);
   }
 `;
-
-// const gradientShift = keyframes`
-//   0% { background-position: 0% 50%; }
-//   50% { background-position: 100% 50%; }
-//   100% { background-position: 0% 50%; }
-// `;
 
 // Styled Components
 const FooterWrapper = styled.footer`
@@ -577,13 +571,9 @@ const FloatingCTA = styled.div`
   animation: ${pulse} 2s infinite;
   z-index: 1000;
 
+  /* Hide on mobile devices */
   @media ${devices.md} {
-    bottom: 0;
-    right: var(--space-md);
-    left: var(--space-md);
-    justify-content: center;
-    width: 50%;
-    padding: var(--space-xs) var(--space-md);
+    display: none;
   }
 `;
 

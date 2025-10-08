@@ -95,26 +95,26 @@ const GlobalStyles = createGlobalStyle`
     --radius-full: 50px;
 
     // Spacing
-    --space-xs: 0.5rem;
+    --space-xs: .8rem;
     --space-sm: 1rem;
     --space-md: 1.5rem;
     --space-lg: 2rem;
-    --space-xl: 3rem;
-    --space-2xl: 4rem;
+    --space-xl: 2.5rem;
+    --space-2xl: 3.5rem;
     --space-3xl: 6rem;
 
-    // Typography Scale
-    --text-xs: 0.75rem;
-    --text-sm: 0.875rem;
-    --text-base: 1rem;
-    --text-lg: 1.125rem;
-    --text-xl: 1.25rem;
-    --text-2xl: 1.5rem;
-    --text-3xl: 1.875rem;
-    --text-4xl: 2.25rem;
-    --text-5xl: 3rem;
-    --text-6xl: 3.75rem;
-    --text-7xl: 4rem;
+    // ===== INCREASED TYPOGRAPHY SCALE =====
+    --text-xs: 0.8rem;        // Increased from 0.7rem
+    --text-sm: 0.95rem;       // Increased from 0.8rem
+    --text-base: 1.1rem;      // Increased from 1rem
+    --text-lg: 1.25rem;       // Increased from 1.12rem
+    --text-xl: 1.4rem;        // Increased from 1.2rem
+    --text-2xl: 1.8rem;       // Increased from 1.5rem
+    --text-3xl: 2.2rem;       // Increased from 1.8rem
+    --text-4xl: 2.8rem;       // Increased from 2.25rem
+    --text-5xl: 3.5rem;       // Increased from 3rem
+    --text-6xl: 4.5rem;       // Increased from 3.75rem
+    --text-7xl: 5rem;         // Increased from 4rem
 
     // Font Weights
     --font-light: 300;
@@ -251,6 +251,7 @@ const GlobalStyles = createGlobalStyle`
     line-height: 1.7;
     font-family: var(--font-body);
     font-weight: var(--font-normal);
+    font-size: var(--text-base); // Added to ensure paragraph text uses increased size
   }
 
   /* Links */
@@ -259,6 +260,7 @@ const GlobalStyles = createGlobalStyle`
     text-decoration: none;
     transition: color var(--transition-fast);
     font-family: var(--font-body);
+    font-size: inherit; // Ensure links inherit the increased font size
 
     &:hover {
       color: var(--primary);
@@ -286,6 +288,7 @@ const GlobalStyles = createGlobalStyle`
     color: inherit;
     border: none;
     background: none;
+    font-size: var(--text-base); // Ensure form elements use increased size
   }
 
   button {
@@ -293,6 +296,7 @@ const GlobalStyles = createGlobalStyle`
     transition: all var(--transition-normal);
     font-family: var(--font-body);
     font-weight: var(--font-medium);
+    font-size: var(--text-base); // Ensure buttons use increased size
 
     &:hover:not(:disabled) {
       transform: translateY(-1px);
@@ -363,6 +367,7 @@ const GlobalStyles = createGlobalStyle`
     -webkit-text-fill-color: transparent;
     background-clip: text;
     font-family: var(--font-heading);
+    font-size: inherit;
   }
 
   .gradient-text-accent {
@@ -371,6 +376,7 @@ const GlobalStyles = createGlobalStyle`
     -webkit-text-fill-color: transparent;
     background-clip: text;
     font-family: var(--font-heading);
+    font-size: inherit;
   }
 
   .glass-effect {
