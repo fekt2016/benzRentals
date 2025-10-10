@@ -37,6 +37,30 @@ const authApi = {
     const response = await api.post("/auth/signup", payload);
     return response.data;
   },
+  updateProfile: async (payload) => {
+    const response = await api.patch("/auth/update-profile", payload);
+    return response.data;
+  },
+  forgotPassword: async (payload) => {
+    const response = await api.post("/auth/forgot-password", payload);
+    return response.data;
+  },
+  resetPassword: async (payload) => {
+    const response = await api.post("/auth/reset-password", payload);
+    return response.data;
+  },
+  changePassword: async (payload) => {
+    const response = await api.patch("/auth/updateMyPassword", payload);
+    return response.data;
+  },
+  uploadAvatar: async (payload) => {
+    const response = await api.patch("/auth/upload-avatar", payload, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  },
 };
 
 export default authApi;

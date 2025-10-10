@@ -37,12 +37,12 @@ const bookingApi = {
     return response;
   },
 
-  updateUserBooking: async (id, data) => {
+  updateBookingDriver: async (id, data) => {
     const headers =
       data instanceof FormData
         ? { "Content-Type": "multipart/form-data" }
         : { "Content-Type": "application/json" };
-    const response = await api.patch(`/bookings/${id}/documents`, data, {
+    const response = await api.patch(`/bookings/${id}/driver-documents`, data, {
       headers,
     });
     return response;

@@ -1,5 +1,5 @@
 // src/pages/UserPage.jsx
-import React, { useState } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import styled from "styled-components";
 import { devices } from "../styles/GlobalStyles";
 
@@ -10,6 +10,7 @@ import {
   SecondaryButton,
   GhostButton,
 } from "../components/ui/Button";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 
 // Icons
 import {
@@ -21,37 +22,41 @@ import {
   FaBell,
   FaMapMarkerAlt,
   FaLock,
-  FaEnvelope,
-  FaPhone,
   FaCheckCircle,
   FaUpload,
   FaTrash,
   FaPlus,
+  FaCamera,
+  FaTimes,
+  FaBars,
 } from "react-icons/fa";
+import {
+  useCurrentUser,
+  useUpdateProfile,
+  useChangePassword,
+  useUploadAvatar,
+} from "../hooks/useAuth";
 
 const UserPage = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditing, setIsEditing] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const fileInputRef = useRef(null);
+  const { data: userData } = useCurrentUser();
 
-  // Mock user data
-  const user = {
-    name: "John Smith",
-    email: "john.smith@example.com",
-    phone: "+1 (555) 123-4567",
-    joined: "March 15, 2023",
-    avatar:
-      "https://images.unsplash.com/photo-1603415526960-f7e0328d7a23?auto=format&fit=crop&w=300&q=80",
-    membership: "Premium Member",
-    totalRentals: 12,
-    favoriteCar: "Mercedes-Benz S-Class",
-  };
+  const user = useMemo(() => userData?.user || null, [userData]);
+  const { mutate: updateProfile, isLoading } = useUpdateProfile();
+  const { mutate: changePassword, isLoading: isChangingPassword } =
+    useChangePassword();
+  const { mutate: uploadAvatar } = useUploadAvatar();
 
   // Form state
   const [profileForm, setProfileForm] = useState({
-    firstName: "John",
-    lastName: "Smith",
-    email: user.email,
-    phone: user.phone,
+    fullName: user?.fullName || "John Smith",
+    email: user?.email || "",
+    phone: user?.phone || "",
     dateOfBirth: "1985-06-15",
     address: "123 Main Street, New York, NY 10001",
     emergencyContact: "+1 (555) 987-6543",
@@ -60,8 +65,7 @@ const UserPage = () => {
   const [securityForm, setSecurityForm] = useState({
     currentPassword: "",
     newPassword: "",
-    confirmPassword: "",
-    twoFactorEnabled: true,
+    newPasswordConfirm: "",
   });
 
   const [preferences, setPreferences] = useState({
@@ -77,7 +81,7 @@ const UserPage = () => {
       childSeat: false,
       additionalDriver: false,
     },
-    communication: "email", // email, sms, both
+    communication: "email",
   });
 
   // Mock payment methods
@@ -98,15 +102,90 @@ const UserPage = () => {
     },
   ]);
 
+  // Handle tab change - close mobile menu on tab select
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setMobileMenuOpen(false);
+  };
+
+  // Separate avatar upload handler
+  const handleAvatarUpload = async (file) => {
+    console.log("Uploading avatar:", file);
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    try {
+      uploadAvatar(formData, {
+        onSuccess: () => {
+          console.log("Avatar uploaded successfully");
+        },
+        onError: (error) => {
+          console.error("Avatar upload failed:", error);
+          alert("Failed to upload avatar. Please try again.");
+          setAvatarPreview(null);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+        },
+        onSettled: () => {
+          setIsUploadingAvatar(false);
+        },
+      });
+    } catch (error) {
+      console.error("Avatar upload error:", error);
+      setIsUploadingAvatar(false);
+      setAvatarPreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  // Avatar upload handlers
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Please select an image smaller than 5MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setAvatarPreview(e.target.result);
+      handleAvatarUpload(file);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveAvatar = () => {
+    setIsUploadingAvatar(true);
+    // Implementation for removing avatar
+  };
+
   const handleProfileChange = (e) => {
     setProfileForm({ ...profileForm, [e.target.name]: e.target.value });
   };
 
   const handleSecurityChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setSecurityForm({
       ...securityForm,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: value,
     });
   };
 
@@ -120,21 +199,33 @@ const UserPage = () => {
     });
   };
 
-  const handleSaveProfile = (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
-    console.log("Saving profile:", profileForm);
-    setIsEditing(false);
-    // Add API call here
+    updateProfile(profileForm, {
+      onSuccess: () => {
+        setIsEditing(false);
+      },
+    });
   };
 
   const handleSaveSecurity = (e) => {
     e.preventDefault();
-    console.log("Updating security:", securityForm);
-    // Add API call here
+    if (securityForm.newPassword !== securityForm.newPasswordConfirm) {
+      alert("New passwords don't match!");
+      return;
+    }
+    changePassword(securityForm, {
+      onSuccess: () => {
+        setSecurityForm({
+          currentPassword: "",
+          newPassword: "",
+          newPasswordConfirm: "",
+        });
+      },
+    });
   };
 
   const handleAddPaymentMethod = () => {
-    // Add payment method logic
     console.log("Add new payment method");
   };
 
@@ -159,6 +250,9 @@ const UserPage = () => {
     { id: "notifications", label: "Notifications", icon: FaBell },
   ];
 
+  // Get current avatar URL
+  const currentAvatar = avatarPreview || user?.avatar;
+
   const renderTabContent = () => {
     switch (activeTab) {
       case "profile":
@@ -171,6 +265,7 @@ const UserPage = () => {
             onCancel={() => setIsEditing(false)}
             onChange={handleProfileChange}
             onSave={handleSaveProfile}
+            isLoading={isLoading}
           />
         );
       case "security":
@@ -179,6 +274,7 @@ const UserPage = () => {
             securityForm={securityForm}
             onChange={handleSecurityChange}
             onSave={handleSaveSecurity}
+            isLoading={isChangingPassword}
           />
         );
       case "payment":
@@ -212,23 +308,74 @@ const UserPage = () => {
   return (
     <PageWrapper>
       <Container>
+        {/* Mobile Header with Menu Toggle */}
+        <MobileHeader>
+          <MobileTitle>My Profile</MobileTitle>
+          <MobileMenuButton
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            active={mobileMenuOpen}
+          >
+            <FaBars />
+          </MobileMenuButton>
+        </MobileHeader>
+
         <PageHeader>
           <HeaderContent>
             <AvatarSection>
-              <Avatar src={user.avatar} alt={user.name} />
-              <AvatarOverlay>
-                <FaUpload />
-              </AvatarOverlay>
+              <AvatarContainer>
+                {currentAvatar ? (
+                  <Avatar src={currentAvatar} alt={user?.fullName} />
+                ) : (
+                  <DefaultAvatar>
+                    <FaUser />
+                  </DefaultAvatar>
+                )}
+                <AvatarOverlay
+                  onClick={handleAvatarClick}
+                  disabled={isUploadingAvatar || isLoading}
+                >
+                  {isUploadingAvatar ? (
+                    <UploadSpinner />
+                  ) : currentAvatar ? (
+                    <FaCamera />
+                  ) : (
+                    <FaUpload />
+                  )}
+                </AvatarOverlay>
+                {currentAvatar && (
+                  <RemoveAvatarButton
+                    onClick={handleRemoveAvatar}
+                    disabled={isUploadingAvatar || isLoading}
+                  >
+                    <FaTimes />
+                  </RemoveAvatarButton>
+                )}
+              </AvatarContainer>
+
+              <HiddenFileInput
+                type="file"
+                ref={fileInputRef}
+                onChange={handleAvatarChange}
+                accept="image/*"
+                disabled={isUploadingAvatar || isLoading}
+              />
+
+              <AvatarUploadText>
+                {isUploadingAvatar
+                  ? "Uploading..."
+                  : "Click to upload profile picture"}
+              </AvatarUploadText>
+              <AvatarRequirements>JPG, PNG or GIF • Max 5MB</AvatarRequirements>
             </AvatarSection>
             <UserInfo>
-              <UserName>{user.name}</UserName>
+              <UserName>{user?.fullName}</UserName>
               <UserBadge>
                 <FaCheckCircle />
-                {user.membership}
+                {user?.membership || "Premium Member"}
               </UserBadge>
               <UserStats>
                 <Stat>
-                  <StatNumber>{user.totalRentals}</StatNumber>
+                  <StatNumber>{user?.totalRentals || 12}</StatNumber>
                   <StatLabel>Total Rentals</StatLabel>
                 </Stat>
                 <Stat>
@@ -236,7 +383,7 @@ const UserPage = () => {
                   <StatLabel>Rating</StatLabel>
                 </Stat>
                 <Stat>
-                  <StatNumber>{user.favoriteCar}</StatNumber>
+                  <StatNumber>{user?.favoriteCar || "Toyota Camry"}</StatNumber>
                   <StatLabel>Favorite Car</StatLabel>
                 </Stat>
               </UserStats>
@@ -245,7 +392,13 @@ const UserPage = () => {
         </PageHeader>
 
         <ContentGrid>
-          <Sidebar>
+          <Sidebar $isOpen={mobileMenuOpen}>
+            <MobileSidebarHeader>
+              <MobileSidebarTitle>Navigation</MobileSidebarTitle>
+              <MobileMenuClose onClick={() => setMobileMenuOpen(false)}>
+                <FaTimes />
+              </MobileMenuClose>
+            </MobileSidebarHeader>
             <TabList>
               {tabs.map((tab) => {
                 const TabIcon = tab.icon;
@@ -253,7 +406,7 @@ const UserPage = () => {
                   <TabItem
                     key={tab.id}
                     active={activeTab === tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => handleTabChange(tab.id)}
                   >
                     <TabIcon />
                     {tab.label}
@@ -266,6 +419,11 @@ const UserPage = () => {
           <MainContent>{renderTabContent()}</MainContent>
         </ContentGrid>
       </Container>
+
+      {/* Mobile Overlay */}
+      {mobileMenuOpen && (
+        <MobileOverlay onClick={() => setMobileMenuOpen(false)} />
+      )}
     </PageWrapper>
   );
 };
@@ -279,6 +437,7 @@ const ProfileSection = ({
   onCancel,
   onChange,
   onSave,
+  isLoading,
 }) => (
   <SectionCard>
     <SectionHeader>
@@ -292,11 +451,18 @@ const ProfileSection = ({
         </SecondaryButton>
       ) : (
         <ButtonGroup>
-          <GhostButton onClick={onCancel} $size="sm">
+          <GhostButton onClick={onCancel} $size="sm" disabled={isLoading}>
             Cancel
           </GhostButton>
-          <PrimaryButton onClick={onSave} $size="sm">
-            Save Changes
+          <PrimaryButton onClick={onSave} $size="sm" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <LoadingSpinner size="sm" />
+                Saving...
+              </>
+            ) : (
+              "Save Changes"
+            )}
           </PrimaryButton>
         </ButtonGroup>
       )}
@@ -307,15 +473,15 @@ const ProfileSection = ({
         <InfoGrid>
           <InfoItem>
             <InfoLabel>Full Name</InfoLabel>
-            <InfoValue>{user.name}</InfoValue>
+            <InfoValue>{user?.fullName}</InfoValue>
           </InfoItem>
           <InfoItem>
             <InfoLabel>Email Address</InfoLabel>
-            <InfoValue>{user.email}</InfoValue>
+            <InfoValue>{user?.email}</InfoValue>
           </InfoItem>
           <InfoItem>
             <InfoLabel>Phone Number</InfoLabel>
-            <InfoValue>{user.phone}</InfoValue>
+            <InfoValue>{user?.phone}</InfoValue>
           </InfoItem>
           <InfoItem>
             <InfoLabel>Date of Birth</InfoLabel>
@@ -333,27 +499,18 @@ const ProfileSection = ({
       ) : (
         <Form onSubmit={onSave}>
           <FormGrid>
-            <FormGroup>
-              <Label>First Name</Label>
+            <FormGroup fullWidth>
+              <Label>Full Name</Label>
               <Input
                 type="text"
-                name="firstName"
-                value={profileForm.firstName}
+                name="fullName"
+                value={profileForm.fullName}
                 onChange={onChange}
                 required
+                disabled={isLoading}
               />
             </FormGroup>
-            <FormGroup>
-              <Label>Last Name</Label>
-              <Input
-                type="text"
-                name="lastName"
-                value={profileForm.lastName}
-                onChange={onChange}
-                required
-              />
-            </FormGroup>
-            <FormGroup>
+            <FormGroup fullWidth>
               <Label>Email Address</Label>
               <Input
                 type="email"
@@ -361,9 +518,10 @@ const ProfileSection = ({
                 value={profileForm.email}
                 onChange={onChange}
                 required
+                disabled={isLoading}
               />
             </FormGroup>
-            <FormGroup>
+            <FormGroup fullWidth>
               <Label>Phone Number</Label>
               <Input
                 type="tel"
@@ -371,15 +529,17 @@ const ProfileSection = ({
                 value={profileForm.phone}
                 onChange={onChange}
                 required
+                disabled={isLoading}
               />
             </FormGroup>
-            <FormGroup>
+            <FormGroup fullWidth>
               <Label>Date of Birth</Label>
               <Input
                 type="date"
                 name="dateOfBirth"
                 value={profileForm.dateOfBirth}
                 onChange={onChange}
+                disabled={isLoading}
               />
             </FormGroup>
             <FormGroup fullWidth>
@@ -390,9 +550,10 @@ const ProfileSection = ({
                 value={profileForm.address}
                 onChange={onChange}
                 placeholder="Enter your full address"
+                disabled={isLoading}
               />
             </FormGroup>
-            <FormGroup>
+            <FormGroup fullWidth>
               <Label>Emergency Contact</Label>
               <Input
                 type="tel"
@@ -400,6 +561,7 @@ const ProfileSection = ({
                 value={profileForm.emergencyContact}
                 onChange={onChange}
                 placeholder="+1 (555) 123-4567"
+                disabled={isLoading}
               />
             </FormGroup>
           </FormGrid>
@@ -410,7 +572,7 @@ const ProfileSection = ({
 );
 
 // Security Section Component
-const SecuritySection = ({ securityForm, onChange, onSave }) => (
+const SecuritySection = ({ securityForm, onChange, onSave, isLoading }) => (
   <SectionCard>
     <SectionHeader>
       <SectionTitle>
@@ -421,7 +583,7 @@ const SecuritySection = ({ securityForm, onChange, onSave }) => (
 
     <SectionContent>
       <Form onSubmit={onSave}>
-        <FormGroup>
+        <FormGroup fullWidth>
           <Label>Current Password</Label>
           <Input
             type="password"
@@ -429,10 +591,12 @@ const SecuritySection = ({ securityForm, onChange, onSave }) => (
             value={securityForm.currentPassword}
             onChange={onChange}
             placeholder="Enter current password"
+            required
+            disabled={isLoading}
           />
         </FormGroup>
 
-        <FormGroup>
+        <FormGroup fullWidth>
           <Label>New Password</Label>
           <Input
             type="password"
@@ -440,40 +604,33 @@ const SecuritySection = ({ securityForm, onChange, onSave }) => (
             value={securityForm.newPassword}
             onChange={onChange}
             placeholder="Enter new password"
+            required
+            disabled={isLoading}
           />
         </FormGroup>
 
-        <FormGroup>
+        <FormGroup fullWidth>
           <Label>Confirm New Password</Label>
           <Input
             type="password"
-            name="confirmPassword"
-            value={securityForm.confirmPassword}
+            name="newPasswordConfirm"
+            value={securityForm.newPasswordConfirm}
             onChange={onChange}
             placeholder="Confirm new password"
+            required
+            disabled={isLoading}
           />
         </FormGroup>
 
-        <CheckboxGroup>
-          <CheckboxLabel>
-            <Checkbox
-              type="checkbox"
-              name="twoFactorEnabled"
-              checked={securityForm.twoFactorEnabled}
-              onChange={onChange}
-            />
-            <CheckboxText>
-              <FaShieldAlt />
-              Enable Two-Factor Authentication
-            </CheckboxText>
-          </CheckboxLabel>
-          <CheckboxDescription>
-            Add an extra layer of security to your account
-          </CheckboxDescription>
-        </CheckboxGroup>
-
-        <PrimaryButton type="submit" $size="lg">
-          Update Security Settings
+        <PrimaryButton type="submit" $size="lg" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <LoadingSpinner size="sm" />
+              Updating Password...
+            </>
+          ) : (
+            "Update Password"
+          )}
         </PrimaryButton>
       </Form>
     </SectionContent>
@@ -713,20 +870,85 @@ const NotificationsSection = ({ preferences, onChange }) => (
   </SectionCard>
 );
 
-// Styled Components
+// ==================== STYLED COMPONENTS ====================
+
 const PageWrapper = styled.div`
   min-height: 100vh;
   background: var(--surface);
-  padding: var(--space-xl) 0;
+  padding: var(--space-lg) 0;
+
+  @media ${devices.sm} {
+    padding: var(--space-md) 0;
+  }
+`;
+
+const MobileHeader = styled.div`
+  display: none;
+
+  @media ${devices.lg} {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-lg);
+    padding: 0 var(--space-md);
+  }
+`;
+
+const MobileTitle = styled.h1`
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  margin: 0;
+`;
+
+const MobileMenuButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  background: ${(props) => (props.active ? "var(--primary)" : "var(--white)")};
+  color: ${(props) => (props.active ? "var(--white)" : "var(--text-primary)")};
+  border: 1px solid var(--gray-200);
+  font-size: var(--text-lg);
+  cursor: pointer;
+  transition: var(--transition-normal);
+
+  &:hover {
+    background: var(--primary);
+    color: var(--white);
+  }
+`;
+
+const MobileOverlay = styled.div`
+  display: none;
+
+  @media ${devices.lg} {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+  }
 `;
 
 const PageHeader = styled.div`
   background: var(--white);
   border-radius: var(--radius-2xl);
-  padding: var(--space-2xl);
+  padding: var(--space-xl);
   margin-bottom: var(--space-xl);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--gray-200);
+
+  @media ${devices.sm} {
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    border-radius: var(--radius-xl);
+  }
 `;
 
 const HeaderContent = styled.div`
@@ -742,8 +964,17 @@ const HeaderContent = styled.div`
 `;
 
 const AvatarSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+`;
+
+const AvatarContainer = styled.div`
   position: relative;
   display: inline-block;
+  border-radius: var(--radius-full);
+  overflow: visible;
 `;
 
 const Avatar = styled.img`
@@ -752,9 +983,34 @@ const Avatar = styled.img`
   border-radius: var(--radius-full);
   object-fit: cover;
   border: 4px solid var(--primary-light);
+  transition: var(--transition-normal);
+
+  @media ${devices.sm} {
+    width: 100px;
+    height: 100px;
+  }
 `;
 
-const AvatarOverlay = styled.div`
+const DefaultAvatar = styled.div`
+  width: 120px;
+  height: 120px;
+  border-radius: var(--radius-full);
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  font-size: var(--text-3xl);
+  border: 4px solid var(--primary-light);
+
+  @media ${devices.sm} {
+    width: 100px;
+    height: 100px;
+    font-size: var(--text-2xl);
+  }
+`;
+
+const AvatarOverlay = styled.button`
   position: absolute;
   bottom: 8px;
   right: 8px;
@@ -768,14 +1024,106 @@ const AvatarOverlay = styled.div`
   justify-content: center;
   cursor: pointer;
   transition: var(--transition-normal);
+  border: none;
+  z-index: 2;
+
+  &:hover:not(:disabled) {
+    background: var(--primary-dark);
+    transform: scale(1.1);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  @media ${devices.sm} {
+    width: 32px;
+    height: 32px;
+    bottom: 6px;
+    right: 6px;
+  }
+`;
+
+const RemoveAvatarButton = styled.button`
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--error);
+  color: var(--white);
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-normal);
+  border: none;
+  font-size: var(--text-xs);
+  z-index: 3;
 
   &:hover {
-    background: var(--primary-dark);
+    background: var(--error-dark);
+    transform: scale(1.1);
   }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  @media ${devices.sm} {
+    width: 20px;
+    height: 20px;
+    top: -6px;
+    right: -6px;
+  }
+`;
+
+const UploadSpinner = styled.div`
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+`;
+
+const HiddenFileInput = styled.input`
+  display: none;
+`;
+
+const AvatarUploadText = styled.p`
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  text-align: center;
+  margin: 0;
+  font-weight: var(--font-medium);
+`;
+
+const AvatarRequirements = styled.p`
+  font-size: var(--text-xs);
+  color: var(--text-light);
+  text-align: center;
+  margin: 0;
 `;
 
 const UserInfo = styled.div`
   flex: 1;
+
+  @media ${devices.md} {
+    width: 100%;
+  }
 `;
 
 const UserName = styled.h1`
@@ -784,6 +1132,15 @@ const UserName = styled.h1`
   color: var(--text-primary);
   margin-bottom: var(--space-sm);
   font-family: var(--font-heading);
+  text-transform: capitalize;
+
+  @media ${devices.md} {
+    font-size: var(--text-3xl);
+  }
+
+  @media ${devices.sm} {
+    font-size: var(--text-2xl);
+  }
 `;
 
 const UserBadge = styled.div`
@@ -796,16 +1153,27 @@ const UserBadge = styled.div`
   border-radius: var(--radius-full);
   font-weight: var(--font-semibold);
   margin-bottom: var(--space-lg);
+
+  @media ${devices.sm} {
+    padding: var(--space-xs) var(--space-md);
+    font-size: var(--text-sm);
+  }
 `;
 
 const UserStats = styled.div`
   display: flex;
   gap: var(--space-xl);
   flex-wrap: wrap;
+  justify-content: center;
+
+  @media ${devices.sm} {
+    gap: var(--space-lg);
+  }
 `;
 
 const Stat = styled.div`
   text-align: center;
+  min-width: 80px;
 `;
 
 const StatNumber = styled.div`
@@ -813,11 +1181,19 @@ const StatNumber = styled.div`
   font-weight: var(--font-bold);
   color: var(--text-primary);
   margin-bottom: var(--space-xs);
+
+  @media ${devices.sm} {
+    font-size: var(--text-xl);
+  }
 `;
 
 const StatLabel = styled.div`
   font-size: var(--text-sm);
   color: var(--text-secondary);
+
+  @media ${devices.sm} {
+    font-size: var(--text-xs);
+  }
 `;
 
 const ContentGrid = styled.div`
@@ -833,7 +1209,59 @@ const ContentGrid = styled.div`
 
 const Sidebar = styled.div`
   @media ${devices.lg} {
-    order: 2;
+    position: fixed;
+    top: 0;
+    left: ${(props) => (props.$isOpen ? "0" : "-100%")};
+    width: 320px;
+    height: 100vh;
+    background: var(--white);
+    z-index: 999;
+    transition: left 0.3s ease;
+    box-shadow: var(--shadow-lg);
+    overflow-y: auto;
+  }
+
+  @media ${devices.sm} {
+    width: 100%;
+  }
+`;
+
+const MobileSidebarHeader = styled.div`
+  display: none;
+
+  @media ${devices.lg} {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-lg);
+    border-bottom: 1px solid var(--gray-200);
+  }
+`;
+
+const MobileSidebarTitle = styled.h2`
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0;
+`;
+
+const MobileMenuClose = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-lg);
+  background: var(--gray-100);
+  color: var(--text-primary);
+  border: none;
+  font-size: var(--text-lg);
+  cursor: pointer;
+  transition: var(--transition-normal);
+
+  &:hover {
+    background: var(--primary);
+    color: var(--white);
   }
 `;
 
@@ -848,9 +1276,14 @@ const TabList = styled.div`
 
   @media ${devices.lg} {
     position: static;
-    display: flex;
-    overflow-x: auto;
-    padding: var(--space-sm);
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+    padding: var(--space-lg);
+  }
+
+  @media ${devices.sm} {
+    padding: var(--space-md);
   }
 `;
 
@@ -869,6 +1302,7 @@ const TabItem = styled.button`
   cursor: pointer;
   transition: var(--transition-normal);
   margin-bottom: var(--space-xs);
+  font-size: var(--text-base);
 
   &:last-child {
     margin-bottom: 0;
@@ -882,10 +1316,9 @@ const TabItem = styled.button`
   }
 
   @media ${devices.lg} {
-    white-space: nowrap;
-    margin-bottom: 0;
-    margin-right: var(--space-xs);
-    flex-shrink: 0;
+    margin-bottom: var(--space-sm);
+    padding: var(--space-lg);
+    font-size: var(--text-lg);
   }
 `;
 
@@ -902,6 +1335,11 @@ const SectionCard = styled.div`
   &:last-child {
     margin-bottom: 0;
   }
+
+  @media ${devices.sm} {
+    border-radius: var(--radius-xl);
+    margin-bottom: var(--space-md);
+  }
 `;
 
 const SectionHeader = styled.div`
@@ -915,6 +1353,7 @@ const SectionHeader = styled.div`
     flex-direction: column;
     gap: var(--space-md);
     align-items: stretch;
+    padding: var(--space-lg);
   }
 `;
 
@@ -927,20 +1366,37 @@ const SectionTitle = styled.h2`
   color: var(--text-primary);
   margin: 0;
   font-family: var(--font-heading);
+
+  @media ${devices.sm} {
+    font-size: var(--text-xl);
+    gap: var(--space-sm);
+  }
 `;
 
 const SectionContent = styled.div`
   padding: var(--space-xl);
+
+  @media ${devices.sm} {
+    padding: var(--space-lg);
+  }
 `;
 
 const ButtonGroup = styled.div`
   display: flex;
   gap: var(--space-sm);
+
+  @media ${devices.sm} {
+    width: 100%;
+
+    button {
+      flex: 1;
+    }
+  }
 `;
 
 const InfoGrid = styled.div`
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: var(--space-lg);
 
   @media ${devices.sm} {
@@ -964,23 +1420,19 @@ const InfoValue = styled.div`
   font-size: var(--text-base);
   color: var(--text-primary);
   font-weight: var(--font-semibold);
+  text-transform: capitalize;
 `;
 
 const Form = styled.form``;
 
 const FormGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-lg);
-
-  @media ${devices.sm} {
-    grid-template-columns: 1fr;
-    gap: var(--space-md);
-  }
 `;
 
 const FormGroup = styled.div`
-  grid-column: ${(props) => (props.fullWidth ? "1 / -1" : "auto")};
+  width: 100%;
 `;
 
 const Label = styled.label`
@@ -1009,72 +1461,11 @@ const Input = styled.input`
   &::placeholder {
     color: var(--text-light);
   }
-`;
 
-const CheckboxGroup = styled.div`
-  margin: var(--space-xl) 0;
-`;
-
-const CheckboxLabel = styled.label`
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-md) 0;
-  cursor: pointer;
-`;
-
-const Checkbox = styled.input`
-  width: 18px;
-  height: 18px;
-  accent-color: var(--primary);
-`;
-
-const CheckboxText = styled.span`
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-primary);
-`;
-
-const CheckboxDescription = styled.p`
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  margin-top: var(--space-xs);
-  margin-left: calc(18px + var(--space-md));
-`;
-
-const RadioGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-`;
-
-const RadioLabel = styled.label`
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-md);
-  border: 1px solid var(--gray-200);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: var(--transition-normal);
-
-  &:hover {
-    border-color: var(--primary);
-    background: var(--surface);
+  &:disabled {
+    background: var(--gray-100);
+    cursor: not-allowed;
   }
-`;
-
-const Radio = styled.input`
-  width: 16px;
-  height: 16px;
-  accent-color: var(--primary);
-`;
-
-const RadioText = styled.span`
-  font-weight: var(--font-medium);
-  color: var(--text-primary);
 `;
 
 const PaymentMethodsList = styled.div`
@@ -1096,6 +1487,7 @@ const PaymentMethod = styled.div`
     flex-direction: column;
     gap: var(--space-md);
     align-items: stretch;
+    padding: var(--space-md);
   }
 `;
 
@@ -1129,6 +1521,10 @@ const PaymentActions = styled.div`
 
   @media ${devices.sm} {
     justify-content: space-between;
+
+    button {
+      flex: 1;
+    }
   }
 `;
 
@@ -1150,6 +1546,12 @@ const SecurityNote = styled.div`
   border-radius: var(--radius-lg);
   color: var(--text-secondary);
   margin-top: var(--space-xl);
+
+  @media ${devices.sm} {
+    padding: var(--space-md);
+    margin-top: var(--space-lg);
+    font-size: var(--text-sm);
+  }
 `;
 
 const PreferencesGrid = styled.div`
@@ -1174,6 +1576,67 @@ const PreferenceTitle = styled.h3`
   color: var(--text-primary);
   margin-bottom: var(--space-lg);
   font-family: var(--font-heading);
+
+  @media ${devices.sm} {
+    font-size: var(--text-lg);
+  }
+`;
+
+const CheckboxLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  cursor: pointer;
+  font-size: var(--text-base);
+`;
+
+const Checkbox = styled.input`
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+`;
+
+const CheckboxText = styled.span`
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+`;
+
+const RadioGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+`;
+
+const RadioLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: var(--transition-normal);
+  font-size: var(--text-base);
+
+  &:hover {
+    border-color: var(--primary);
+    background: var(--surface);
+  }
+`;
+
+const Radio = styled.input`
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+`;
+
+const RadioText = styled.span`
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
 `;
 
 const NotificationGroup = styled.div``;
@@ -1184,6 +1647,10 @@ const NotificationTitle = styled.h3`
   color: var(--text-primary);
   margin-bottom: var(--space-lg);
   font-family: var(--font-heading);
+
+  @media ${devices.sm} {
+    font-size: var(--text-lg);
+  }
 `;
 
 export default UserPage;

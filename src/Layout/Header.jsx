@@ -106,10 +106,7 @@ export default function Header() {
       <HeaderContainer>
         {/* Logo */}
         <Logo to={PATHS.HOME}>
-          <LogoIcon>🚗</LogoIcon>
-          <LogoText>
-            Benz<span>Flex</span>
-          </LogoText>
+          <LogoImage src="/images/benzflex3.png" alt="benzflex logo" />
         </Logo>
 
         {/* Desktop Navigation */}
@@ -152,7 +149,7 @@ export default function Header() {
                         <FiUser />
                       </AvatarPlaceholder>
                     )}
-                    <UserName>{user.name?.split(" ")[0]}</UserName>
+                    <UserName>{user.fulName?.split(" ")[0]}</UserName>
                     <FiChevronDown
                       className={`chevron ${dropdownOpen ? "open" : ""}`}
                     />
@@ -168,6 +165,7 @@ export default function Header() {
                       >
                         <DropdownHeader>
                           <div>Signed in as</div>
+                          <div className="user-email">{user.fullName}</div>
                           <div className="user-email">{user.email}</div>
                         </DropdownHeader>
 
@@ -309,7 +307,7 @@ const StyledHeader = styled(motion.header)`
   top: 0;
   left: 0;
   width: 100%;
-  z-index: 1000;
+  z-index: 9000;
   background: ${({ scrolled }) =>
     scrolled ? "rgba(255, 255, 255, 0.95)" : "transparent"};
   backdrop-filter: ${({ scrolled }) =>
@@ -326,7 +324,7 @@ const HeaderContainer = styled.div`
   justify-content: space-between;
   max-width: 120rem;
   margin: 0 auto;
-  padding: var(--space-md) var(--space-lg);
+  padding: var(--space-sm) var(--space-lg);
   position: relative;
 
   @media ${devices.md} {
@@ -347,16 +345,10 @@ const Logo = styled(Link)`
   }
 `;
 
-const LogoIcon = styled.div`
-  width: 4rem;
-  height: 4rem;
-  background: var(--gradient-primary);
+const LogoImage = styled.img`
+  width: 6rem;
+  height: 6rem;
   border-radius: var(--radius-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--white);
-  font-size: var(--text-2xl);
 `;
 
 const LogoText = styled.div`
@@ -580,6 +572,7 @@ const DropdownHeader = styled.div`
     font-weight: var(--font-semibold);
     color: var(--text-primary);
     font-size: var(--text-sm);
+    text-transform: capitalize;
   }
 `;
 

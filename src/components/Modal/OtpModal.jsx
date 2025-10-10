@@ -2,39 +2,119 @@
 import React, { useState, useEffect, useRef } from "react";
 import styled, { keyframes } from "styled-components";
 import { useVerifyOtp, useResendOtp } from "../../hooks/useAuth";
-import { PrimaryButton, SecondaryButton } from "../../components/ui/Button";
+import { PrimaryButton, SecondaryButton } from "../ui/Button";
+import { LoadingSpinner } from "../ui/LoadingSpinner";
 
-const OtpModal = ({ isOpen, onClose, phone }) => {
+// Extract best error message utility (similar to LoginPage)
+const extractBestErrorMessage = (error) => {
+  if (!error) return null;
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (error.message) {
+    const message = error.message.toLowerCase();
+
+    // OTP specific errors
+    if (message.includes("invalid otp") || message.includes("wrong otp")) {
+      return "Invalid verification code. Please try again.";
+    }
+    if (message.includes("expired")) {
+      return "Verification code has expired. Please request a new one.";
+    }
+    if (message.includes("too many attempts")) {
+      return "Too many failed attempts. Please wait before trying again.";
+    }
+
+    // Network errors
+    if (message.includes("network") || message.includes("internet")) {
+      return "Please check your internet connection and try again.";
+    }
+    if (message.includes("timeout")) {
+      return "Request timed out. Please try again.";
+    }
+
+    return error.message;
+  }
+
+  if (error.response?.data?.message) {
+    return error.response.data.message;
+  }
+
+  if (error.response?.data?.error) {
+    return error.response.data.error;
+  }
+
+  if (Array.isArray(error.errors)) {
+    return error.errors[0]?.message || "Please check your input and try again.";
+  }
+
+  if (error.statusCode) {
+    switch (error.statusCode) {
+      case 400:
+        return "Invalid request. Please check the code and try again.";
+      case 401:
+        return "Invalid verification code.";
+      case 429:
+        return "Too many attempts. Please wait a moment.";
+      case 500:
+        return "Server error. Please try again later.";
+      default:
+        return "Something went wrong. Please try again.";
+    }
+  }
+
+  return "An unexpected error occurred. Please try again.";
+};
+
+const OtpModal = ({ isOpen, onClose, phone, onSuccess }) => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [countdown, setCountdown] = useState(180); // 3 minutes = 180 seconds
+  const [countdown, setCountdown] = useState(180); // 3 minutes
   const [activeInput, setActiveInput] = useState(0);
   const [clear, setClear] = useState(false);
   const inputRefs = useRef([]);
-  const verifyOtpMutation = useVerifyOtp();
-  const resendOtpMutation = useResendOtp();
 
-  // Initialize refs array
-  useEffect(() => {
-    inputRefs.current = inputRefs.current.slice(0, 6);
-  }, []);
+  // Use hooks with error handling
+  const {
+    mutate: verifyOtp,
+    isLoading: isVerifying,
+    error: verifyError,
+    reset: resetVerify,
+  } = useVerifyOtp();
 
-  // Reset timer every time modal is opened
+  const {
+    mutate: resendOtp,
+    isLoading: isResending,
+    error: resendError,
+    reset: resetResend,
+  } = useResendOtp();
+
+  // Get the current error
+  const currentError = verifyError || resendError;
+  const errorMessage = extractBestErrorMessage(currentError);
+
+  // Reset timer and state when modal opens
   useEffect(() => {
     if (isOpen || clear) {
       setCountdown(180);
       setOtp(["", "", "", "", "", ""]);
       setActiveInput(0);
+      resetVerify();
+      resetResend();
+
       setTimeout(() => {
         if (inputRefs.current[0]) {
           inputRefs.current[0].focus();
         }
       }, 300);
     }
-  }, [isOpen, clear]);
+  }, [isOpen, clear, resetVerify, resetResend]);
 
   // Countdown effect
   useEffect(() => {
     if (!isOpen) return;
+
     let timer;
     if (countdown > 0) {
       timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
@@ -43,24 +123,42 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
   }, [isOpen, countdown]);
 
   const handleResend = () => {
-    resendOtpMutation.mutate(phone);
+    resetResend();
+    resendOtp({ phone });
+    setCountdown(180);
     setClear(true);
+    setTimeout(() => setClear(false), 100);
   };
 
   const handleVerifyOtp = () => {
     const otpString = otp.join("");
-    const payLoad = {
-      phone,
-      otp: otpString,
-    };
-    verifyOtpMutation.mutate(payLoad);
+    resetVerify();
+
+    verifyOtp(
+      { phone, otp: otpString },
+      {
+        onSuccess: (data) => {
+          console.log("✅ OTP verified successfully:", data);
+          onSuccess();
+        },
+      }
+    );
   };
 
   const handleChange = (index, value) => {
     if (!/^\d?$/.test(value)) return;
+
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
+
+    // Clear errors when user starts typing
+    if (currentError) {
+      resetVerify();
+      resetResend();
+    }
+
+    // Move to next input
     if (value && index < 5) {
       setActiveInput(index + 1);
       setTimeout(() => {
@@ -75,6 +173,7 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
     if (e.key === "Backspace") {
       e.preventDefault();
       const newOtp = [...otp];
+
       if (otp[index]) {
         newOtp[index] = "";
       } else if (index > 0) {
@@ -112,6 +211,7 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
   const handlePaste = (e) => {
     e.preventDefault();
     const pasteData = e.clipboardData.getData("text").slice(0, 6);
+
     if (/^\d+$/.test(pasteData)) {
       const newOtp = [...otp];
       pasteData.split("").forEach((digit, index) => {
@@ -122,11 +222,21 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
     }
   };
 
+  const handleInputFocus = (index) => {
+    setActiveInput(index);
+    // Clear errors when user focuses on input
+    if (currentError) {
+      resetVerify();
+      resetResend();
+    }
+  };
+
   if (!isOpen) return null;
 
   const isOtpComplete = otp.every((digit) => digit !== "");
+  const isLoading = isVerifying || isResending;
 
-  // format time as mm:ss
+  // Format time as mm:ss
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -137,12 +247,21 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
     <Overlay onClick={onClose}>
       <ModalContainer onClick={(e) => e.stopPropagation()}>
         <ModalContent>
-          <AnimatedIcon>🔐</AnimatedIcon>
+          <LogoBox>
+            <Logo src="/images/benzflex3.png" alt="benzflex logo" />
+          </LogoBox>
 
           <Title>Verify Your Phone</Title>
           <Subtitle>
             Enter the 6-digit code sent to <PhoneNumber>{phone}</PhoneNumber>
           </Subtitle>
+
+          {errorMessage && (
+            <ErrorMessage>
+              <ErrorIcon>⚠️</ErrorIcon>
+              {errorMessage}
+            </ErrorMessage>
+          )}
 
           <OtpContainer>
             {otp.map((digit, index) => (
@@ -155,10 +274,12 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
                 value={digit}
                 onChange={(e) => handleChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
-                onFocus={() => setActiveInput(index)}
+                onFocus={() => handleInputFocus(index)}
                 onPaste={index === 0 ? handlePaste : undefined}
                 $active={activeInput === index}
                 $filled={digit !== ""}
+                $error={!!currentError}
+                disabled={isLoading}
                 autoComplete="one-time-code"
               />
             ))}
@@ -166,11 +287,9 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
 
           <TimerContainer>
             <Timer $expired={countdown === 0}>
+              <ClockIcon>⏱️</ClockIcon>
               {countdown > 0 ? (
-                <>
-                  <ClockIcon>⏱️</ClockIcon>
-                  Code expires in {formatTime(countdown)}
-                </>
+                <>Code expires in {formatTime(countdown)}</>
               ) : (
                 "Code expired"
               )}
@@ -179,30 +298,38 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
 
           <ResendButton
             onClick={handleResend}
-            disabled={countdown > 0}
-            $disabled={countdown > 0}
+            disabled={countdown > 0 || isLoading}
+            $disabled={countdown > 0 || isLoading}
           >
-            {countdown > 0
-              ? `Resend in ${formatTime(countdown)}`
-              : "Resend Code"}
+            {isResending ? (
+              <>
+                <LoadingSpinner size="sm" />
+                Resending...
+              </>
+            ) : countdown > 0 ? (
+              `Resend in ${formatTime(countdown)}`
+            ) : (
+              "Resend Code"
+            )}
           </ResendButton>
 
           <Actions>
-            <SecondaryButton
-              $size="sm"
-              onClick={onClose}
-              style={{ minWidth: "100px" }}
-            >
+            <SecondaryButton onClick={onClose} disabled={isLoading} $size="md">
               Cancel
             </SecondaryButton>
             <PrimaryButton
-              $size="sm"
-              disabled={!isOtpComplete || verifyOtpMutation.isPending}
               onClick={handleVerifyOtp}
-              style={{ minWidth: "100px" }}
-              $pulse={isOtpComplete && !verifyOtpMutation.isPending}
+              disabled={!isOtpComplete || isLoading}
+              $size="md"
             >
-              {verifyOtpMutation.isPending ? <LoadingSpinner /> : "Verify"}
+              {isVerifying ? (
+                <>
+                  <LoadingSpinner size="sm" />
+                  Verifying...
+                </>
+              ) : (
+                "Verify Code"
+              )}
             </PrimaryButton>
           </Actions>
         </ModalContent>
@@ -213,15 +340,13 @@ const OtpModal = ({ isOpen, onClose, phone }) => {
 
 export default OtpModal;
 
-// Animations
+// Animations using global variables
 const fadeIn = keyframes`
   from {
     opacity: 0;
-    transform: scale(0.8);
   }
   to {
     opacity: 1;
-    transform: scale(1);
   }
 `;
 
@@ -236,43 +361,19 @@ const slideUp = keyframes`
   }
 `;
 
-const pulse = keyframes`
-  0% {
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
-  }
-`;
+// const pulse = keyframes`
+//   0% {
+//     box-shadow: 0 0 0 0 rgba(92, 206, 251, 0.4);
+//   }
+//   70% {
+//     box-shadow: 0 0 0 10px rgba(92, 206, 251, 0);
+//   }
+//   100% {
+//     box-shadow: 0 0 0 0 rgba(92, 206, 251, 0);
+//   }
+// `;
 
-const bounce = keyframes`
-  0%, 20%, 53%, 80%, 100% {
-    transform: translateY(0);
-  }
-  40%, 43% {
-    transform: translateY(-10px);
-  }
-  70% {
-    transform: translateY(-5px);
-  }
-  90% {
-    transform: translateY(-2px);
-  }
-`;
-
-const rotate = keyframes`
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-`;
-
-// Styled Components
+// Styled Components using Global CSS Variables
 const Overlay = styled.div`
   position: fixed;
   inset: 0;
@@ -282,99 +383,131 @@ const Overlay = styled.div`
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  padding: 1rem;
-  animation: ${fadeIn} 0.3s ease-out;
+  padding: var(--space-md);
+  animation: ${fadeIn} var(--transition-normal) ease-out;
 `;
 
 const ModalContainer = styled.div`
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  background: var(--white);
   padding: 0;
-  border-radius: 24px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-3xl);
+  box-shadow: var(--shadow-xl);
   width: 100%;
   max-width: 440px;
-  animation: ${slideUp} 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: ${slideUp} var(--transition-normal) ease-out;
   overflow: hidden;
+  border: 1px solid var(--gray-200);
 `;
 
 const ModalContent = styled.div`
-  padding: 3rem 2rem 2rem;
+  padding: var(--space-2xl) var(--space-xl) var(--space-xl);
   text-align: center;
 `;
 
-const AnimatedIcon = styled.div`
-  font-size: 3rem;
-  margin-bottom: 1.5rem;
-  animation: ${bounce} 1s ease infinite;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+const LogoBox = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-xl);
+`;
+
+const Logo = styled.img`
+  height: 80px;
+  width: auto;
 `;
 
 const Title = styled.h2`
-  margin-bottom: 0.75rem;
-  color: #1e293b;
-  font-size: 1.75rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  margin-bottom: var(--space-sm);
+  color: var(--text-primary);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  font-family: var(--font-heading);
 `;
 
 const Subtitle = styled.p`
-  margin-bottom: 2rem;
-  color: #64748b;
-  font-size: 1rem;
-  line-height: 1.5;
+  margin-bottom: var(--space-xl);
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  line-height: 1.6;
+  font-family: var(--font-body);
 `;
 
 const PhoneNumber = styled.span`
-  font-weight: 600;
-  color: #1e293b;
-  background: #f1f5f9;
-  padding: 0.25rem 0.75rem;
-  border-radius: 8px;
-  font-family: "Courier New", monospace;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  background: var(--gray-100);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+`;
+
+const ErrorMessage = styled.div`
+  background: var(--error-light);
+  border: 1px solid var(--error);
+  color: var(--error);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  font-weight: var(--font-medium);
+  font-size: var(--text-sm);
+  animation: ${slideUp} var(--transition-fast) ease-out;
+  font-family: var(--font-body);
+`;
+
+const ErrorIcon = styled.span`
+  font-size: 1rem;
 `;
 
 const OtpContainer = styled.div`
   display: flex;
   justify-content: center;
-  gap: 0.75rem;
-  margin-bottom: 2rem;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
 `;
 
 const OtpInput = styled.input`
   width: 50px;
   height: 60px;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  border: 2px solid;
+  border-color: ${(props) => {
+    if (props.$error) return "var(--error)";
+    if (props.$active) return "var(--primary)";
+    if (props.$filled) return "var(--success)";
+    return "var(--gray-300)";
+  }};
+  border-radius: var(--radius-lg);
   text-align: center;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1e293b;
-  background: white;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  background: ${(props) =>
+    props.$filled ? "var(--success-light)" : "var(--white)"};
+  transition: all var(--transition-normal);
   outline: none;
+  font-family: var(--font-body);
+
+  &:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+    transform: translateY(-2px);
+  }
 
   ${(props) =>
     props.$active &&
     `
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
     transform: translateY(-2px);
   `}
 
-  ${(props) =>
-    props.$filled &&
-    `
-    border-color: #10b981;
-    background: #f0fdf4;
-  `}
-
-  &:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    transform: translateY(-2px);
+  &:disabled {
+    background: var(--gray-100);
+    cursor: not-allowed;
+    opacity: 0.6;
   }
 
   &::selection {
@@ -384,23 +517,24 @@ const OtpInput = styled.input`
   @media (max-width: 480px) {
     width: 45px;
     height: 55px;
-    font-size: 1.25rem;
+    font-size: var(--text-lg);
   }
 `;
 
 const TimerContainer = styled.div`
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--space-lg);
 `;
 
 const Timer = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: ${(props) => (props.$expired ? "#ef4444" : "#3b82f6")};
-  transition: color 0.3s ease;
+  gap: var(--space-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: ${(props) => (props.$expired ? "var(--error)" : "var(--primary)")};
+  transition: color var(--transition-normal);
+  font-family: var(--font-body);
 `;
 
 const ClockIcon = styled.span`
@@ -410,44 +544,36 @@ const ClockIcon = styled.span`
 const ResendButton = styled.button`
   background: none;
   border: none;
-  font-weight: 600;
-  color: ${(props) => (props.$disabled ? "#94a3b8" : "#3b82f6")};
+  font-weight: var(--font-semibold);
+  color: ${(props) =>
+    props.$disabled ? "var(--text-light)" : "var(--primary)"};
   cursor: ${(props) => (props.$disabled ? "not-allowed" : "pointer")};
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-normal);
+  font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  margin: 0 auto;
+  font-family: var(--font-body);
 
   &:not(:disabled):hover {
-    background: #f1f5f9;
+    background: var(--gray-100);
     transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.6;
   }
 `;
 
 const Actions = styled.div`
   display: flex;
   justify-content: center;
-  gap: 1rem;
-  margin-top: 2rem;
-  padding-top: 2rem;
-  border-top: 1px solid #f1f5f9;
-`;
-
-// Enhanced PrimaryButton with pulse animation
-const PulsePrimaryButton = styled(PrimaryButton)`
-  ${(props) =>
-    props.$pulse &&
-    `
-    animation: ${pulse} 2s infinite;
-  `}
-`;
-
-const LoadingSpinner = styled.div`
-  width: 16px;
-  height: 16px;
-  border: 2px solid transparent;
-  border-top: 2px solid currentColor;
-  border-radius: 50%;
-  animation: ${rotate} 0.8s linear infinite;
-  margin: 0 auto;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+  padding-top: var(--space-xl);
+  border-top: 1px solid var(--gray-200);
 `;

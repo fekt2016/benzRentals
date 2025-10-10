@@ -4,7 +4,14 @@ import { ThemeProvider } from "styled-components";
 import { theme } from "./styles/theme";
 import { BrowserRouter } from "react-router-dom";
 import MainRoutes from "./routes/MainRoutes";
-
+import cssVars from "css-vars-ponyfill";
+import { Cookie } from "lucide-react";
+import CookieConsent from "./components/CookieConsent";
+cssVars({
+  // Options
+  watch: true, // When enabled, the ponyfill will monitor the DOM for changes and automatically run when new elements are added.
+  // ... other options
+});
 function App() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -28,6 +35,7 @@ function App() {
           }}
         >
           <MainRoutes />
+          <CookieConsent />
         </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>

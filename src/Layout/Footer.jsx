@@ -25,8 +25,9 @@ const Footer = () => {
           {/* Brand Column */}
           <BrandColumn>
             <BrandLogo>
-              <CarIcon>🚗</CarIcon>
-              <BrandName>Mercedes-Benz Rentals</BrandName>
+              <LogoBox>
+                <LogoImage src="/images/benzflex3.png" alt="logo footer" />
+              </LogoBox>
             </BrandLogo>
             <BrandDescription>
               Experience unparalleled luxury and performance with our premium
@@ -170,7 +171,7 @@ const Footer = () => {
       <FloatingCTA>
         <CTAText>Ready to experience luxury?</CTAText>
         <CTAButton
-          to="/booking"
+          to="/models"
           $size="sm"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -255,8 +256,20 @@ const BrandColumn = styled.div`
 const BrandLogo = styled.div`
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: var(--space-sm);
   margin-bottom: var(--space-md);
+`;
+const LogoBox = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+`;
+const LogoImage = styled.img`
+  width: 8rem;
+  height: 8rem;
+  border-radius: var(--radius-lg);
 `;
 
 const CarIcon = styled.div`

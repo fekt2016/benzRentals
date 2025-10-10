@@ -18,9 +18,6 @@ import {
   FiClock,
 } from "react-icons/fi";
 
-// Import UI Components
-import { PrimaryButton, SecondaryButton, GhostButton } from "./ui/Button";
-import { Card, LuxuryCard } from "./Cards/Card";
 import { LoadingSpinner, EmptyState, ErrorState } from "./ui/LoadingSpinner";
 
 const NotificationBell = ({ mobileView = false }) => {

@@ -99,3 +99,55 @@ export const useRegister = () => {
     },
   });
 };
+export const useUpdateProfile = () => {
+  return useMutation({
+    mutationFn: async (payload) => {
+      const response = await authApi.updateProfile(payload);
+      return response;
+    },
+    onSuccess: (data) => {
+      console.log("Profile updated successfully:", data);
+    },
+  });
+};
+export const useForgotPassword = () => {
+  return useMutation({
+    mutationFn: async (payload) => {
+      const response = await authApi.forgotPassword(payload);
+      return response;
+    },
+  });
+};
+
+export const useResetPassword = () => {
+  return useMutation({
+    mutationFn: async (payload) => {
+      const response = await authApi.resetPassword(payload);
+      return response;
+    },
+  });
+};
+
+export const useChangePassword = () => {
+  return useMutation({
+    mutationFn: async (payload) => {
+      const response = await authApi.changePassword(payload);
+      return response;
+    },
+    onSuccess: (data) => {
+      console.log("Password changed successfully:", data);
+    },
+  });
+};
+
+export const useUploadAvatar = () => {
+  return useMutation({
+    mutationFn: async (payload) => {
+      const response = await authApi.uploadAvatar(payload);
+      return response;
+    },
+    onSuccess: (data) => {
+      console.log("Avatar uploaded successfully:", data);
+    },
+  });
+};

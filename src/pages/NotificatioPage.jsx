@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   useGetUserNotification,
   useUnreadCountData,
@@ -43,11 +43,25 @@ const NotificationsPage = () => {
   const { mutate: deleteNotification } = useDeleteNotification();
 
   const notifications = notificationData?.data || [];
+
   const unreadCount = unreadCountData?.data?.count || 0;
 
   const filteredNotifications = notifications.filter((notification) => {
     if (filter === "all") return true;
     if (filter === "unread") return !notification.read;
+    if (filter === "booking") {
+      return notification.type.includes("booking");
+    }
+    if (filter === "payment") {
+      return notification.type.includes("payment");
+    }
+    if (filter === "promotion") {
+      return (
+        notification.type.includes("promotion") ||
+        notification.type.includes("offer") ||
+        notification.type.includes("special")
+      );
+    }
     return notification.type === filter;
   });
 
@@ -268,16 +282,18 @@ const NotificationsPage = () => {
 
         {/* Filter Tabs */}
         <FilterTabs>
-          {filterOptions.map((option) => (
-            <FilterTab
-              key={option.key}
-              $active={filter === option.key}
-              onClick={() => setFilter(option.key)}
-            >
-              {option.label}
-              {option.count > 0 && <TabCount>{option.count}</TabCount>}
-            </FilterTab>
-          ))}
+          {filterOptions.map((option) => {
+            return (
+              <FilterTab
+                key={option.key}
+                $active={filter === option.key}
+                onClick={() => setFilter(option.key)}
+              >
+                {option.label}
+                {option.count > 0 && <TabCount>{option.count}</TabCount>}
+              </FilterTab>
+            );
+          })}
         </FilterTabs>
 
         {/* Notifications List */}
@@ -303,94 +319,100 @@ const NotificationsPage = () => {
             </EmptyState>
           ) : (
             <NotificationsList>
-              {filteredNotifications.map((notification) => (
-                <NotificationCard
-                  key={notification.id || notification._id}
-                  $unread={!notification.read}
-                  $selected={selectedNotifications.has(
-                    notification.id || notification._id
-                  )}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <SelectionCheckbox>
-                    <input
-                      type="checkbox"
-                      checked={selectedNotifications.has(
-                        notification.id || notification._id
-                      )}
-                      onChange={() =>
-                        toggleNotificationSelection(
+              {filteredNotifications.map((notification) => {
+                return (
+                  <NotificationCard
+                    key={notification.id || notification._id}
+                    $unread={!notification.read}
+                    $selected={selectedNotifications.has(
+                      notification.id || notification._id
+                    )}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <SelectionCheckbox>
+                      <input
+                        type="checkbox"
+                        checked={selectedNotifications.has(
                           notification.id || notification._id
-                        )
-                      }
-                    />
-                  </SelectionCheckbox>
+                        )}
+                        onChange={() =>
+                          toggleNotificationSelection(
+                            notification.id || notification._id
+                          )
+                        }
+                      />
+                    </SelectionCheckbox>
 
-                  <NotificationIcon>
-                    {getNotificationIcon(notification.type)}
-                  </NotificationIcon>
+                    <NotificationIcon>
+                      {getNotificationIcon(notification.type)}
+                    </NotificationIcon>
 
-                  <NotificationContent>
-                    <NotificationHeader>
-                      <NotificationTitle $unread={!notification.read}>
-                        {notification.title}
-                      </NotificationTitle>
-                      <NotificationTime>
-                        {formatTime(notification.createdAt)}
-                      </NotificationTime>
-                    </NotificationHeader>
+                    <NotificationContent>
+                      <NotificationHeader>
+                        <NotificationTitle $unread={!notification.read}>
+                          {notification.title}
+                        </NotificationTitle>
+                        <NotificationTime>
+                          {formatTime(notification.createdAt)}
+                        </NotificationTime>
+                      </NotificationHeader>
 
-                    <NotificationMessage>
-                      {notification.message}
-                    </NotificationMessage>
+                      <NotificationMessage>
+                        {notification.message}
+                      </NotificationMessage>
 
-                    <NotificationMeta>
-                      <NotificationType>
-                        {getNotificationTypeLabel(notification.type)}
-                      </NotificationType>
-                      {notification.actionUrl && (
-                        <ActionLink
-                          to={notification.actionUrl}
+                      <NotificationMeta>
+                        <NotificationType>
+                          {getNotificationTypeLabel(notification.type)}
+                        </NotificationType>
+                        {notification.actionUrl && (
+                          <ActionLink
+                            to={notification.actionUrl}
+                            onClick={() =>
+                              !notification.read &&
+                              handleMarkAsRead(
+                                notification.id || notification._id
+                              )
+                            }
+                          >
+                            <FiExternalLink size={14} />
+                            View details
+                          </ActionLink>
+                        )}
+                      </NotificationMeta>
+                    </NotificationContent>
+
+                    <NotificationActions>
+                      {!notification.read && (
+                        <MarkAsReadButton
                           onClick={() =>
-                            !notification.read &&
                             handleMarkAsRead(
                               notification.id || notification._id
                             )
                           }
+                          title="Mark as read"
                         >
-                          <FiExternalLink size={14} />
-                          View details
-                        </ActionLink>
+                          <FiCheck size={14} />
+                        </MarkAsReadButton>
                       )}
-                    </NotificationMeta>
-                  </NotificationContent>
-
-                  <NotificationActions>
-                    {!notification.read && (
-                      <MarkAsReadButton
+                      <DeleteButton
                         onClick={() =>
-                          handleMarkAsRead(notification.id || notification._id)
+                          deleteNotification(
+                            notification.id || notification._id
+                          )
                         }
-                        title="Mark as read"
+                        title="Delete notification"
                       >
-                        <FiCheck size={14} />
-                      </MarkAsReadButton>
-                    )}
-                    <DeleteButton
-                      onClick={() =>
-                        deleteNotification(notification.id || notification._id)
-                      }
-                      title="Delete notification"
-                    >
-                      <FiTrash2 size={14} />
-                    </DeleteButton>
-                  </NotificationActions>
+                        <FiTrash2 size={14} />
+                      </DeleteButton>
+                    </NotificationActions>
 
-                  {!notification.read && <UnreadIndicator />}
-                </NotificationCard>
-              ))}
+                    {!notification.read && <UnreadIndicator />}
+                  </NotificationCard>
+                );
+              })}
             </NotificationsList>
           )}
         </NotificationsContainer>

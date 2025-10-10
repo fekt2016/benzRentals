@@ -76,7 +76,7 @@ export const useUpdateUserBooking = (id) => {
   return useMutation({
     mutationKey: ["updateBookingStatus", id],
     mutationFn: async (data) => {
-      const response = await bookingApi.updateUserBooking(id, data);
+      const response = await bookingApi.updateBookingDriver(id, data);
       return response;
     },
     onSuccess: (data) => {

@@ -1,18 +1,17 @@
-// BookingsPage.js - REFACTORED WITH SEPARATE CHECK-IN MODAL
-import React, { useMemo, useState, useRef } from "react";
+// BookingsPage.js - WITHOUT REVIEW MODAL
+import React, { useMemo, useState } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import {
   useMyBookings,
   useUpdateUserBooking,
-  useCancelBooking,
   useCheckInBooking,
 } from "../hooks/useBooking";
 import { useMyDrivers } from "../hooks/useDriver";
 import UpdateDocumentsModal from "../components/Modal/UpdateDocumentsModal";
-import ReviewModal from "../components/Modal/ReviewModal";
 import CheckInModal from "../components/Modal/CheckInModal";
 import Pagination from "../components/Pagination";
+import MobileCard from "../components/MobileCard";
 
 // Import UI Components
 import {
@@ -50,6 +49,7 @@ import {
   FaFilter,
   FaSearch,
   FaCalendar,
+  FaUser,
 } from "react-icons/fa";
 import usePageTitle from "../hooks/usePageTitle";
 
@@ -61,12 +61,9 @@ const BookingsPage = () => {
 
   const { data: BookingsData, isLoading, refetch } = useMyBookings();
   const [updatingBooking, setUpdatingBooking] = useState(null);
-  const [reviewingBooking, setReviewingBooking] = useState(null);
-  const [cancellingBooking, setCancellingBooking] = useState(null);
   const [checkingInBooking, setCheckingInBooking] = useState(null);
 
-  // Track submitted reviews
-  const [submittedReviews, setSubmittedReviews] = useState(new Set());
+  // REMOVED: submittedReviews state and review-related states
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -80,10 +77,9 @@ const BookingsPage = () => {
   });
 
   // Refs
-  const reasonRef = useRef(null);
 
   const { mutate: updateUserBooking } = useUpdateUserBooking(updatingBooking);
-  const { mutate: cancelBooking, isLoading: isCancelling } = useCancelBooking();
+
   const { mutate: checkInBooking, isLoading: isCheckingIn } =
     useCheckInBooking();
 
@@ -93,30 +89,10 @@ const BookingsPage = () => {
     () => BookingsData?.data?.data || [],
     [BookingsData]
   );
-  console.log(bookings);
+
   const navigate = useNavigate();
 
-  // Fuel level labels for display
-  const fuelLevelLabels = {
-    empty: "Empty",
-    quarter: "¼ Tank",
-    half: "½ Tank",
-    three_quarters: "¾ Tank",
-    full: "Full",
-  };
-
-  // Handle successful review submission
-  const handleReviewSuccess = (bookingId) => {
-    setSubmittedReviews((prev) => {
-      const newSet = new Set(prev);
-      newSet.add(bookingId);
-      return newSet;
-    });
-    setReviewingBooking(null);
-    setTimeout(() => {
-      refetch();
-    }, 500);
-  };
+  // REMOVED: handleReviewSuccess function
 
   // Handle check-in submission
   const handleCheckInSubmit = (formData) => {
@@ -139,26 +115,124 @@ const BookingsPage = () => {
     setCheckingInBooking(null);
   };
 
-  // Check if booking is eligible for check-in
-  const canCheckIn = (booking) => {
-    const now = new Date();
-    const pickupDate = new Date(booking.pickupDate);
-    const returnDate = new Date(booking.returnDate);
+  // Handle view driver details
+  const handleViewDriverDetails = (driver) => {
+    if (driver && driver.verified) {
+      console.log("View driver details:", driver);
+      alert(
+        `Driver: ${driver.firstName} ${driver.lastName}\nLicense: ${
+          driver.licenseNumber || "Not provided"
+        }\nStatus: ${driver.verified ? "Verified" : "Pending"}`
+      );
+    }
+  };
 
-    // Allow check-in from 2 hours before pickup until return date
-    const checkInStart = new Date(pickupDate.getTime() - 2 * 60 * 60 * 1000);
+  // Handle quick verification check
+  const handleQuickVerificationCheck = (booking) => {
+    if (booking.driver?.verified) {
+      alert("✅ Driver is verified and ready for check-in!");
+    } else {
+      alert(
+        "⚠️ Driver verification pending. Please complete verification to proceed with check-in."
+      );
+      setUpdatingBooking(booking._id);
+    }
+  };
 
+  // FIXED: Enhanced hasCheckedIn function
+  const hasCheckedIn = (booking) => {
     return (
-      booking.status === "confirmed" &&
-      now >= checkInStart &&
-      now <= returnDate &&
-      !booking.checkIn
+      booking.checkInData?.checkInTime ||
+      booking.checkIn?.status === "completed" ||
+      booking.status === "active" ||
+      booking.status === "completed"
     );
   };
 
-  // Check if booking has been checked in
-  const hasCheckedIn = (booking) => {
-    return booking.checkIn && booking.checkIn.status === "completed";
+  // NEW: Check if booking can show check-in button (only for confirmed status)
+  const canShowCheckInButton = (booking) => {
+    return booking.status === "confirmed" && !hasCheckedIn(booking);
+  };
+
+  // NEW: Check if check-in is ready (within time window)
+  const isCheckInReady = (booking) => {
+    try {
+      if (booking.status !== "confirmed" || hasCheckedIn(booking)) {
+        return false;
+      }
+
+      const now = new Date();
+      const pickupDate = new Date(booking.pickupDate);
+      const returnDate = new Date(booking.returnDate);
+
+      // Allow check-in from 2 hours before pickup until return date
+      const checkInStart = new Date(pickupDate.getTime() - 2 * 60 * 60 * 1000);
+
+      const isWithinTimeWindow = now >= checkInStart && now <= returnDate;
+
+      return isWithinTimeWindow;
+    } catch (error) {
+      console.error("Error in isCheckInReady:", error);
+      return false;
+    }
+  };
+
+  // NEW: Get check-in status message
+  const getCheckInStatus = (booking) => {
+    if (hasCheckedIn(booking)) {
+      return {
+        type: "checked-in",
+        message: "Checked In",
+        disabled: true,
+      };
+    }
+
+    if (booking.status !== "confirmed") {
+      return {
+        type: "not-available",
+        message: "Not available",
+        disabled: true,
+      };
+    }
+
+    const now = new Date();
+    const pickupDate = new Date(booking.pickupDate);
+    const checkInStart = new Date(pickupDate.getTime() - 2 * 60 * 60 * 1000);
+
+    if (now < checkInStart) {
+      const hoursUntilCheckIn = Math.ceil(
+        (checkInStart - now) / (1000 * 60 * 60)
+      );
+      return {
+        type: "waiting",
+        message: `Available in ${hoursUntilCheckIn}h`,
+        disabled: true,
+      };
+    }
+
+    return {
+      type: "ready",
+      message: "Check In",
+      disabled: false,
+    };
+  };
+
+  // Mock verified documents data - simplified without download URLs
+  const getVerifiedDocuments = (booking) => {
+    return [
+      {
+        name: "Driver's License",
+        icon: FaFileAlt,
+        verifiedAt: booking.driver?.verifiedAt || "2024-01-15",
+        verifiedBy: booking.driver?.verifiedBy || "Admin User",
+      },
+      {
+        name: "Insurance Certificate",
+        icon: FaFileAlt,
+        verifiedAt: booking.verifiedAt || "2024-01-15",
+        verifiedBy: booking.verifiedBy || "Admin User",
+      },
+    ];
   };
 
   // Filter bookings based on filter criteria
@@ -208,55 +282,6 @@ const BookingsPage = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentBookings = filteredBookings.slice(startIndex, endIndex);
 
-  // Generate page numbers for pagination
-  // const getPageNumbers = () => {
-  //   const pages = [];
-  //   const maxVisiblePages = 5;
-
-  //   if (totalPages <= maxVisiblePages) {
-  //     for (let i = 1; i <= totalPages; i++) {
-  //       pages.push(i);
-  //     }
-  //   } else {
-  //     pages.push(1);
-  //     let start = Math.max(2, currentPage - 1);
-  //     let end = Math.min(totalPages - 1, currentPage + 1);
-
-  //     if (currentPage <= 2) {
-  //       end = 4;
-  //     }
-
-  //     if (currentPage >= totalPages - 1) {
-  //       start = totalPages - 3;
-  //     }
-
-  //     if (start > 2) {
-  //       pages.push("ellipsis-start");
-  //     }
-
-  //     for (let i = start; i <= end; i++) {
-  //       pages.push(i);
-  //     }
-
-  //     if (end < totalPages - 1) {
-  //       pages.push("ellipsis-end");
-  //     }
-
-  //     if (totalPages > 1) {
-  //       pages.push(totalPages);
-  //     }
-  //   }
-
-  //   return pages;
-  // };
-
-  // const handlePageChange = (page) => {
-  //   if (page >= 1 && page <= totalPages) {
-  //     setCurrentPage(page);
-  //     window.scrollTo({ top: 0, behavior: "smooth" });
-  //   }
-  // };
-
   const handleUpdateDocuments = (data) => {
     try {
       if (data instanceof FormData) {
@@ -268,30 +293,6 @@ const BookingsPage = () => {
     } catch (err) {
       console.error("Update failed:", err);
     }
-  };
-
-  // Handle cancel booking
-  const handleCancelBooking = (cancellationReason) => {
-    if (!cancellingBooking) return;
-
-    cancelBooking(
-      {
-        bookingId: cancellingBooking._id,
-        reason: cancellationReason,
-      },
-      {
-        onSuccess: () => {
-          setCancellingBooking(null);
-          refetch();
-          if (reasonRef.current) {
-            reasonRef.current.value = "";
-          }
-        },
-        onError: (error) => {
-          console.error("Cancellation failed:", error);
-        },
-      }
-    );
   };
 
   // Handle filter changes
@@ -311,12 +312,13 @@ const BookingsPage = () => {
     });
   };
 
+  // FIXED: Enhanced status configuration
   const getStatusConfig = (status) => {
     const config = {
       confirmed: {
         color: "var(--success)",
         icon: FaCheckCircle,
-        canCancel: true,
+        canCancel: false,
       },
       completed: {
         color: "var(--info)",
@@ -331,11 +333,41 @@ const BookingsPage = () => {
       pending: {
         color: "var(--warning)",
         icon: FaClock,
-        canCancel: true,
+        canCancel: false,
       },
       checked_in: {
         color: "var(--info)",
         icon: FaCheckCircle,
+        canCancel: false,
+      },
+      active: {
+        color: "var(--success)",
+        icon: FaCheckCircle,
+        canCancel: false,
+      },
+      verification_pending: {
+        color: "var(--warning)",
+        icon: FaClock,
+        canCancel: false,
+      },
+      license_required: {
+        color: "var(--warning)",
+        icon: FaExclamationTriangle,
+        canCancel: false,
+      },
+      pending_payment: {
+        color: "var(--warning)",
+        icon: FaClock,
+        canCancel: false,
+      },
+      no_show: {
+        color: "var(--error)",
+        icon: FaTimes,
+        canCancel: false,
+      },
+      overdue: {
+        color: "var(--error)",
+        icon: FaExclamationTriangle,
         canCancel: false,
       },
     };
@@ -351,53 +383,7 @@ const BookingsPage = () => {
     });
   };
 
-  // Check if booking can be reviewed
-  const canReviewBooking = (booking) => {
-    const canReview =
-      booking.status === "completed" &&
-      !booking.review &&
-      !submittedReviews.has(booking._id);
-    return canReview;
-  };
-
-  // Check if booking has review (either in DB or locally submitted)
-  const hasReview = (booking) => {
-    return booking.review || submittedReviews.has(booking._id);
-  };
-
-  const getCancellationPolicy = (booking) => {
-    if (!booking?.pickupDate) {
-      return {
-        type: "unknown",
-        message: "Cancellation policy not available",
-        note: "Please contact support for cancellation details",
-      };
-    }
-
-    const pickupDate = new Date(booking.pickupDate);
-    const now = new Date();
-    const hoursUntilPickup = (pickupDate - now) / (1000 * 60 * 60);
-
-    if (hoursUntilPickup > 24) {
-      return {
-        type: "full_refund",
-        message: "Free cancellation - Full refund available",
-        note: "Cancel at least 24 hours before pickup for full refund",
-      };
-    } else if (hoursUntilPickup > 6) {
-      return {
-        type: "partial_refund",
-        message: "Partial refund available",
-        note: "50% refund if cancelled 6-24 hours before pickup",
-      };
-    } else {
-      return {
-        type: "no_refund",
-        message: "No refund available",
-        note: "Cancellations within 6 hours of pickup are non-refundable",
-      };
-    }
-  };
+  // REMOVED: canReviewBooking and hasReview functions
 
   // Loading state
   if (isLoading) {
@@ -548,21 +534,19 @@ const BookingsPage = () => {
               <TableHeader>Check-in</TableHeader>
               <TableHeader>Vehicle</TableHeader>
               <TableHeader>Rental Period</TableHeader>
-              {/* <TableHeader>Location</TableHeader> */}
               <TableHeader>Total</TableHeader>
               <TableHeader>Driver</TableHeader>
               <TableHeader>Status</TableHeader>
-              <TableHeader>Review</TableHeader>
               <TableHeader>Actions</TableHeader>
             </TableRow>
           </TableHead>
           <TableBody>
             {currentBookings.map((booking) => {
-              console.log(booking);
               const statusConfig = getStatusConfig(booking.status);
               const StatusIcon = statusConfig.icon;
-              const canCancel = statusConfig.canCancel;
-              const isCheckInEligible = canCheckIn(booking);
+              const showCheckInButton = canShowCheckInButton(booking);
+              const checkInReady = isCheckInReady(booking);
+              const checkInStatus = getCheckInStatus(booking);
               const isCheckedIn = hasCheckedIn(booking);
 
               return (
@@ -580,21 +564,18 @@ const BookingsPage = () => {
                             </CheckInDetails>
                           )}
                         </CheckedInBadge>
-                      ) : isCheckInEligible ? (
+                      ) : showCheckInButton ? (
                         <CheckInButton
                           onClick={() => setCheckingInBooking(booking)}
-                          $variant="success"
+                          disabled={checkInStatus.disabled}
+                          $variant={checkInReady ? "success" : "secondary"}
                           $size="sm"
                         >
                           <FaCheckCircle />
-                          Check In
+                          {checkInStatus.message}
                         </CheckInButton>
                       ) : (
-                        <CheckInHint>
-                          {booking.status === "confirmed"
-                            ? "Available at pickup time"
-                            : "Not available"}
-                        </CheckInHint>
+                        <CheckInHint>{checkInStatus.message}</CheckInHint>
                       )}
                     </CheckInCell>
                   </TableCell>
@@ -643,6 +624,20 @@ const BookingsPage = () => {
                             : "Pending verification"
                           : "Provide License"}
                       </DocStatus>
+                      {/* Quick actions for driver verification */}
+                      {booking.driver && (
+                        <DriverQuickActions>
+                          <QuickActionButton
+                            onClick={() =>
+                              handleViewDriverDetails(booking.driver)
+                            }
+                            title="View driver details"
+                            $size="xs"
+                          >
+                            <FaEye />
+                          </QuickActionButton>
+                        </DriverQuickActions>
+                      )}
                     </DocumentsCell>
                   </TableCell>
 
@@ -655,27 +650,7 @@ const BookingsPage = () => {
                     </StatusCell>
                   </TableCell>
 
-                  <TableCell>
-                    <ReviewCell>
-                      {hasReview(booking) ? (
-                        <ReviewedBadge>
-                          <FaCheckCircle />
-                          Reviewed
-                        </ReviewedBadge>
-                      ) : canReviewBooking(booking) ? (
-                        <ReviewButton
-                          onClick={() => setReviewingBooking(booking)}
-                          title="Write a review"
-                          $size="sm"
-                        >
-                          <FaStar />
-                          Write Review
-                        </ReviewButton>
-                      ) : (
-                        <ReviewHint>Complete trip to review</ReviewHint>
-                      )}
-                    </ReviewCell>
-                  </TableCell>
+                  {/* REMOVED: Review Column */}
 
                   <TableCell>
                     <ActionsCell>
@@ -685,29 +660,15 @@ const BookingsPage = () => {
                       >
                         <FaEye />
                       </IconButton>
-                      <IconButton
-                        onClick={() => setUpdatingBooking(booking._id)}
-                        title="Update documents"
-                        $variant="secondary"
-                      >
-                        <FaEdit />
-                      </IconButton>
-                      {/* {isCheckInEligible && (
+
+                      {/* Verification check button */}
+                      {!booking.driver?.verified && (
                         <IconButton
-                          onClick={() => setCheckingInBooking(booking)}
-                          title="Check in"
-                          $variant="success"
+                          onClick={() => handleQuickVerificationCheck(booking)}
+                          title="Check verification status"
+                          $variant="warning"
                         >
-                          <FaCheckCircle />
-                        </IconButton>
-                      )} */}
-                      {canCancel && (
-                        <IconButton
-                          onClick={() => setCancellingBooking(booking)}
-                          title="Cancel booking"
-                          $variant="danger"
-                        >
-                          <FaBan />
+                          <FaExclamationTriangle />
                         </IconButton>
                       )}
                     </ActionsCell>
@@ -719,186 +680,30 @@ const BookingsPage = () => {
         </Table>
       </TableContainer>
 
-      {/* Mobile Card View */}
+      {/* Mobile Card View - Using MobileCard Component */}
       <MobileContainer>
         {currentBookings.map((booking) => {
           const statusConfig = getStatusConfig(booking.status);
-          const StatusIcon = statusConfig.icon;
-          const canCancel = statusConfig.canCancel;
-          const isCheckInEligible = canCheckIn(booking);
-          const isCheckedIn = hasCheckedIn(booking);
+          const verifiedDocuments = getVerifiedDocuments(booking);
 
           return (
-            <MobileCard key={booking._id}>
-              <CardHeader>
-                <VehicleInfo>
-                  <CarImage
-                    src={booking.car?.images?.[0] || "/default-car.jpg"}
-                    alt={booking.car?.model || "Car"}
-                    onError={(e) => {
-                      e.target.src = "/default-car.jpg";
-                    }}
-                  />
-                  <div>
-                    <CarModel>{booking.car?.model || "Unknown Model"}</CarModel>
-                    <CarType>Premium Sedan • Automatic</CarType>
-                  </div>
-                </VehicleInfo>
-                <StatusBadge $color={statusConfig.color}>
-                  <StatusIcon size={12} />
-                  {booking.status || "unknown"}
-                </StatusBadge>
-              </CardHeader>
-
-              <CardContent>
-                <InfoGrid>
-                  <InfoItem>
-                    <FaCalendarAlt />
-                    <div>
-                      <InfoLabel>Pickup Date</InfoLabel>
-                      <InfoValue>{formatDate(booking.pickupDate)}</InfoValue>
-                    </div>
-                  </InfoItem>
-
-                  <InfoItem>
-                    <FaCalendarAlt />
-                    <div>
-                      <InfoLabel>Return Date</InfoLabel>
-                      <InfoValue>{formatDate(booking.returnDate)}</InfoValue>
-                    </div>
-                  </InfoItem>
-
-                  <InfoItem>
-                    <FaMapMarkerAlt />
-                    <div>
-                      <InfoLabel>Location</InfoLabel>
-                      <InfoValue>
-                        {booking.pickupLocation || "Not specified"}
-                      </InfoValue>
-                    </div>
-                  </InfoItem>
-
-                  <InfoItem>
-                    <FaDollarSign />
-                    <div>
-                      <InfoLabel>Total Amount</InfoLabel>
-                      <InfoValue>${booking.totalPrice || "0"}</InfoValue>
-                    </div>
-                  </InfoItem>
-                </InfoGrid>
-
-                <DocumentsSection>
-                  <SectionTitle>Document Status</SectionTitle>
-                  <DocumentStatusGroup>
-                    <MobileDocStatus $verified={booking.driver?.verified}>
-                      <FaFileAlt />
-                      {booking.driver
-                        ? booking.driver?.verified
-                          ? "Verified"
-                          : "Pending verification"
-                        : "Provide License"}
-                      <StatusIndicator $verified={booking.driver?.verified} />
-                    </MobileDocStatus>
-                  </DocumentStatusGroup>
-                </DocumentsSection>
-
-                {/* Check-in Section for Mobile */}
-                <CheckInSection>
-                  <SectionTitle>Check-in Status</SectionTitle>
-                  {isCheckedIn ? (
-                    <CheckedInBadgeMobile>
-                      <FaCheckCircle />
-                      Checked In
-                      {booking.checkIn?.mileage && (
-                        <CheckInDetailsMobile>
-                          Mileage: {booking.checkIn.mileage.toLocaleString()} •
-                          Fuel:{" "}
-                          {fuelLevelLabels[booking.checkIn.fuelLevel] ||
-                            booking.checkIn.fuelLevel}
-                        </CheckInDetailsMobile>
-                      )}
-                    </CheckedInBadgeMobile>
-                  ) : isCheckInEligible ? (
-                    <MobileCheckInButton
-                      onClick={() => setCheckingInBooking(booking)}
-                      $variant="success"
-                      $size="sm"
-                    >
-                      <FaCheckCircle />
-                      Check In Vehicle
-                    </MobileCheckInButton>
-                  ) : (
-                    <CheckInHintMobile>
-                      {booking.status === "confirmed"
-                        ? "Check-in available at pickup time"
-                        : "Check-in not available"}
-                    </CheckInHintMobile>
-                  )}
-                </CheckInSection>
-
-                {/* Review Section for Mobile */}
-                <ReviewSection>
-                  <SectionTitle>Review Status</SectionTitle>
-                  {hasReview(booking) ? (
-                    <ReviewedBadge>
-                      <FaCheckCircle />
-                      Review Submitted
-                    </ReviewedBadge>
-                  ) : canReviewBooking(booking) ? (
-                    <MobileReviewButton
-                      onClick={() => setReviewingBooking(booking)}
-                      $size="sm"
-                    >
-                      <FaStar />
-                      Write a Review
-                    </MobileReviewButton>
-                  ) : (
-                    <ReviewHintMobile>
-                      Complete your trip to leave a review
-                    </ReviewHintMobile>
-                  )}
-                </ReviewSection>
-              </CardContent>
-
-              <CardActions>
-                <MobileButton
-                  onClick={() => navigate(`/booking/${booking._id}`)}
-                  $variant="primary"
-                  $size="sm"
-                >
-                  <FaEye />
-                  View Details
-                </MobileButton>
-                <MobileButton
-                  onClick={() => setUpdatingBooking(booking._id)}
-                  $variant="secondary"
-                  $size="sm"
-                >
-                  <FaCloudUploadAlt />
-                  Update Documents
-                </MobileButton>
-                {isCheckInEligible && (
-                  <MobileButton
-                    onClick={() => setCheckingInBooking(booking)}
-                    $variant="success"
-                    $size="sm"
-                  >
-                    <FaCheckCircle />
-                    Check In
-                  </MobileButton>
-                )}
-                {canCancel && (
-                  <MobileButton
-                    onClick={() => setCancellingBooking(booking)}
-                    $variant="danger"
-                    $size="sm"
-                  >
-                    <FaBan />
-                    Cancel
-                  </MobileButton>
-                )}
-              </CardActions>
-            </MobileCard>
+            <MobileCard
+              key={booking._id}
+              booking={booking}
+              statusConfig={statusConfig}
+              showCheckInButton={canShowCheckInButton(booking)}
+              checkInStatus={getCheckInStatus(booking)}
+              isCheckedIn={hasCheckedIn(booking)}
+              verifiedDocuments={verifiedDocuments}
+              formatDate={formatDate}
+              onViewDetails={() => navigate(`/booking/${booking._id}`)}
+              onCheckIn={() => setCheckingInBooking(booking)}
+              onViewDriverDetails={() =>
+                handleViewDriverDetails(booking.driver)
+              }
+              onVerificationCheck={() => handleQuickVerificationCheck(booking)}
+              // REMOVED: Review-related props
+            />
           );
         })}
       </MobileContainer>
@@ -927,58 +732,9 @@ const BookingsPage = () => {
           itemsPerPage={itemsPerPage}
           showInfo={true}
         />
-        // <PaginationContainer>
-        //   <PaginationInfoMobile>
-        //     Showing {startIndex + 1}-
-        //     {Math.min(endIndex, filteredBookings.length)} of{" "}
-        //     {filteredBookings.length} bookings
-        //   </PaginationInfoMobile>
-
-        //   <Pagination>
-        //     <PaginationButton
-        //       onClick={() => handlePageChange(currentPage - 1)}
-        //       disabled={currentPage === 1}
-        //       $disabled={currentPage === 1}
-        //     >
-        //       <FaChevronLeft />
-        //       Previous
-        //     </PaginationButton>
-
-        //     <PageNumbers>
-        //       {getPageNumbers().map((page, index) => {
-        //         if (page === "ellipsis-start" || page === "ellipsis-end") {
-        //           return (
-        //             <Ellipsis key={`ellipsis-${index}`}>
-        //               <FaEllipsisH />
-        //             </Ellipsis>
-        //           );
-        //         }
-
-        //         return (
-        //           <PageNumber
-        //             key={page}
-        //             $active={currentPage === page}
-        //             onClick={() => handlePageChange(page)}
-        //           >
-        //             {page}
-        //           </PageNumber>
-        //         );
-        //       })}
-        //     </PageNumbers>
-
-        //     <PaginationButton
-        //       onClick={() => handlePageChange(currentPage + 1)}
-        //       disabled={currentPage === totalPages}
-        //       $disabled={currentPage === totalPages}
-        //     >
-        //       Next
-        //       <FaChevronRight />
-        //     </PaginationButton>
-        //   </Pagination>
-        // </PaginationContainer>
       )}
 
-      {/* Update Modal */}
+      {/* Update Modal - Keeping this for verification flow */}
       {updatingBooking && (
         <UpdateDocumentsModal
           show={!!updatingBooking}
@@ -986,97 +742,6 @@ const BookingsPage = () => {
           drivers={drivers}
           onSubmit={(formData) => handleUpdateDocuments(formData)}
         />
-      )}
-
-      {/* Cancel Confirmation Modal */}
-      {cancellingBooking && (
-        <CancelModalOverlay>
-          <CancelModal>
-            <CancelModalHeader>
-              <WarningIcon>
-                <FaExclamationTriangle />
-              </WarningIcon>
-              <CancelModalTitle>Cancel Booking</CancelModalTitle>
-            </CancelModalHeader>
-
-            <CancelModalContent>
-              <p>Are you sure you want to cancel this booking?</p>
-
-              <BookingInfo>
-                <strong>Vehicle:</strong>{" "}
-                {cancellingBooking.car?.model || "Unknown Model"}
-                <br />
-                <strong>Pickup:</strong>{" "}
-                {formatDate(cancellingBooking.pickupDate)}
-                <br />
-                <strong>Return:</strong>{" "}
-                {formatDate(cancellingBooking.returnDate)}
-                <br />
-                <strong>Total:</strong> ${cancellingBooking.totalPrice || "0"}
-              </BookingInfo>
-
-              <CancellationPolicy>
-                <PolicyTitle>📋 Cancellation Policy</PolicyTitle>
-                {(() => {
-                  const policy = getCancellationPolicy(cancellingBooking);
-                  return (
-                    <>
-                      <PolicyMessage $type={policy.type}>
-                        {policy.message}
-                      </PolicyMessage>
-                      <PolicyNote>{policy.note}</PolicyNote>
-                    </>
-                  );
-                })()}
-              </CancellationPolicy>
-
-              <ReasonSection>
-                <ReasonLabel>Reason for cancellation (optional):</ReasonLabel>
-                <ReasonTextarea
-                  placeholder="Please let us know why you're cancelling..."
-                  ref={reasonRef}
-                />
-              </ReasonSection>
-            </CancelModalContent>
-
-            <CancelModalActions>
-              <CancelButton
-                onClick={() => {
-                  setCancellingBooking(null);
-                  if (reasonRef.current) {
-                    reasonRef.current.value = "";
-                  }
-                }}
-                $variant="secondary"
-                disabled={isCancelling}
-              >
-                <FaUndo />
-                Keep Booking
-              </CancelButton>
-              <CancelConfirmButton
-                onClick={() =>
-                  handleCancelBooking(
-                    reasonRef.current?.value || "No reason provided"
-                  )
-                }
-                disabled={isCancelling}
-                $variant="danger"
-              >
-                {isCancelling ? (
-                  <>
-                    <LoadingSpinner $size="sm" />
-                    Cancelling...
-                  </>
-                ) : (
-                  <>
-                    <FaBan />
-                    Confirm Cancellation
-                  </>
-                )}
-              </CancelConfirmButton>
-            </CancelModalActions>
-          </CancelModal>
-        </CancelModalOverlay>
       )}
 
       {/* Check-in Modal */}
@@ -1088,16 +753,7 @@ const BookingsPage = () => {
         isCheckingIn={isCheckingIn}
       />
 
-      <ReviewModal
-        show={!!reviewingBooking}
-        onClose={() => setReviewingBooking(null)}
-        booking={reviewingBooking}
-        onSuccess={() => {
-          if (reviewingBooking && reviewingBooking._id) {
-            handleReviewSuccess(reviewingBooking._id);
-          }
-        }}
-      />
+      {/* REMOVED: ReviewModal */}
     </PageWrapper>
   );
 };
@@ -1105,13 +761,7 @@ const BookingsPage = () => {
 export default BookingsPage;
 
 // ============================================================================
-// STYLED COMPONENTS (Keep all the existing styled components)
-// ============================================================================
-
-// [All the existing styled components remain exactly the same...]
-
-// ============================================================================
-// STYLED COMPONENTS (FIXED - removed whileHover)
+// STYLED COMPONENTS (Keep existing styles, they're fine)
 // ============================================================================
 
 const PageWrapper = styled.div`
@@ -1429,7 +1079,6 @@ const VehicleInfo = styled.div`
 const CarModel = styled.div`
   font-weight: var(--font-semibold);
   color: var(--text-primary);
-  /* margin-bottom: var(--space-xs); */
   font-family: var(--font-body);
 `;
 
@@ -1448,15 +1097,6 @@ const DateCell = styled.div`
 const DateGroup = styled.div`
   font-size: var(--text-sm);
   color: var(--text-primary);
-  font-family: var(--font-body);
-`;
-
-const LocationCell = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
   font-family: var(--font-body);
 `;
 
@@ -1486,6 +1126,38 @@ const DocStatus = styled.div`
   font-weight: var(--font-medium);
   width: fit-content;
   font-family: var(--font-body);
+`;
+
+// Driver Quick Actions
+const DriverQuickActions = styled.div`
+  display: flex;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+`;
+
+const QuickActionButton = styled(GhostButton)`
+  && {
+    padding: var(--space-xs);
+    min-width: auto;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-xs);
+
+    ${(props) =>
+      props.$variant === "warning" &&
+      `
+      color: var(--warning);
+      border-color: var(--warning);
+      
+      &:hover:not(:disabled) {
+        background: var(--warning);
+        color: var(--white);
+      }
+    `}
+  }
 `;
 
 const StatusCell = styled.div`
@@ -1518,6 +1190,20 @@ const CheckInButton = styled(SuccessButton)`
     padding: var(--space-sm) var(--space-md);
     min-width: auto;
     font-size: var(--text-xs);
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      background: var(--gray-300);
+      color: var(--gray-600);
+      border-color: var(--gray-300);
+
+      &:hover {
+        background: var(--gray-300);
+        color: var(--gray-600);
+        border-color: var(--gray-300);
+      }
+    }
   }
 `;
 
@@ -1543,40 +1229,6 @@ const CheckInDetails = styled.span`
 `;
 
 const CheckInHint = styled.div`
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  text-align: center;
-  font-style: italic;
-  font-family: var(--font-body);
-`;
-
-const ReviewCell = styled.div`
-  display: flex;
-  justify-content: center;
-`;
-
-const ReviewButton = styled(PrimaryButton)`
-  && {
-    padding: var(--space-sm) var(--space-md);
-    min-width: auto;
-    font-size: var(--text-xs);
-  }
-`;
-
-const ReviewedBadge = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--success);
-  color: var(--white);
-  border-radius: var(--radius-md);
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  font-family: var(--font-body);
-`;
-
-const ReviewHint = styled.div`
   font-size: var(--text-xs);
   color: var(--text-muted);
   text-align: center;
@@ -1622,10 +1274,22 @@ const IconButton = styled(GhostButton)`
         color: var(--white);
       }
     `}
+
+    ${(props) =>
+      props.$variant === "warning" &&
+      `
+      color: var(--warning);
+      border-color: var(--warning);
+      
+      &:hover:not(:disabled) {
+        background: var(--warning);
+        color: var(--white);
+      }
+    `}
   }
 `;
 
-// Mobile Card Styles
+// Mobile Container
 const MobileContainer = styled.div`
   display: none;
   padding: var(--space-md);
@@ -1634,827 +1298,5 @@ const MobileContainer = styled.div`
   @media (max-width: 768px) {
     display: flex;
     flex-direction: column;
-  }
-`;
-
-const MobileCard = styled.div`
-  background: var(--white);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--gray-200);
-`;
-
-const CardHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: var(--space-md);
-`;
-
-const CardContent = styled.div`
-  margin-bottom: var(--space-md);
-`;
-
-const InfoGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-md);
-  margin-bottom: var(--space-md);
-`;
-
-const InfoItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-`;
-
-const InfoLabel = styled.div`
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  margin-bottom: var(--space-xs);
-  font-family: var(--font-body);
-`;
-
-const InfoValue = styled.div`
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-  font-weight: var(--font-medium);
-  font-family: var(--font-body);
-`;
-
-const DocumentsSection = styled.div`
-  background: var(--surface);
-  padding: var(--space-md);
-  border-radius: var(--radius-lg);
-`;
-
-const SectionTitle = styled.h3`
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-  margin: 0 0 var(--space-sm) 0;
-  font-weight: var(--font-semibold);
-  font-family: var(--font-body);
-`;
-
-const DocumentStatusGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-`;
-
-const MobileDocStatus = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm);
-  font-size: var(--text-sm);
-  color: ${(props) => (props.$verified ? "#065f46" : "#92400e")};
-  background: ${(props) => (props.$verified ? "#d1fae5" : "#fef3c7")};
-  border-radius: var(--radius-md);
-  font-family: var(--font-body);
-`;
-
-const StatusIndicator = styled.div`
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: ${(props) =>
-    props.$verified ? "var(--success)" : "var(--warning)"};
-  margin-left: auto;
-`;
-
-// Mobile Check-in Styles
-const CheckInSection = styled.div`
-  background: var(--surface);
-  padding: var(--space-md);
-  border-radius: var(--radius-lg);
-  margin-top: var(--space-md);
-`;
-
-const CheckedInBadgeMobile = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-md);
-  background: var(--success);
-  color: var(--white);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  text-align: center;
-  font-family: var(--font-body);
-`;
-
-const CheckInDetailsMobile = styled.span`
-  font-size: var(--text-xs);
-  opacity: 0.9;
-  font-weight: var(--font-normal);
-  margin-top: var(--space-xs);
-`;
-
-const MobileCheckInButton = styled(SuccessButton)`
-  && {
-    width: 100%;
-    justify-content: center;
-    font-size: var(--text-sm);
-  }
-`;
-
-const CheckInHintMobile = styled.div`
-  text-align: center;
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-  font-style: italic;
-  font-family: var(--font-body);
-`;
-
-const ReviewSection = styled.div`
-  background: var(--surface);
-  padding: var(--space-md);
-  border-radius: var(--radius-lg);
-  margin-top: var(--space-md);
-`;
-
-const MobileReviewButton = styled(PrimaryButton)`
-  && {
-    width: 100%;
-    justify-content: center;
-    font-size: var(--text-sm);
-  }
-`;
-
-const ReviewHintMobile = styled.div`
-  text-align: center;
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-  font-style: italic;
-  font-family: var(--font-body);
-`;
-
-const CardActions = styled.div`
-  display: flex;
-  gap: var(--space-sm);
-`;
-
-const MobileButton = styled(SecondaryButton)`
-  && {
-    flex: 1;
-    justify-content: center;
-    font-size: var(--text-sm);
-
-    ${(props) =>
-      props.$variant === "danger" &&
-      `
-      color: var(--error);
-      border-color: var(--error);
-      
-      &:hover:not(:disabled) {
-        background: var(--error);
-        color: var(--white);
-      }
-    `}
-
-    ${(props) =>
-      props.$variant === "success" &&
-      `
-      color: var(--success);
-      border-color: var(--success);
-      
-      &:hover:not(:disabled) {
-        background: var(--success);
-        color: var(--white);
-      }
-    `}
-  }
-`;
-
-// Star Rating Components
-
-// Pagination Styles
-const PaginationContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-xl);
-  background: var(--white);
-  border-top: 1px solid var(--gray-200);
-
-  @media (max-width: 768px) {
-    padding: var(--space-lg);
-  }
-`;
-
-// const PaginationInfoMobile = styled.span`
-//   color: var(--text-secondary);
-//   font-size: var(--text-sm);
-//   font-family: var(--font-body);
-//   text-align: center;
-
-//   @media (min-width: 769px) {
-//     display: none;
-//   }
-// `;
-
-// const Pagination = styled.div`
-//   display: flex;
-//   align-items: center;
-//   gap: var(--space-sm);
-//   flex-wrap: wrap;
-//   justify-content: center;
-
-//   @media (max-width: 768px) {
-//     gap: var(--space-xs);
-//   }
-// `;
-
-// const PaginationButton = styled.button`
-//   display: flex;
-//   align-items: center;
-//   gap: var(--space-sm);
-//   padding: var(--space-sm) var(--space-md);
-//   background: var(--white);
-//   border: 1px solid var(--gray-300);
-//   border-radius: var(--radius-md);
-//   color: var(--text-primary);
-//   font-size: var(--text-sm);
-//   font-weight: var(--font-medium);
-//   cursor: ${(props) => (props.$disabled ? "not-allowed" : "pointer")};
-//   transition: all var(--transition-normal);
-//   font-family: var(--font-body);
-
-//   &:hover:not(:disabled) {
-//     background: var(--primary);
-//     color: var(--white);
-//     border-color: var(--primary);
-//   }
-
-//   &:disabled {
-//     opacity: 0.5;
-//     cursor: not-allowed;
-//   }
-
-//   @media (max-width: 768px) {
-//     padding: var(--space-xs) var(--space-sm);
-//     font-size: var(--text-xs);
-//   }
-// `;
-
-const PageNumbers = styled.div`
-  display: flex;
-  gap: var(--space-xs);
-  align-items: center;
-
-  @media (max-width: 768px) {
-    gap: 2px;
-  }
-`;
-
-const PageNumber = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-  height: 40px;
-  padding: var(--space-xs);
-  border: 1px solid var(--gray-300);
-  border-radius: var(--radius-md);
-  background: ${(props) => (props.$active ? "var(--primary)" : "var(--white)")};
-  color: ${(props) => (props.$active ? "var(--white)" : "var(--text-primary)")};
-  font-size: var(--text-sm);
-  font-weight: ${(props) =>
-    props.$active ? "var(--font-semibold)" : "var(--font-normal)"};
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  font-family: var(--font-body);
-
-  &:hover {
-    background: ${(props) =>
-      props.$active ? "var(--primary)" : "var(--gray-100)"};
-    border-color: ${(props) =>
-      props.$active ? "var(--primary)" : "var(--gray-400)"};
-  }
-
-  @media (max-width: 768px) {
-    min-width: 36px;
-    height: 36px;
-    font-size: var(--text-xs);
-  }
-`;
-
-const Ellipsis = styled.span`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-  height: 40px;
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-  font-family: var(--font-body);
-
-  @media (max-width: 768px) {
-    min-width: 36px;
-    height: 36px;
-    font-size: var(--text-xs);
-  }
-`;
-
-// Cancel Modal Styles
-const CancelModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: var(--space-md);
-`;
-
-const CancelModal = styled.div`
-  background: var(--white);
-  border-radius: var(--radius-xl);
-  padding: var(--space-xl);
-  max-width: 500px;
-  width: 100%;
-  box-shadow: var(--shadow-lg);
-  animation: slideUp 0.3s ease-out;
-
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @media (max-width: 768px) {
-    padding: var(--space-lg);
-    margin: var(--space-md);
-  }
-`;
-
-const CancelModalHeader = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  margin-bottom: var(--space-lg);
-  text-align: center;
-  justify-content: center;
-`;
-
-const WarningIcon = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  background: var(--error-light);
-  color: var(--error);
-  border-radius: 50%;
-  font-size: var(--text-xl);
-`;
-
-const CancelModalTitle = styled.h2`
-  font-size: var(--text-2xl);
-  color: var(--error);
-  margin: 0;
-  font-weight: var(--font-bold);
-  font-family: var(--font-heading);
-`;
-
-const CancelModalContent = styled.div`
-  margin-bottom: var(--space-xl);
-  text-align: center;
-
-  p {
-    color: var(--text-primary);
-    margin-bottom: var(--space-lg);
-    font-size: var(--text-lg);
-    font-family: var(--font-body);
-  }
-`;
-
-const BookingInfo = styled.div`
-  background: var(--surface);
-  padding: var(--space-md);
-  border-radius: var(--radius-lg);
-  margin-bottom: var(--space-lg);
-  text-align: left;
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  font-family: var(--font-body);
-
-  strong {
-    color: var(--text-primary);
-  }
-`;
-
-const CancellationPolicy = styled.div`
-  background: var(--info-light);
-  padding: var(--space-md);
-  border-radius: var(--radius-lg);
-  margin-bottom: var(--space-lg);
-  text-align: left;
-`;
-
-const PolicyTitle = styled.h4`
-  font-size: var(--text-sm);
-  color: var(--info-dark);
-  margin: 0 0 var(--space-sm) 0;
-  font-weight: var(--font-semibold);
-  font-family: var(--font-body);
-`;
-
-const PolicyMessage = styled.div`
-  font-size: var(--text-sm);
-  color: ${(props) =>
-    props.$type === "full_refund"
-      ? "var(--success)"
-      : props.$type === "partial_refund"
-      ? "var(--warning)"
-      : props.$type === "no_refund"
-      ? "var(--error)"
-      : "var(--text-secondary)"};
-  font-weight: var(--font-semibold);
-  margin-bottom: var(--space-xs);
-  font-family: var(--font-body);
-`;
-
-const PolicyNote = styled.div`
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  font-style: italic;
-  font-family: var(--font-body);
-`;
-
-const ReasonSection = styled.div`
-  text-align: left;
-  margin-top: var(--space-lg);
-`;
-
-const ReasonLabel = styled.label`
-  display: block;
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-  margin-bottom: var(--space-sm);
-  font-weight: var(--font-medium);
-  font-family: var(--font-body);
-`;
-
-const ReasonTextarea = styled.textarea`
-  width: 100%;
-  min-height: 80px;
-  padding: var(--space-sm);
-  border: 1px solid var(--gray-300);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-family: var(--font-body);
-  resize: vertical;
-
-  &:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px var(--primary-light);
-  }
-`;
-
-const CancelModalActions = styled.div`
-  display: flex;
-  gap: var(--space-md);
-  justify-content: center;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
-`;
-
-const CancelButton = styled(SecondaryButton)`
-  && {
-    min-width: 140px;
-
-    @media (max-width: 768px) {
-      min-width: auto;
-    }
-  }
-`;
-
-const CancelConfirmButton = styled(DangerButton)`
-  && {
-    min-width: 180px;
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    @media (max-width: 768px) {
-      min-width: auto;
-    }
-  }
-`;
-
-const VehicleImage = styled.img`
-  width: 100px;
-  height: 70px;
-  border-radius: var(--radius-md);
-  object-fit: cover;
-
-  @media (max-width: 768px) {
-    width: 120px;
-    height: 80px;
-  }
-`;
-
-const VehicleDetails = styled.div`
-  flex: 1;
-`;
-
-const VehicleModel = styled.h3`
-  font-size: var(--text-lg);
-  color: var(--text-primary);
-  margin: 0 0 var(--space-sm) 0;
-  font-weight: var(--font-semibold);
-  font-family: var(--font-heading);
-`;
-
-const VehicleDetailsText = styled.p`
-  color: var(--text-secondary);
-  margin: 0 0 var(--space-xs) 0;
-  font-size: var(--text-sm);
-  font-family: var(--font-body);
-`;
-
-const FormSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-`;
-
-const FormLabel = styled.label`
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-  font-weight: var(--font-semibold);
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  font-family: var(--font-body);
-`;
-
-const MileageInput = styled.input`
-  padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--gray-300);
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  font-family: var(--font-body);
-  transition: all var(--transition-normal);
-
-  &:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px var(--primary-light);
-  }
-
-  &::placeholder {
-    color: var(--text-muted);
-  }
-`;
-
-const FormHelp = styled.span`
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  font-family: var(--font-body);
-`;
-
-const FuelLevelGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: var(--space-sm);
-
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  @media (max-width: 480px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-`;
-
-const FuelLevelOption = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-md);
-  border: 2px solid
-    ${(props) => (props.$selected ? "var(--success)" : "var(--gray-300)")};
-  border-radius: var(--radius-md);
-  background: ${(props) =>
-    props.$selected ? "var(--success-light)" : "var(--white)"};
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  text-align: center;
-
-  &:hover {
-    border-color: var(--success);
-    background: var(--success-light);
-  }
-`;
-
-const FuelLevelIcon = styled.div`
-  color: ${(props) => {
-    const level = props.$level;
-    if (level === 0) return "var(--error)";
-    if (level <= 25) return "var(--warning)";
-    if (level <= 50) return "var(--info)";
-    if (level <= 75) return "var(--success)";
-    return "var(--success-dark)";
-  }};
-  font-size: var(--text-lg);
-`;
-
-const FuelLevelLabel = styled.span`
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  color: var(--text-primary);
-  font-family: var(--font-body);
-`;
-
-const PhotoUploadSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-`;
-
-const PhotoUploadButton = styled.div`
-  display: inline-block;
-`;
-
-const PhotoUploadLabel = styled.label`
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--primary);
-  color: var(--white);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  font-family: var(--font-body);
-
-  &:hover {
-    background: var(--primary-dark);
-  }
-`;
-
-const PhotoHelp = styled.span`
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  font-family: var(--font-body);
-`;
-
-const PhotoPreviewGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: var(--space-sm);
-`;
-
-const PhotoPreview = styled.div`
-  position: relative;
-  width: 100px;
-  height: 100px;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-`;
-
-const PhotoPreviewImage = styled.img`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-`;
-
-const RemovePhotoButton = styled.button`
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 24px;
-  height: 24px;
-  background: var(--error);
-  color: var(--white);
-  border: none;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: var(--text-xs);
-  transition: all var(--transition-normal);
-
-  &:hover {
-    background: var(--error-dark);
-    transform: scale(1.1);
-  }
-`;
-
-const NotesTextarea = styled.textarea`
-  width: 100%;
-  padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--gray-300);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-family: var(--font-body);
-  resize: vertical;
-  transition: all var(--transition-normal);
-
-  &:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px var(--primary-light);
-  }
-
-  &::placeholder {
-    color: var(--text-muted);
-  }
-`;
-
-const CheckInTips = styled.div`
-  background: var(--info-light);
-  padding: var(--space-lg);
-  border-radius: var(--radius-lg);
-  margin-top: var(--space-xl);
-`;
-
-const TipsTitle = styled.h4`
-  font-size: var(--text-sm);
-  color: var(--info-dark);
-  margin: 0 0 var(--space-md) 0;
-  font-weight: var(--font-semibold);
-  font-family: var(--font-body);
-`;
-
-const TipsList = styled.ul`
-  margin: 0;
-  padding-left: var(--space-lg);
-`;
-
-const Tip = styled.li`
-  color: var(--info-dark);
-  font-size: var(--text-sm);
-  margin-bottom: var(--space-xs);
-  font-family: var(--font-body);
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-const CheckInModalActions = styled.div`
-  display: flex;
-  gap: var(--space-md);
-  justify-content: flex-end;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
-`;
-
-const CheckInCancelButton = styled(SecondaryButton)`
-  && {
-    min-width: 120px;
-
-    @media (max-width: 768px) {
-      min-width: auto;
-    }
-  }
-`;
-
-const CheckInConfirmButton = styled(SuccessButton)`
-  && {
-    min-width: 160px;
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    @media (max-width: 768px) {
-      min-width: auto;
-    }
   }
 `;

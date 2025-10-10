@@ -1,6 +1,7 @@
 // src/constants/routes.js
 export const PATHS = {
   HOME: "/",
+  FORGOT: "/forgot-password",
   MODELS: "/models",
   MODEL: "/model/:modelId",
   LOCATIONS: "/locations",
@@ -181,6 +182,11 @@ export const ROUTE_CONFIG = {
     description:
       "Read the terms and conditions for using BenzFlex luxury vehicle rental services.",
     keywords: "terms of service, terms and conditions",
+  },
+  [PATHS.FORGOT]: {
+    title: "Forgot Password - BenzFlex",
+    description: "Reset your password for BenzFlex account",
+    keywords: "forgot password, reset password",
   },
 };
 

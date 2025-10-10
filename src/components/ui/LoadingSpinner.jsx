@@ -1,4 +1,3 @@
-// src/components/ui/States.jsx
 import styled, { keyframes } from "styled-components";
 import { FaExclamationTriangle, FaInfoCircle, FaCar } from "react-icons/fa";
 

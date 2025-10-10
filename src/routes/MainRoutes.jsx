@@ -7,6 +7,7 @@ import { PATHS, ROUTE_CONFIG, ADMIN_PATHS } from "./routePaths";
 import { LoadingState, LoadingSpinner } from "../components/ui/LoadingSpinner";
 
 // Lazy imports
+const ForgotPasswordPage = lazy(() => import("../pages/ForgotPasswordPage"));
 const AboutUsPage = lazy(() => import("../pages/AboutUsPage"));
 const ProtectedRoute = lazy(() => import("./protectedRoute"));
 const ProfilePage = lazy(() => import("../pages/ProfilePage"));
@@ -98,6 +99,7 @@ const MainRoutes = () => (
 
       {/* Auth routes */}
       <Route path={PATHS.LOGIN} element={<LoginPage />} />
+      <Route path={PATHS.FORGOT} element={<ForgotPasswordPage />} />
 
       {/* Admin routes */}
       <Route
