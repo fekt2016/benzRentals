@@ -131,11 +131,8 @@ const GlobalStyles = createGlobalStyle`
     --transition-bounce: 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
 
-  /* Ensure fonts are loaded and applied */
-  html {
-    font-family: var(--font-body);
-  }
-
+  /* ========== MOBILE VIEWPORT FIXES ========== */
+  
   /* Reset + box model */
   *,
   *::before,
@@ -143,14 +140,30 @@ const GlobalStyles = createGlobalStyle`
     box-sizing: border-box;
     padding: 0;
     margin: 0;
+    /* Prevent text size adjustment on mobile */
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+    /* Improve touch interactions */
+    touch-action: manipulation;
   }
 
-  /* Smooth scrolling */
+  /* Mobile viewport protection */
   html {
+    font-family: var(--font-body);
     font-size: 62.5%; // 1rem = 10px for easy math
     scroll-behavior: smooth;
     width: 100vw;
     overflow-x: hidden;
+    
+    /* Prevent font scaling in landscape on iOS */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* Remove tap highlight */
+    -webkit-tap-highlight-color: transparent;
+    
+    /* Ensure proper viewport behavior */
+    height: 100%;
+    position: fixed; /* Prevents elastic scrolling on iOS */
 
     @media ${devices.lg} {
       font-size: 62.5%;
@@ -176,12 +189,58 @@ const GlobalStyles = createGlobalStyle`
     line-height: 1.6;
     font-size: 1.6rem;
     font-weight: var(--font-normal);
-    min-height: 100vh;
+    
+    /* Mobile viewport fixes */
+    width: 100%;
+    height: 100%;
     overflow-x: hidden;
+    overflow-y: auto; /* Allow vertical scrolling */
+    position: relative;
+    
+    /* Prevent elastic scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    
     text-rendering: optimizeSpeed;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    
+    /* Ensure content fits viewport */
+    max-width: 100vw;
   }
+
+  #root {
+    width: 100%;
+    min-height: 100%;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* ========== MOBILE FORM FIXES ========== */
+  
+  /* Prevent zoom on input focus in iOS */
+  @media screen and (max-width: 768px) {
+    input, select, textarea {
+      font-size: 16px !important; /* Prevents auto-zoom in iOS Safari */
+    }
+    
+    /* Ensure form elements are touch-friendly */
+    input, select, textarea, button {
+      min-height: 44px; /* Minimum touch target size */
+    }
+  }
+
+  /* Touch device improvements */
+  @media (hover: none) and (pointer: coarse) {
+    button, a, [role="button"] {
+      min-height: 44px; /* Minimum touch target size */
+      min-width: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  /* ========== EXISTING STYLES (with mobile optimizations) ========== */
 
   /* Typography Scale */
   h1, h2, h3, h4, h5, h6 {
@@ -192,6 +251,10 @@ const GlobalStyles = createGlobalStyle`
     margin-bottom: var(--space-md);
     overflow-wrap: break-word;
     letter-spacing: -0.01em;
+    
+    /* Ensure text doesn't cause overflow */
+    word-wrap: break-word;
+    hyphens: auto;
   }
 
   h1 {
@@ -251,7 +314,11 @@ const GlobalStyles = createGlobalStyle`
     line-height: 1.7;
     font-family: var(--font-body);
     font-weight: var(--font-normal);
-    font-size: var(--text-base); // Added to ensure paragraph text uses increased size
+    font-size: var(--text-base);
+    
+    /* Prevent text overflow on mobile */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
 
   /* Links */
@@ -260,7 +327,7 @@ const GlobalStyles = createGlobalStyle`
     text-decoration: none;
     transition: color var(--transition-fast);
     font-family: var(--font-body);
-    font-size: inherit; // Ensure links inherit the increased font size
+    font-size: inherit;
 
     &:hover {
       color: var(--primary);
@@ -277,6 +344,9 @@ const GlobalStyles = createGlobalStyle`
     max-width: 100%;
     height: auto;
     display: block;
+    
+    /* Prevent images from causing overflow */
+    object-fit: cover;
   }
 
   /* Forms & Inputs */
@@ -288,7 +358,10 @@ const GlobalStyles = createGlobalStyle`
     color: inherit;
     border: none;
     background: none;
-    font-size: var(--text-base); // Ensure form elements use increased size
+    font-size: var(--text-base);
+    
+    /* Mobile-friendly sizing */
+    min-height: 44px;
   }
 
   button {
@@ -296,7 +369,7 @@ const GlobalStyles = createGlobalStyle`
     transition: all var(--transition-normal);
     font-family: var(--font-body);
     font-weight: var(--font-medium);
-    font-size: var(--text-base); // Ensure buttons use increased size
+    font-size: var(--text-base);
 
     &:hover:not(:disabled) {
       transform: translateY(-1px);
@@ -357,6 +430,44 @@ const GlobalStyles = createGlobalStyle`
 
     &:hover {
       background: var(--gray-500);
+    }
+  }
+
+  /* ========== MOBILE-SPECIFIC OVERRIDES ========== */
+
+  /* Container constraints for mobile */
+  @media ${devices.sm} {
+    .container, .page-wrapper, [class*="container"] {
+      max-width: 100vw;
+      overflow-x: hidden;
+    }
+    
+    /* Hide elements that might cause layout issues */
+    .mobile-hidden {
+      display: none;
+    }
+    
+    /* Ensure content doesn't overflow */
+    .mobile-full-width {
+      width: 100vw;
+      margin-left: calc(-50vw + 50%);
+    }
+  }
+
+  /* iOS Safari specific fixes */
+  @supports (-webkit-touch-callout: none) {
+    body {
+      /* iOS-specific height fix */
+      min-height: -webkit-fill-available;
+    }
+    
+    html {
+      height: -webkit-fill-available;
+    }
+    
+    /* Force GPU rendering for better performance */
+    .gpu-render {
+      transform: translateZ(0);
     }
   }
 
@@ -435,74 +546,7 @@ const GlobalStyles = createGlobalStyle`
     }
   }
 
-  /* Loading states */
-  .loading-spinner {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 2px solid var(--gray-300);
-    border-top: 2px solid var(--primary);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
 
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-
-  /* Animation classes */
-  .fade-in-up {
-    animation: fadeInUp 0.6s ease-out;
-  }
-
-  .scale-in {
-    animation: scaleIn 0.4s ease-out;
-  }
-
-  .slide-in-up {
-    animation: slideInUp 0.3s ease-out;
-  }
-
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes scaleIn {
-    from {
-      opacity: 0;
-      transform: scale(0.9);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  @keyframes slideInUp {
-    from {
-      opacity: 0;
-      transform: translateY(100%);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Mobile optimizations */
-  @media ${devices.sm} {
-    .mobile-hidden {
-      display: none;
-    }
-  }
 
   /* Print styles */
   @media print {

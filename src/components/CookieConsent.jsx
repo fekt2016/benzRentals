@@ -11,15 +11,16 @@ import {
   GhostButton,
 } from "../components/ui/Button";
 
-// Using only basic icons that should be available
+// Icons
 import {
-  FaCookie,
   FaCog,
   FaTimes,
   FaCheck,
   FaChartBar,
   FaBullhorn,
   FaUserCog,
+  FaCar,
+  FaCreditCard,
 } from "react-icons/fa";
 
 const CookieConsent = () => {
@@ -36,6 +37,7 @@ const CookieConsent = () => {
     acceptAll,
     acceptEssential,
     savePreferences,
+    dismissBanner, // We'll add this function to the hook
   } = useCookieConsent();
 
   // Initialize local preferences when consent changes
@@ -71,169 +73,197 @@ const CookieConsent = () => {
     setPreferencesOpen(false);
   };
 
+  const handleDismiss = () => {
+    // This will hide the banner without setting any consent
+    dismissBanner();
+  };
+
   // Don't show anything if banner shouldn't be shown and preferences aren't open
   if (!shouldShowBanner && !preferencesOpen) return null;
 
   return (
     <AnimatePresence>
-      {(shouldShowBanner || preferencesOpen) && (
-        <Overlay
+      {/* Main Banner */}
+      {shouldShowBanner && !preferencesOpen && (
+        <BannerContainer
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 100, opacity: 0 }}
+          transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        >
+          <CloseBannerButton onClick={handleDismiss} $size="sm">
+            <FaTimes />
+          </CloseBannerButton>
+
+          <BannerContent>
+            <BannerHeader>
+              <CookieIcon>
+                <FaCar />
+              </CookieIcon>
+              <BannerText>
+                <BannerTitle>Enhanced Car Rental Experience</BannerTitle>
+                <BannerDescription>
+                  We use cookies to provide you with the best rental
+                  experience—showing you relevant vehicles, remembering your
+                  preferences, and improving our service. You can accept all,
+                  choose essentials only, or customize your preferences.
+                </BannerDescription>
+              </BannerText>
+            </BannerHeader>
+
+            <BannerActions>
+              <PreferencesButton
+                onClick={() => setPreferencesOpen(true)}
+                $size="sm"
+              >
+                <FaCog />
+                Customize
+              </PreferencesButton>
+              <EssentialButton onClick={handleAcceptEssential} $size="sm">
+                Essentials Only
+              </EssentialButton>
+              <AcceptButton onClick={handleAcceptAll} $size="sm">
+                Accept All
+              </AcceptButton>
+            </BannerActions>
+          </BannerContent>
+        </BannerContainer>
+      )}
+
+      {/* Preferences Modal - Only this gets the overlay when open */}
+      {preferencesOpen && (
+        <ModalOverlay
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          onClick={() => setPreferencesOpen(false)}
         >
-          <BannerContainer
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+          <PreferencesContainer
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            onClick={(e) => e.stopPropagation()}
           >
-            {preferencesOpen ? (
-              <PreferencesModal>
-                <ModalHeader>
-                  <ModalTitle>
-                    <FaCog />
-                    Cookie Preferences
-                  </ModalTitle>
-                  <CloseButton
-                    onClick={() => setPreferencesOpen(false)}
-                    $size="sm"
-                  >
-                    <FaTimes />
-                  </CloseButton>
-                </ModalHeader>
+            <PreferencesModal>
+              <ModalHeader>
+                <ModalTitle>
+                  <FaCog />
+                  Cookie Preferences
+                </ModalTitle>
+                <CloseButton
+                  onClick={() => setPreferencesOpen(false)}
+                  $size="sm"
+                >
+                  <FaTimes />
+                </CloseButton>
+              </ModalHeader>
 
-                <ModalContent>
-                  <PreferencesDescription>
-                    We use cookies to enhance your experience on our luxury
-                    Mercedes-Benz platform. Choose which types of cookies you
-                    allow us to use.
-                  </PreferencesDescription>
+              <ModalContent>
+                <PreferencesDescription>
+                  We use cookies to enhance your car rental experience. Manage
+                  your preferences to control how we use your data for improving
+                  our services and showing you relevant vehicle options and
+                  deals.
+                </PreferencesDescription>
 
-                  <PreferencesList>
-                    <PreferenceItem $required={true}>
-                      <PreferenceInfo>
-                        <PreferenceTitle>
-                          Necessary Cookies
-                          <RequiredBadge>Required</RequiredBadge>
-                        </PreferenceTitle>
-                        <PreferenceDescription>
-                          Essential for the website to function properly. Cannot
-                          be disabled.
-                        </PreferenceDescription>
-                      </PreferenceInfo>
-                      <PreferenceToggle $disabled={true}>
-                        <FaCheck />
-                      </PreferenceToggle>
-                    </PreferenceItem>
+                <PreferencesList>
+                  <PreferenceItem $required={true}>
+                    <PreferenceInfo>
+                      <PreferenceTitle>
+                        <FaCreditCard />
+                        Essential Operation Cookies
+                        <RequiredBadge>Required</RequiredBadge>
+                      </PreferenceTitle>
+                      <PreferenceDescription>
+                        Necessary for booking vehicles, processing payments, and
+                        secure site operation. These cannot be disabled as they
+                        are required for rental reservations.
+                      </PreferenceDescription>
+                    </PreferenceInfo>
+                    <PreferenceToggle $disabled={true}>
+                      <FaCheck />
+                    </PreferenceToggle>
+                  </PreferenceItem>
 
-                    <PreferenceItem>
-                      <PreferenceInfo>
-                        <PreferenceTitle>
-                          <FaChartBar />
-                          Analytics Cookies
-                        </PreferenceTitle>
-                        <PreferenceDescription>
-                          Help us understand how visitors interact with our
-                          luxury platform.
-                        </PreferenceDescription>
-                      </PreferenceInfo>
-                      <PreferenceToggle
-                        $active={localPreferences.analytics}
-                        onClick={() => handlePreferenceChange("analytics")}
-                      >
-                        {localPreferences.analytics && <FaCheck />}
-                      </PreferenceToggle>
-                    </PreferenceItem>
+                  <PreferenceItem>
+                    <PreferenceInfo>
+                      <PreferenceTitle>
+                        <FaChartBar />
+                        Analytics & Performance Cookies
+                      </PreferenceTitle>
+                      <PreferenceDescription>
+                        Help us understand how customers use our rental
+                        platform—which vehicles are most viewed, booking funnel
+                        drop-offs, and site performance. This helps us improve
+                        our fleet and customer experience.
+                      </PreferenceDescription>
+                    </PreferenceInfo>
+                    <PreferenceToggle
+                      $active={localPreferences.analytics}
+                      onClick={() => handlePreferenceChange("analytics")}
+                    >
+                      {localPreferences.analytics && <FaCheck />}
+                    </PreferenceToggle>
+                  </PreferenceItem>
 
-                    <PreferenceItem>
-                      <PreferenceInfo>
-                        <PreferenceTitle>
-                          <FaBullhorn />
-                          Marketing Cookies
-                        </PreferenceTitle>
-                        <PreferenceDescription>
-                          Used to provide personalized luxury vehicle
-                          recommendations.
-                        </PreferenceDescription>
-                      </PreferenceInfo>
-                      <PreferenceToggle
-                        $active={localPreferences.marketing}
-                        onClick={() => handlePreferenceChange("marketing")}
-                      >
-                        {localPreferences.marketing && <FaCheck />}
-                      </PreferenceToggle>
-                    </PreferenceItem>
+                  <PreferenceItem>
+                    <PreferenceInfo>
+                      <PreferenceTitle>
+                        <FaBullhorn />
+                        Marketing & Personalization Cookies
+                      </PreferenceTitle>
+                      <PreferenceDescription>
+                        Used to show you relevant vehicle recommendations,
+                        special rental deals, and retarget ads for vehicles
+                        you&apos;ve viewed. Helps us reach you with offers on your
+                        preferred car types and rental locations.
+                      </PreferenceDescription>
+                    </PreferenceInfo>
+                    <PreferenceToggle
+                      $active={localPreferences.marketing}
+                      onClick={() => handlePreferenceChange("marketing")}
+                    >
+                      {localPreferences.marketing && <FaCheck />}
+                    </PreferenceToggle>
+                  </PreferenceItem>
 
-                    <PreferenceItem>
-                      <PreferenceInfo>
-                        <PreferenceTitle>
-                          <FaUserCog />
-                          Preference Cookies
-                        </PreferenceTitle>
-                        <PreferenceDescription>
-                          Allow the platform to remember your luxury
-                          preferences.
-                        </PreferenceDescription>
-                      </PreferenceInfo>
-                      <PreferenceToggle
-                        $active={localPreferences.preferences}
-                        onClick={() => handlePreferenceChange("preferences")}
-                      >
-                        {localPreferences.preferences && <FaCheck />}
-                      </PreferenceToggle>
-                    </PreferenceItem>
-                  </PreferencesList>
-                </ModalContent>
+                  <PreferenceItem>
+                    <PreferenceInfo>
+                      <PreferenceTitle>
+                        <FaUserCog />
+                        Preference & Convenience Cookies
+                      </PreferenceTitle>
+                      <PreferenceDescription>
+                        Remember your rental preferences—favorite locations,
+                        vehicle types, insurance choices, and payment methods.
+                        Makes repeat bookings faster and more convenient.
+                      </PreferenceDescription>
+                    </PreferenceInfo>
+                    <PreferenceToggle
+                      $active={localPreferences.preferences}
+                      onClick={() => handlePreferenceChange("preferences")}
+                    >
+                      {localPreferences.preferences && <FaCheck />}
+                    </PreferenceToggle>
+                  </PreferenceItem>
+                </PreferencesList>
+              </ModalContent>
 
-                <ModalActions>
-                  <SecondaryButton
-                    onClick={() => setPreferencesOpen(false)}
-                    $size="md"
-                  >
-                    Cancel
-                  </SecondaryButton>
-                  <PrimaryButton onClick={handleSavePreferences} $size="md">
-                    Save Preferences
-                  </PrimaryButton>
-                </ModalActions>
-              </PreferencesModal>
-            ) : (
-              <BannerContent>
-                <BannerHeader>
-                  <CookieIcon>
-                    <FaCookie />
-                  </CookieIcon>
-                  <BannerText>
-                    <BannerTitle>We Value Your Privacy</BannerTitle>
-                    <BannerDescription>
-                      At Mercedes-Benz Rentals, we use cookies to enhance your
-                      luxury experience, serve personalized content, and analyze
-                      our traffic. By clicking "Accept All", you consent to our
-                      use of cookies.
-                    </BannerDescription>
-                  </BannerText>
-                </BannerHeader>
-
-                <BannerActions>
-                  <PreferencesButton
-                    onClick={() => setPreferencesOpen(true)}
-                    $size="sm"
-                  >
-                    <FaCog />
-                    Preferences
-                  </PreferencesButton>
-                  <EssentialButton onClick={handleAcceptEssential} $size="sm">
-                    Essential Only
-                  </EssentialButton>
-                  <AcceptButton onClick={handleAcceptAll} $size="sm">
-                    Accept All
-                  </AcceptButton>
-                </BannerActions>
-              </BannerContent>
-            )}
-          </BannerContainer>
-        </Overlay>
+              <ModalActions>
+                <SecondaryButton
+                  onClick={() => setPreferencesOpen(false)}
+                  $size="md"
+                >
+                  Cancel
+                </SecondaryButton>
+                <PrimaryButton onClick={handleSavePreferences} $size="md">
+                  Save Preferences
+                </PrimaryButton>
+              </ModalActions>
+            </PreferencesModal>
+          </PreferencesContainer>
+        </ModalOverlay>
       )}
     </AnimatePresence>
   );
@@ -241,45 +271,48 @@ const CookieConsent = () => {
 
 export default CookieConsent;
 
-// Styled Components - Updated to use global CSS variables
-const Overlay = styled(motion.div)`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  z-index: 9999;
-  padding: 0;
-
-  @media (min-width: 768px) {
-    align-items: flex-end;
-    padding-bottom: var(--space-lg);
-  }
-`;
-
+// Styled Components
 const BannerContainer = styled(motion.div)`
   background: var(--white);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
-  max-width: 100%;
-  width: 100%;
-  max-height: 90vh;
-  overflow: hidden;
-  position: relative;
-
-  @media (min-width: 768px) {
-    max-width: 600px;
-    border-radius: var(--radius-xl);
-    margin: 0 auto;
-  }
+  max-width: 600px;
+  width: 90%;
+  position: fixed;
+  bottom: var(--space-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  border: 1px solid var(--gray-200);
+  margin: 0 auto;
 
   @media (min-width: 1024px) {
     max-width: 700px;
+    width: 95%;
+  }
+`;
+
+
+const CloseBannerButton = styled(GhostButton)`
+  && {
+    position: absolute;
+    top: var(--space-sm);
+    right: var(--space-sm);
+    padding: var(--space-xs);
+    min-width: auto;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+
+    @media (min-width: 768px) {
+      top: var(--space-md);
+      right: var(--space-md);
+      width: 36px;
+      height: 36px;
+    }
   }
 `;
 
@@ -389,22 +422,41 @@ const AcceptButton = styled(PrimaryButton)`
   }
 `;
 
-const CloseButton = styled(GhostButton)`
-  && {
-    padding: var(--space-sm);
-    min-width: auto;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+// Modal Overlay (only for preferences modal)
+const ModalOverlay = styled(motion.div)`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  padding: var(--space-lg);
+`;
+
+const PreferencesContainer = styled(motion.div)`
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow: hidden;
+
+  @media (max-width: 640px) {
+    max-width: 100%;
   }
 `;
 
 const PreferencesModal = styled.div`
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   max-height: 80vh;
+  overflow: hidden;
 `;
 
 const ModalHeader = styled.div`
@@ -428,6 +480,18 @@ const ModalTitle = styled.h2`
   color: var(--text-primary);
   margin: 0;
   font-family: var(--font-heading);
+`;
+
+const CloseButton = styled(GhostButton)`
+  && {
+    padding: var(--space-sm);
+    min-width: auto;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 `;
 
 const ModalContent = styled.div`

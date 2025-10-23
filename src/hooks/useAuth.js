@@ -52,7 +52,6 @@ export const useVerifyOtp = () => {
       Cookies.set("token", token, { expires: 7 });
       try {
         const decoded = jwtDecode(token); // { id, role, exp, ... }
-        console.log("Decoded token:", decoded);
         if (decoded.role === "admin") {
           navigate("/admin");
         } else {

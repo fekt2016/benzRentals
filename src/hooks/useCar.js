@@ -67,14 +67,3 @@ export const useDeleteCar = (id) => {
     },
   });
 };
-
-// export const useGetCarsStatus = (status) => {
-//   console.log("status", status);
-//   return useQuery({
-//     queryKey: ["status", status],
-//     queryFn: async () => {
-//       const res = await carApi.getCars(status);
-//       return res.data;
-//     },
-//   });
-// };

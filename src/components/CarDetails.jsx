@@ -1,5 +1,6 @@
+/* eslint-disable react/prop-types */
 import React from "react";
-import styled, { keyframes } from "styled-components";
+import styled from "styled-components";
 import {
   FaCar,
   FaCalendarAlt,
@@ -12,9 +13,10 @@ import {
   FaPalette,
   FaShieldAlt,
 } from "react-icons/fa";
+import {scaleIn, glow, fadeInUp } from '../styles/animations';
 
 const CarDetails = ({ car }) => {
-  console.log("car", car);
+ 
   // Animation for icon entrances
 
   const details = [
@@ -67,7 +69,6 @@ const CarDetails = ({ car }) => {
       {/* Header with Status */}
       <Header>
         <Title>
-          <CarIcon>🚗</CarIcon>
           Vehicle Specifications
         </Title>
         <StatusBadge $color={status.color} $bg={status.bg}>
@@ -77,8 +78,9 @@ const CarDetails = ({ car }) => {
 
       {/* Main Details Grid */}
       <DetailsGrid>
-        {details.map((item, index) => (
-          <DetailCard key={item.label} $delay={index * 0.1}>
+        {details.map((item, index) => {
+          
+          return <DetailCard key={item.label} $delay={index * 0.1}>
             <DetailIcon $color={item.color}>
               <item.icon />
             </DetailIcon>
@@ -87,7 +89,7 @@ const CarDetails = ({ car }) => {
               <DetailValue>{item.value}</DetailValue>
             </DetailContent>
           </DetailCard>
-        ))}
+})}
       </DetailsGrid>
 
       {/* Features Section */}
@@ -149,39 +151,9 @@ const CarDetails = ({ car }) => {
 
 export default CarDetails;
 
-// Animations
-const fadeInUp = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
 
-const scaleIn = keyframes`
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-`;
 
-const pulse = keyframes`
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-`;
 
-const glow = keyframes`
-  0%, 100% { box-shadow: 0 0 5px currentColor; }
-  50% { box-shadow: 0 0 20px currentColor; }
-`;
 
 // Styled Components
 const Wrapper = styled.div`
@@ -232,10 +204,10 @@ const Title = styled.h2`
   }
 `;
 
-const CarIcon = styled.span`
-  font-size: 2rem;
-  animation: ${pulse} 2s ease-in-out infinite;
-`;
+// const CarIcon = styled.span`
+//   font-size: 2rem;
+//   animation: ${pulse} 2s ease-in-out infinite;
+// `;
 
 const StatusBadge = styled.span`
   display: flex;
@@ -252,9 +224,9 @@ const StatusBadge = styled.span`
 
 const DetailsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+   gap: 1.5rem;
+  grid-template-columns: repeat(2, 1fr);
+
 
   @media (max-width: 480px) {
     grid-template-columns: 1fr;
@@ -272,6 +244,7 @@ const DetailCard = styled.div`
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
   animation: ${fadeInUp} 0.6s ease-out ${(props) => props.$delay}s both;
+ 
 
   &:hover {
     transform: translateY(-5px);

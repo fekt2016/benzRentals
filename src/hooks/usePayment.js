@@ -6,6 +6,7 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 export const useStripePayment = () => {
   //   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (bookingData) => {
       const response = await paymentApi.stripePayment(bookingData);
@@ -13,13 +14,22 @@ export const useStripePayment = () => {
       return response;
     },
     onSuccess: async (response) => {
+      console.log("response",response.data.sessionId)
+console.log(response)
+      const sessionId = response?.data?.sessionId
+      console.log(sessionId)
+       if (!sessionId) {
+    throw new Error('No session ID received from the server');
+  }
       const stripe = await stripePromise;
 
       const result = await stripe.redirectToCheckout({
-        sessionId: response.data.id,
+        sessionId: response?.data?.sessionId,
       });
+console.log(result)
+      
       if (result.error) {
-        throw new Error(result.error.message);
+        throw new Error(result.error);
       }
     },
     onError: (error) => {
@@ -42,13 +52,14 @@ export const useVerifyPayment = (sessionId, bookingId) => {
 };
 
 export const useGetBookingConfirmation = (bookingId) => {
-  console.log("confirmed");
   return useQuery({
     queryKey: ["payment", "confirmation", bookingId],
     queryFn: async () => {
       const response = await paymentApi.getBookingConfirmation(bookingId);
-      console.log("response", response);
       return response.data;
+    },
+    onSuccess:(data)=>{
+console.log("booking confirmed",data)
     },
     enabled: !!bookingId, // Only run when bookingId is available
     retry: 2,

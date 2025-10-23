@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 // src/components/OtpModal.jsx
 import React, { useState, useEffect, useRef } from "react";
 import styled, { keyframes } from "styled-components";
@@ -360,18 +361,6 @@ const slideUp = keyframes`
     transform: translateY(0);
   }
 `;
-
-// const pulse = keyframes`
-//   0% {
-//     box-shadow: 0 0 0 0 rgba(92, 206, 251, 0.4);
-//   }
-//   70% {
-//     box-shadow: 0 0 0 10px rgba(92, 206, 251, 0);
-//   }
-//   100% {
-//     box-shadow: 0 0 0 0 rgba(92, 206, 251, 0);
-//   }
-// `;
 
 // Styled Components using Global CSS Variables
 const Overlay = styled.div`

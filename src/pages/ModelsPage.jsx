@@ -1,14 +1,11 @@
+/* eslint-disable react/react-in-jsx-scope */
 // src/pages/ModelsPage.jsx
 import { useMemo, useState } from "react";
 import styled from "styled-components";
-import { Link } from "react-router-dom";
+
 import { useGetCars } from "../hooks/useCar";
 import {
-  FaCar,
-  FaGasPump,
-  FaUsers,
-  FaCog,
-  FaMapMarkerAlt,
+ 
   FaFilter,
   FaSearch,
   FaSyncAlt,
@@ -21,7 +18,7 @@ import { LuxuryCard, StatsCard } from "../components/Cards/Card";
 import {
   PrimaryButton,
   SecondaryButton,
-  AccentButtonLink,
+
 } from "../components/ui/Button";
 import { SearchInput, Select, RangeSlider } from "../components/forms/Form";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
@@ -513,190 +510,11 @@ const EmptyText = styled.p`
   font-family: var(--font-body);
 `;
 
-// ===== CAR CARD COMPONENTS =====
-const CarImage = styled.div`
-  position: relative;
-  height: 250px;
-  overflow: hidden;
 
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform var(--transition-normal);
-  }
 
-  &:hover img {
-    transform: scale(1.05);
-  }
-`;
 
-const StatusBadge = styled.div`
-  position: absolute;
-  top: var(--space-lg);
-  left: var(--space-lg);
-  background: ${(props) => props.$color};
-  color: var(--white);
-  padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs);
-  font-weight: var(--font-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  z-index: 2;
-  font-family: var(--font-body);
-`;
 
-const CardOverlay = styled.div`
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity var(--transition-normal);
-  z-index: 1;
 
-  ${LuxuryCard}:hover & {
-    opacity: 1;
-  }
-`;
 
-const ViewDetailsButton = styled(Link)`
-  background: var(--gradient-primary);
-  color: var(--white);
-  padding: var(--space-lg) var(--space-xl);
-  border-radius: var(--radius-lg);
-  text-decoration: none;
-  font-weight: var(--font-semibold);
-  transition: all var(--transition-normal);
-  font-family: var(--font-body);
 
-  &:hover {
-    background: var(--primary-dark);
-    transform: scale(1.05);
-  }
 
-  &:focus-visible {
-    outline: 2px solid var(--white);
-    outline-offset: 2px;
-  }
-`;
-
-const CardContent = styled.div`
-  padding: var(--space-xl);
-`;
-
-const CardHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: var(--space-md);
-`;
-
-const CarModel = styled.h3`
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
-  color: var(--text-primary);
-  margin: 0 0 var(--space-xs) 0;
-  line-height: 1.2;
-  font-family: var(--font-body);
-`;
-
-const CarSeries = styled.p`
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  margin: 0;
-  font-family: var(--font-body);
-`;
-
-const CarPrice = styled.div`
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
-  color: var(--primary);
-  text-align: right;
-  font-family: var(--font-body);
-
-  span {
-    font-size: var(--text-sm);
-    color: var(--text-muted);
-    font-weight: var(--font-normal);
-  }
-`;
-
-const CarSpecs = styled.div`
-  display: flex;
-  gap: var(--space-lg);
-  margin-bottom: var(--space-lg);
-
-  @media (max-width: 768px) {
-    gap: var(--space-md);
-  }
-`;
-
-const SpecItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-family: var(--font-body);
-
-  svg {
-    color: var(--primary);
-    font-size: var(--text-base);
-  }
-`;
-
-const Location = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  margin-bottom: var(--space-lg);
-  font-family: var(--font-body);
-
-  svg {
-    color: var(--error);
-  }
-`;
-
-const CarFeatures = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-xl);
-`;
-
-const FeatureTag = styled.span`
-  background: var(--gray-100);
-  color: var(--text-secondary);
-  padding: var(--space-xs) var(--space-md);
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
-  font-family: var(--font-body);
-`;
-
-const ActionButton = styled(AccentButtonLink)`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  width: 100%;
-  text-decoration: none;
-  font-weight: var(--font-semibold);
-  transition: all var(--transition-normal);
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--white);
-    outline-offset: 2px;
-  }
-`;

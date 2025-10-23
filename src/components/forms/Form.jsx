@@ -1,9 +1,43 @@
-// src/components/ui/Form.jsx
-import styled from "styled-components";
-// eslint-disable-next-line no-unused-vars
-import { motion } from "framer-motion";
-import { FaSearch, FaChevronDown, FaCheck } from "react-icons/fa";
+/* eslint-disable react/prop-types */
+
+import React, { useState } from "react";
+
+import { FaSearch, FaChevronDown, FaCheck, FaEye, FaEyeSlash } from "react-icons/fa";
 import { devices } from "../../styles/GlobalStyles";
+import styled from "styled-components";
+
+// Phone Number Validation & Formatting Utilities
+export const validateUSAPhoneNumber = (phone) => {
+  const cleaned = phone.replace(/\D/g, "");
+  const patterns = [
+    /^1?[2-9]\d{9}$/,
+    /^\([2-9]\d{2}\)\s?\d{3}-\d{4}$/,
+    /^[2-9]\d{2}-\d{3}-\d{4}$/,
+    /^[2-9]\d{2}\.\d{3}\.\d{4}$/,
+    /^[2-9]\d{2}\s\d{3}\s\d{4}$/,
+  ];
+
+  return (
+    patterns.some((pattern) => pattern.test(phone)) ||
+    cleaned.length === 10 ||
+    (cleaned.length === 11 && cleaned.startsWith("1"))
+  );
+};
+
+export const formatUSAPhoneNumber = (value) => {
+  const cleaned = value.replace(/\D/g, "");
+  const limited = cleaned.slice(0, 11);
+
+  if (limited.length <= 3) {
+    return limited;
+  } else if (limited.length <= 6) {
+    return `(${limited.slice(0, 3)}) ${limited.slice(3)}`;
+  } else if (limited.length <= 10) {
+    return `(${limited.slice(0, 3)}) ${limited.slice(3, 6)}-${limited.slice(6)}`;
+  } else {
+    return `+1 (${limited.slice(1, 4)}) ${limited.slice(4, 7)}-${limited.slice(7)}`;
+  }
+};
 
 // Input Component
 export const Input = ({
@@ -13,6 +47,7 @@ export const Input = ({
   onChange,
   disabled = false,
   required = false,
+  error = false,
   ...props
 }) => {
   return (
@@ -24,9 +59,105 @@ export const Input = ({
         onChange={onChange}
         disabled={disabled}
         required={required}
+        $error={error}
         {...props}
       />
     </InputWrapper>
+  );
+};
+
+// PhoneInput Component
+export const PhoneInput = ({
+  value,
+  onChange,
+  onFocus,
+  onBlur,
+  placeholder = "(555) 555-5555",
+  required = false,
+  disabled = false,
+  error = false,
+  showHelper = true,
+  ...props
+}) => {
+  const handleChange = (e) => {
+    const formattedValue = formatUSAPhoneNumber(e.target.value);
+    onChange(formattedValue);
+  };
+
+  return (
+    <FormGroup>
+      <Input
+        type="tel"
+        value={value}
+        onChange={handleChange}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        required={required}
+        disabled={disabled}
+        error={error || (value && !validateUSAPhoneNumber(value))}
+        maxLength="17"
+        {...props}
+      />
+      {showHelper && value && (
+        <PhoneHelperText $isValid={validateUSAPhoneNumber(value)}>
+          {validateUSAPhoneNumber(value) 
+            ? "✓ Valid USA phone number" 
+            : "Please enter a valid USA phone number"
+          }
+        </PhoneHelperText>
+      )}
+      {showHelper && !value && (
+        <PhoneHelperText>Enter your USA phone number</PhoneHelperText>
+      )}
+    </FormGroup>
+  );
+};
+
+// PasswordInput Component
+export const PasswordInput = ({
+  value,
+  onChange,
+  onFocus,
+  onBlur,
+  placeholder = "Password",
+  required = false,
+  disabled = false,
+  error = false,
+  showToggle = true,
+  ...props
+}) => {
+  const [showPassword, setShowPassword] = useState(false);
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  return (
+    <PasswordInputWrapper>
+      <Input
+        type={showPassword ? "text" : "password"}
+        value={value}
+        onChange={onChange}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        required={required}
+        disabled={disabled}
+        error={error}
+        style={{ paddingRight: showToggle ? 'var(--space-3xl)' : 'var(--space-md)' }}
+        {...props}
+      />
+      {showToggle && (
+        <PasswordToggle
+          type="button"
+          onClick={togglePasswordVisibility}
+          disabled={disabled}
+        >
+          {showPassword ? <FaEyeSlash /> : <FaEye />}
+        </PasswordToggle>
+      )}
+    </PasswordInputWrapper>
   );
 };
 
@@ -46,6 +177,7 @@ export const SearchInput = ({
         placeholder={placeholder}
         value={value}
         onChange={onChange}
+        style={{ paddingLeft: 'var(--space-3xl)' }}
         {...props}
       />
     </SearchInputWrapper>
@@ -139,6 +271,29 @@ export const RangeSlider = ({
   );
 };
 
+// Form Field Component (for better structure)
+export const FormField = ({
+  label,
+  error,
+  children,
+  required = false,
+  htmlFor,
+  className
+}) => {
+  return (
+    <FormGroup className={className}>
+      {label && (
+        <Label htmlFor={htmlFor}>
+          {label}
+          {required && <RequiredAsterisk>*</RequiredAsterisk>}
+        </Label>
+      )}
+      {children}
+      {error && <ErrorMessage>{error}</ErrorMessage>}
+    </FormGroup>
+  );
+};
+
 // Styled Components
 
 // Input Wrapper
@@ -153,7 +308,7 @@ const InputWrapper = styled.div`
 const InputElement = styled.input`
   width: 100%;
   padding: var(--space-md);
-  border: 1px solid var(--gray-300);
+  border: 1px solid ${props => props.$error ? 'var(--error)' : 'var(--gray-300)'};
   border-radius: var(--radius-lg);
   background: var(--white);
   color: var(--text-primary);
@@ -169,12 +324,13 @@ const InputElement = styled.input`
 
   &:focus {
     outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+    border-color: ${props => props.$error ? 'var(--error)' : 'var(--primary)'};
+    box-shadow: 0 0 0 3px ${props => 
+      props.$error ? 'rgba(239, 68, 68, 0.1)' : 'rgba(211, 47, 47, 0.1)'};
   }
 
   &:hover:not(:focus) {
-    border-color: var(--gray-400);
+    border-color: ${props => props.$error ? 'var(--error)' : 'var(--gray-400)'};
   }
 
   &:disabled {
@@ -189,8 +345,6 @@ const InputElement = styled.input`
   }
 
   &[type="number"] {
-    /* -moz-appearance: textfield; */
-
     &::-webkit-outer-spin-button,
     &::-webkit-inner-spin-button {
       -webkit-appearance: none;
@@ -211,6 +365,55 @@ const InputElement = styled.input`
       }
     }
   }
+`;
+
+// Password Input Styles
+const PasswordInputWrapper = styled.div`
+  position: relative;
+  width: 100%;
+`;
+
+const PasswordToggle = styled.button`
+  position: absolute;
+  right: var(--space-md);
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+
+  &:hover:not(:disabled) {
+    color: var(--text-primary);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+`;
+
+// Phone Helper Text
+const PhoneHelperText = styled.span`
+  color: ${props => {
+    if (props.$isValid === undefined) return 'var(--text-muted)';
+    return props.$isValid ? 'var(--success)' : 'var(--error)';
+  }};
+  font-size: var(--text-xs);
+  margin-top: var(--space-xs);
+  display: block;
+  font-weight: var(--font-medium);
 `;
 
 // Search Input Styles
@@ -594,6 +797,7 @@ export const Label = styled.label`
   font-family: var(--font-body);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  margin-bottom: var(--space-xs);
 `;
 
 // Error Message Component
@@ -602,6 +806,7 @@ export const ErrorMessage = styled.span`
   color: var(--error);
   font-family: var(--font-body);
   font-weight: var(--font-medium);
+  margin-top: var(--space-xs);
 `;
 
 // Success Message Component
@@ -610,6 +815,7 @@ export const SuccessMessage = styled.span`
   color: var(--success);
   font-family: var(--font-body);
   font-weight: var(--font-medium);
+  margin-top: var(--space-xs);
 `;
 
 // File Input Component
@@ -676,9 +882,46 @@ const FileInputText = styled.span`
   font-weight: var(--font-medium);
 `;
 
+// Required Asterisk
+const RequiredAsterisk = styled.span`
+  color: var(--error);
+  margin-left: var(--space-xs);
+`;
+
+// const CheckboxLabel = styled.label`
+//   display: flex;
+//   align-items: center;
+//   gap: var(--space-md);
+//   padding: var(--space-md) 0;
+//   cursor: pointer;
+//   font-size: var(--text-base);
+// `;
+// const CheckboxLabel = styled.span`
+//   font-size: var(--text-base);
+//   color: var(--text-primary);
+//   font-weight: var(--font-normal);
+// `;
+
+// const Checkbox = styled.input`
+//   width: 18px;
+//   height: 18px;
+//   accent-color: var(--primary);
+// `;
+
+// const CheckboxText = styled.span`
+//   display: flex;
+//   align-items: center;
+//   gap: var(--space-sm);
+//   font-weight: var(--font-medium);
+//   color: var(--text-primary);
+// `;
+
+
 // Export all components
 export default {
   Input,
+  PhoneInput,
+  PasswordInput,
   SearchInput,
   Select,
   RangeSlider,
@@ -687,7 +930,10 @@ export default {
   Radio,
   FileInput,
   FormGroup,
+  FormField,
   Label,
   ErrorMessage,
   SuccessMessage,
+  validateUSAPhoneNumber,
+  formatUSAPhoneNumber,
 };

@@ -1,13 +1,14 @@
+/* eslint-disable react/react-in-jsx-scope */
 // src/routes/MainRoutes.jsx
 import { Route, Routes } from "react-router-dom";
 import { lazy, Suspense } from "react";
-import { PATHS, ROUTE_CONFIG, ADMIN_PATHS } from "./routePaths";
+import { PATHS, ADMIN_PATHS } from "./routePaths";
 
 // Import your States components
-import { LoadingState, LoadingSpinner } from "../components/ui/LoadingSpinner";
+import { LoadingState } from "../components/ui/LoadingSpinner";
 
 // Lazy imports
-const ForgotPasswordPage = lazy(() => import("../pages/ForgotPasswordPage"));
+
 const AboutUsPage = lazy(() => import("../pages/AboutUsPage"));
 const ProtectedRoute = lazy(() => import("./protectedRoute"));
 const ProfilePage = lazy(() => import("../pages/ProfilePage"));
@@ -25,6 +26,16 @@ const CheckoutPage = lazy(() => import("../pages/CheckoutPage"));
 const LoginPage = lazy(() => import("../Auth/Login"));
 const CarReviewsPage = lazy(() => import("../pages/CarReviewPage"));
 const NotificationPage = lazy(() => import("../pages/NotificatioPage"));
+const Corporate = lazy(()=>import('../pages/Corporate'))
+const DisClaimer = lazy(()=>import('../pages/DisClaimerPage'))
+const PrivacyPage = lazy(()=>import('../pages/PrivacyPage'))
+const Blog = lazy(()=>import('../pages/Blog'))
+const AgreementPage = lazy(()=>import('../pages/AgreementPage'))
+const ReportsPage = lazy(()=>import('../pages/ReportsPages'))
+const CareersPage = lazy(()=>import('../pages/CareersPage'))
+const TermsPage = lazy(()=>import('../pages/TermsPage'))
+const PoliciesPage = lazy(()=>import('../pages/PoliciesPage'))
+const ResetPassword = lazy(() => import("../pages/resetPasswordPage"));
 
 // Layouts
 const MainLayout = lazy(() => import("../Layout/MainLayout"));
@@ -45,27 +56,27 @@ const Loader = () => (
   <LoadingState message="Loading Mercedes-Benz Experience..." size="lg" />
 );
 
-const UserLoader = () => (
-  <LoadingState message="Loading your luxury dashboard..." size="lg" />
-);
+// const UserLoader = () => (
+//   <LoadingState message="Loading your luxury dashboard..." size="lg" />
+// );
 
 const AdminLoader = () => (
   <LoadingState message="Loading admin dashboard..." size="lg" />
 );
 
 // Simple inline loader for minimal cases
-const InlineLoader = () => (
-  <div
-    style={{
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      padding: "var(--space-xl)",
-    }}
-  >
-    <LoadingSpinner size="md" />
-  </div>
-);
+// const InlineLoader = () => (
+//   <div
+//     style={{
+//       display: "flex",
+//       justifyContent: "center",
+//       alignItems: "center",
+//       padding: "var(--space-xl)",
+//     }}
+//   >
+//     <LoadingSpinner size="md" />
+//   </div>
+// );
 
 const MainRoutes = () => (
   <Suspense fallback={<Loader />}>
@@ -76,12 +87,23 @@ const MainRoutes = () => (
         <Route path={PATHS.ABOUT} element={<AboutUsPage />} />
         <Route path={PATHS.MODELS} element={<ModelsPage />} />
         <Route path={PATHS.MODEL} element={<CarModelPage />} />
+        <Route path={PATHS.CHECKOUT} element={<CheckoutPage />} />
         <Route path={PATHS.LOCATIONS} element={<LocationPage />} />
         <Route path={PATHS.LOCATION} element={<LocationDetailPage />} />
         <Route path={PATHS.CONTACT} element={<ContactPage />} />
         <Route path={PATHS.SUPPORT} element={<HelpCenterPage />} />
         <Route path={PATHS.CONFIRMATION} element={<ConfirmationPage />} />
-        <Route path={PATHS.CHECKOUT} element={<CheckoutPage />} />
+        <Route path={PATHS.POLICIES} element={<PoliciesPage />} />
+        <Route path={PATHS.DISCLAIMER} element={<DisClaimer />} />
+        <Route path={PATHS.BLOG} element={<Blog/>} />
+        <Route path={PATHS.TERMS} element={<TermsPage />} />
+        <Route path={PATHS.AGREEMENT} element={<AgreementPage />} />
+        <Route path={PATHS.CAREERS} element={<CareersPage />} />
+        <Route path={PATHS.CORPORATE} element={<Corporate />} />
+        <Route path={PATHS.PRIVACY} element={<PrivacyPage />} />
+        <Route path={PATHS.REPORTS} element={<ReportsPage/>} />
+
+        
         <Route
           element={
             <ProtectedRoute roles={["user"]}>
@@ -99,7 +121,9 @@ const MainRoutes = () => (
 
       {/* Auth routes */}
       <Route path={PATHS.LOGIN} element={<LoginPage />} />
-      <Route path={PATHS.FORGOT} element={<ForgotPasswordPage />} />
+      {/* <Route path={PATHS.FORGOT} element={<ForgotPasswordPage />} /> */}
+         <Route path={PATHS.RESET} element={<ResetPassword />} />
+      
 
       {/* Admin routes */}
       <Route

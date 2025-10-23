@@ -2,21 +2,21 @@
 import React, { useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
-import { motion, AnimatePresence } from "framer-motion";
-
+import { motion } from "framer-motion";
 import { useGetBookingConfirmation } from "../hooks/usePayment";
 import usePageTitle from "../hooks/usePageTitle";
+import { formatDate } from "../utils/helper";
 
 import { ROUTE_CONFIG, PATHS } from "../routes/routePaths";
 
 // Import your design system components
-import { Card, LuxuryCard, StatsCard } from "../components/Cards/Card";
+import { Card, LuxuryCard, } from "../components/Cards/Card";
 import {
   PrimaryButton,
   SecondaryButton,
   GhostButton,
 } from "../components/ui/Button";
-import { LoadingSpinner, SuccessState } from "../components/ui/LoadingSpinner";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 
 // Modern animations
 const fadeInUp = keyframes`
@@ -83,23 +83,9 @@ const BookingConfirmationPage = () => {
     return Math.ceil((returnDate - pickup) / (1000 * 60 * 60 * 24));
   }, [booking]);
 
-  // Format date for display
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
+  
 
-  // Format time for display
-  // const formatTime = (dateString) => {
-  //   return new Date(dateString).toLocaleTimeString("en-US", {
-  //     hour: "2-digit",
-  //     minute: "2-digit",
-  //   });
-  // };
+  
 
   if (isLoading) {
     return (
@@ -108,7 +94,7 @@ const BookingConfirmationPage = () => {
           <LoadingSpinner size="xl" />
           <LoadingTitle>Finalizing Your Booking</LoadingTitle>
           <LoadingText>
-            We're preparing your confirmation details...
+            We&apos;re preparing your confirmation details...
           </LoadingText>
         </LoadingContainer>
       </PageWrapper>

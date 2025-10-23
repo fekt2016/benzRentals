@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React from "react";
 import styled, { keyframes } from "styled-components";
 import CarDetails from "./CarDetails";

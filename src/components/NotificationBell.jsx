@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 // src/components/NotificationBell.jsx
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";

@@ -2,7 +2,7 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 
-import { PUBLIC_ROUTES, PUBLIC_GET_ENDPOINTS } from "../utils/publicRoutes";
+// import { PUBLIC_ROUTES, PUBLIC_GET_ENDPOINTS } from "../utils/publicRoutes";
 import { getRelativePath, isPublicRoute, normalizePath } from "../utils/path";
 import { getAuthToken } from "../utils/tokenService";
 
@@ -16,7 +16,7 @@ const baseURL = isProduction
 const api = axios.create({
   baseURL,
   withCredentials: true,
-  timeout: 15000, // Reduced from 500s to 15s for better UX
+  timeout: 60000, // Reduced from 500s to 15s for better UX
   headers: {
     "Content-Type": "application/json",
   },

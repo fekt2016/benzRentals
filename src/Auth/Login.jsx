@@ -1,265 +1,204 @@
 // src/pages/LoginPage.jsx
-import React, { useState } from "react";
-import styled, { keyframes } from "styled-components";
-import { useNavigate, Link } from "react-router-dom";
+import React from "react";
+import styled from "styled-components";
+import { useNavigate} from "react-router-dom";
 import OtpModal from "../components/Modal/OtpModal";
-import { useLogin, useRegister } from "../hooks/useAuth";
-import { sendOtpEmail } from "../utils/Emailservice";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { useLogin, useRegister, useForgotPassword } from "../hooks/useAuth";
 
 // Import UI Components
 import { PrimaryButton, GhostButton } from "../components/ui/Button";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
+import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
+import {slideUp,fadeIn, } from '../styles/animations';
 
-// Optimized Animations
-const fadeIn = keyframes`
-  from { opacity: 0; }
-  to { opacity: 1; }
-`;
-
-const slideUp = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
-
-// USA Phone Number Validation Utility
-const validateUSAPhoneNumber = (phone) => {
-  const cleaned = phone.replace(/\D/g, "");
-  const patterns = [
-    /^1?[2-9]\d{9}$/,
-    /^\([2-9]\d{2}\)\s?\d{3}-\d{4}$/,
-    /^[2-9]\d{2}-\d{3}-\d{4}$/,
-    /^[2-9]\d{2}\.\d{3}\.\d{4}$/,
-    /^[2-9]\d{2}\s\d{3}\s\d{4}$/,
-  ];
-
-  return (
-    patterns.some((pattern) => pattern.test(phone)) ||
-    cleaned.length === 10 ||
-    (cleaned.length === 11 && cleaned.startsWith("1"))
-  );
-};
-
-const formatUSAPhoneNumber = (value) => {
-  const cleaned = value.replace(/\D/g, "");
-  const limited = cleaned.slice(0, 11);
-
-  if (limited.length <= 3) {
-    return limited;
-  } else if (limited.length <= 6) {
-    return `(${limited.slice(0, 3)}) ${limited.slice(3)}`;
-  } else if (limited.length <= 10) {
-    return `(${limited.slice(0, 3)}) ${limited.slice(3, 6)}-${limited.slice(
-      6
-    )}`;
-  } else {
-    return `+1 (${limited.slice(1, 4)}) ${limited.slice(4, 7)}-${limited.slice(
-      7
-    )}`;
-  }
-};
-
-// Enhanced error extraction utility that works with React Query error structure
-const extractAuthErrorMessage = (error) => {
-  if (!error) return null;
-
-  // Handle string errors
-  if (typeof error === "string") {
-    return error;
-  }
-
-  // Handle React Query/axios error structure
-  const responseError = error.response?.data || error;
-
-  // Extract message from different common structures
-  let message =
-    responseError.message ||
-    responseError.error ||
-    responseError.detail ||
-    error.message;
-
-  if (!message) return "An unexpected error occurred. Please try again.";
-
-  // Clean and enhance common error messages
-  message = message.toLowerCase();
-
-  // Network and connection issues
-  if (message.includes("network") || message.includes("internet")) {
-    return "Please check your internet connection and try again.";
-  }
-
-  if (message.includes("timeout")) {
-    return "Request timed out. Please try again.";
-  }
-
-  // Authentication specific errors
-  if (
-    message.includes("invalid credential") ||
-    message.includes("wrong password")
-  ) {
-    return "Invalid phone number or password. Please try again.";
-  }
-
-  if (
-    message.includes("user not found") ||
-    message.includes("user not exist")
-  ) {
-    return "No account found with this phone number. Please sign up.";
-  }
-
-  if (message.includes("already exist") || message.includes("duplicate")) {
-    return "An account with this phone number already exists. Please sign in.";
-  }
-
-  if (message.includes("incorrect otp") || message.includes("invalid otp")) {
-    return "The verification code you entered is incorrect. Please try again.";
-  }
-
-  if (message.includes("expired otp")) {
-    return "The verification code has expired. Please request a new one.";
-  }
-
-  if (message.includes("too many attempt")) {
-    return "Too many failed attempts. Please wait a few minutes before trying again.";
-  }
-
-  // Validation errors with field context
-  if (message.includes("password") && message.includes("required")) {
-    return "Password is required.";
-  }
-
-  if (message.includes("phone") && message.includes("required")) {
-    return "Phone number is required.";
-  }
-
-  if (message.includes("email") && message.includes("required")) {
-    return "Email is required.";
-  }
-
-  if (message.includes("fullname") && message.includes("required")) {
-    return "Full name is required.";
-  }
-
-  if (message.includes("password") && message.includes("length")) {
-    return "Password must be at least 6 characters long.";
-  }
-
-  if (message.includes("capital") || message.includes("uppercase")) {
-    return "Password must contain at least one capital letter.";
-  }
-
-  if (message.includes("phone") && message.includes("valid")) {
-    return "Please enter a valid USA phone number.";
-  }
-
-  // Return the original message with proper capitalization
-  return message.charAt(0).toUpperCase() + message.slice(1);
-};
-
-// Extract field-specific errors from hook errors
-const extractFieldErrors = (error) => {
-  if (!error) return {};
-
-  const fieldErrors = {};
-  const responseError = error.response?.data || error;
-
-  // Handle array of field errors (common in validation responses)
-  if (Array.isArray(responseError.errors)) {
-    responseError.errors.forEach((err) => {
-      if (err.path && err.message) {
-        fieldErrors[err.path] = err.message;
-      }
-    });
-  }
-
-  // Handle object with field keys
-  if (responseError.errors && typeof responseError.errors === "object") {
-    Object.entries(responseError.errors).forEach(([field, message]) => {
-      fieldErrors[field] = message;
-    });
-  }
-
-  return fieldErrors;
-};
-
-// Enhanced validation utility
-const validateForm = (isRegistering, formData) => {
-  const { phone, email, password, passwordConfirm, fullName } = formData;
-  const errors = [];
-
-  if (!phone.trim()) {
-    errors.push("Phone number is required");
-  } else if (!validateUSAPhoneNumber(phone)) {
-    errors.push("Please enter a valid USA phone number");
-  }
-
-  if (!password.trim()) {
-    errors.push("Password is required");
-  } else if (isRegistering) {
-    if (password.length < 8) {
-      errors.push("Password must be at least 6 characters");
-    } else if (!/(?=.*[A-Z])/.test(password)) {
-      errors.push("Password must contain at least one capital letter");
-    }
-  }
-
-  if (isRegistering) {
-    if (!email.trim()) {
-      errors.push("Email is required");
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errors.push("Please enter a valid email address");
-    }
-
-    if (!fullName.trim()) {
-      errors.push("Full name is required");
-    } else if (fullName.trim().length < 2) {
-      errors.push("Full name must be at least 2 characters");
-    }
-
-    if (password !== passwordConfirm) {
-      errors.push("Passwords do not match");
-    }
-  }
-
-  return errors;
-};
+// Import Form Components
+import { 
+  Input, 
+  PhoneInput, 
+  PasswordInput,
+  FormField 
+} from "../components/forms/Form";
 
 // Custom hook for form state management
 const useAuthForm = () => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = React.useState({
     phone: "",
     email: "",
     password: "",
     passwordConfirm: "",
     fullName: "",
   });
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [localErrors, setLocalErrors] = useState([]);
-  const [isOtpOpen, setOtpOpen] = useState(false);
-  const [activeInput, setActiveInput] = useState(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [isRegistering, setIsRegistering] = React.useState(false);
+  const [isForgotPassword, setIsForgotPassword] = React.useState(false);
+  const [localErrors, setLocalErrors] = React.useState([]);
+  const [isOtpOpen, setOtpOpen] = React.useState(false);
+  const [forgotPasswordSuccess, setForgotPasswordSuccess] = React.useState(false);
 
   const navigate = useNavigate();
 
   // Use the auth hooks
   const loginMutation = useLogin();
   const registerMutation = useRegister();
+  const forgotPasswordMutation = useForgotPassword();
 
-  const isLoading = loginMutation.isPending || registerMutation.isPending;
+  // Get loading state from the appropriate mutation
+  const isLoading = isForgotPassword 
+    ? forgotPasswordMutation.isPending 
+    : isRegistering 
+      ? registerMutation.isLoading 
+      : loginMutation.isPending;
 
-  // Extract errors from mutations
-  const hookError = isRegistering
-    ? registerMutation.error
-    : loginMutation.error;
-  const generalError = extractAuthErrorMessage(hookError, isRegistering);
+  // Get error from the appropriate mutation
+  const hookError = isForgotPassword 
+    ? forgotPasswordMutation.error 
+    : isRegistering 
+      ? registerMutation.error 
+      : loginMutation.error;
+
+  // Enhanced error extraction utility
+  const extractAuthErrorMessage = (error) => {
+    if (!error) return null;
+
+    if (typeof error === "string") {
+      return error;
+    }
+
+    const responseError = error.response?.data || error;
+    let message =
+      responseError.message ||
+      responseError.error ||
+      responseError.detail ||
+      error.message;
+
+    if (!message) return "An unexpected error occurred. Please try again.";
+
+    message = message.toLowerCase();
+
+    if (message.includes("network") || message.includes("internet")) {
+      return "Please check your internet connection and try again.";
+    }
+
+    if (message.includes("timeout")) {
+      return "Request timed out. Please try again.";
+    }
+
+    if (
+      message.includes("invalid credential") ||
+      message.includes("wrong password")
+    ) {
+      return "Invalid phone number or password. Please try again.";
+    }
+
+    if (
+      message.includes("user not found") ||
+      message.includes("user not exist")
+    ) {
+      return "No account found with this phone number. Please sign up.";
+    }
+
+    if (message.includes("already exist") || message.includes("duplicate")) {
+      return "An account with this phone number already exists. Please sign in.";
+    }
+
+    if (message.includes("incorrect otp") || message.includes("invalid otp")) {
+      return "The verification code you entered is incorrect. Please try again.";
+    }
+
+    if (message.includes("expired otp")) {
+      return "The verification code has expired. Please request a new one.";
+    }
+
+    if (message.includes("too many attempt")) {
+      return "Too many failed attempts. Please wait a few minutes before trying again.";
+    }
+
+    // Forgot password specific errors
+    if (message.includes("email not found") || message.includes("no user with this email")) {
+      return "No account found with this email address. Please check your email or sign up.";
+    }
+
+    if (message.includes("email required") || message.includes("email is required")) {
+      return "Email address is required to reset your password.";
+    }
+
+    return message.charAt(0).toUpperCase() + message.slice(1);
+  };
+
+  // Extract field-specific errors
+  const extractFieldErrors = (error) => {
+    if (!error) return {};
+
+    const fieldErrors = {};
+    const responseError = error.response?.data || error;
+
+    if (Array.isArray(responseError.errors)) {
+      responseError.errors.forEach((err) => {
+        if (err.path && err.message) {
+          fieldErrors[err.path] = err.message;
+        }
+      });
+    }
+
+    if (responseError.errors && typeof responseError.errors === "object") {
+      Object.entries(responseError.errors).forEach(([field, message]) => {
+        fieldErrors[field] = message;
+      });
+    }
+
+    return fieldErrors;
+  };
+
+  const generalError = extractAuthErrorMessage(hookError);
   const fieldErrors = extractFieldErrors(hookError);
+
+  // Client-side validation
+  const validateForm = () => {
+    const { phone, email, password, passwordConfirm, fullName } = formData;
+    const errors = [];
+
+    if (isForgotPassword) {
+      if (!email.trim()) {
+        errors.push("Email address is required to reset your password");
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errors.push("Please enter a valid email address");
+      }
+      return errors;
+    }
+
+    if (!phone.trim()) {
+      errors.push("Phone number is required");
+    }
+
+    if (!password.trim()) {
+      errors.push("Password is required");
+    } else if (isRegistering) {
+      if (password.length < 6) {
+        errors.push("Password must be at least 6 characters");
+      } else if (!/(?=.*[A-Z])/.test(password)) {
+        errors.push("Password must contain at least one capital letter");
+      }
+    }
+
+    if (isRegistering) {
+      if (!email.trim()) {
+        errors.push("Email is required");
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errors.push("Please enter a valid email address");
+      }
+
+      if (!fullName.trim()) {
+        errors.push("Full name is required");
+      } else if (fullName.trim().length < 2) {
+        errors.push("Full name must be at least 2 characters");
+      }
+
+      if (password !== passwordConfirm) {
+        errors.push("Passwords do not match");
+      }
+    }
+
+    return errors;
+  };
 
   // Combine local validation errors with hook errors
   const displayError = localErrors[0] || generalError;
@@ -268,18 +207,13 @@ const useAuthForm = () => {
     setLocalErrors([]);
     loginMutation.reset();
     registerMutation.reset();
+    forgotPasswordMutation.reset();
   };
 
   const updateFormData = (field, value) => {
-    let processedValue = value;
-
-    if (field === "phone") {
-      processedValue = formatUSAPhoneNumber(value);
-    }
-
     setFormData((prev) => ({
       ...prev,
-      [field]: processedValue,
+      [field]: value,
     }));
 
     // Clear errors when user starts typing
@@ -290,6 +224,8 @@ const useAuthForm = () => {
 
   const toggleMode = () => {
     setIsRegistering((prev) => !prev);
+    setIsForgotPassword(false);
+    setForgotPasswordSuccess(false);
     resetErrors();
     setFormData({
       phone: "",
@@ -298,23 +234,55 @@ const useAuthForm = () => {
       passwordConfirm: "",
       fullName: "",
     });
-    setShowPassword(false);
-    setShowPasswordConfirm(false);
+  };
+
+  const showForgotPassword = () => {
+    setIsForgotPassword(true);
+    setIsRegistering(false);
+    setForgotPasswordSuccess(false);
+    resetErrors();
+    setFormData(prev => ({
+      ...prev,
+      password: "",
+      passwordConfirm: "",
+    }));
+  };
+
+  const showLogin = () => {
+    setIsForgotPassword(false);
+    setIsRegistering(false);
+    setForgotPasswordSuccess(false);
+    resetErrors();
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     resetErrors();
+    setForgotPasswordSuccess(false);
 
     // Client-side validation
-    const validationErrors = validateForm(isRegistering, formData);
+    const validationErrors = validateForm();
     if (validationErrors.length > 0) {
       setLocalErrors(validationErrors);
       return;
     }
 
     try {
-      if (isRegistering) {
+      if (isForgotPassword) {
+        const payload = {
+          email: formData.email.trim(),
+        };
+
+        forgotPasswordMutation.mutate(payload, {
+          onSuccess: (data) => {
+            console.log("✅ Forgot password request sent:", data);
+            setForgotPasswordSuccess(true);
+          },
+          onError: (error) => {
+            console.error("❌ Forgot password error:", error);
+          }
+        });
+      } else if (isRegistering) {
         const payload = {
           fullName: formData.fullName.trim(),
           phone: formData.phone.trim(),
@@ -326,24 +294,7 @@ const useAuthForm = () => {
         registerMutation.mutate(payload, {
           onSuccess: async (data) => {
             console.log("✅ Registered:", data);
-
-            if (data?.data?.user?.email && data?.data?.otp) {
-              try {
-                await sendOtpEmail(
-                  data.data.user.email,
-                  data.data.user.name || formData.fullName,
-                  data.data.otp
-                );
-                setOtpOpen(true);
-              } catch (emailError) {
-                console.error("❌ Failed to send OTP email:", emailError);
-                // Continue to OTP modal even if email fails
-                setOtpOpen(true);
-              }
-            } else {
-              console.warn("OTP data missing in response");
-              setOtpOpen(true);
-            }
+            setOtpOpen(true);
           },
         });
       } else {
@@ -351,23 +302,9 @@ const useAuthForm = () => {
           phone: formData.phone.trim(),
           password: formData.password,
         };
-
         loginMutation.mutate(payload, {
-          onSuccess: async (data) => {
-            console.log("✅ Login OTP sent:", data);
-
-            if (data?.email && data?.otp) {
-              try {
-                await sendOtpEmail(data.email, data.name, data.otp);
-                setOtpOpen(true);
-              } catch (emailError) {
-                console.error("❌ Failed to send OTP email:", emailError);
-                setOtpOpen(true);
-              }
-            } else {
-              console.warn("OTP data missing in login response");
-              setOtpOpen(true);
-            }
+          onSuccess: async () => {
+            setOtpOpen(true);
           },
         });
       }
@@ -379,157 +316,57 @@ const useAuthForm = () => {
 
   const handleOtpSuccess = () => {
     setOtpOpen(false);
-    navigate(isRegistering ? "/profile" : "/bookings");
+    navigate(isRegistering ? "/profile" : "/");
   };
 
   return {
     formData,
     isRegistering,
+    isForgotPassword,
+    forgotPasswordSuccess,
     displayError,
     fieldErrors,
     localErrors,
     isOtpOpen,
-    activeInput,
-    showPassword,
-    showPasswordConfirm,
     isLoading,
     updateFormData,
     toggleMode,
+    showForgotPassword,
+    showLogin,
     handleSubmit,
-    setActiveInput,
-    setShowPassword,
-    setShowPasswordConfirm,
     setOtpOpen,
     handleOtpSuccess,
   };
-};
-
-// Password strength indicator component
-const PasswordStrengthIndicator = ({ password }) => {
-  if (!password) return null;
-
-  const hasMinLength = password.length >= 6;
-  const hasCapitalLetter = /(?=.*[A-Z])/.test(password);
-
-  const getStrength = () => {
-    if (!password) return 0;
-    let strength = 0;
-    if (hasMinLength) strength += 1;
-    if (hasCapitalLetter) strength += 1;
-    return strength;
-  };
-
-  const strength = getStrength();
-  const strengthText =
-    strength === 0
-      ? "Very Weak"
-      : strength === 1
-      ? "Weak"
-      : strength === 2
-      ? "Good"
-      : "Strong";
-
-  const strengthColor =
-    strength === 0
-      ? "var(--error)"
-      : strength === 1
-      ? "var(--warning)"
-      : strength === 2
-      ? "var(--success)"
-      : "var(--success)";
-
-  return (
-    <StrengthIndicator>
-      <StrengthBar>
-        <StrengthFill $strength={strength} $color={strengthColor} />
-      </StrengthBar>
-      <StrengthText $color={strengthColor}>
-        Password Strength: {strengthText}
-        {!hasMinLength && " • Min 6 characters"}
-        {!hasCapitalLetter && " • Capital letter"}
-      </StrengthText>
-    </StrengthIndicator>
-  );
-};
-
-// Phone format helper text
-const PhoneFormatHelper = ({ phone }) => {
-  if (!phone) {
-    return <PhoneHelperText>Enter your USA phone number</PhoneHelperText>;
-  }
-
-  if (!validateUSAPhoneNumber(phone)) {
-    return (
-      <PhoneErrorText>Please enter a valid USA phone number</PhoneErrorText>
-    );
-  }
-
-  return <PhoneSuccessText>✓ Valid USA phone number</PhoneSuccessText>;
 };
 
 const LoginPage = () => {
   const {
     formData,
     isRegistering,
+    isForgotPassword,
+    forgotPasswordSuccess,
     displayError,
     fieldErrors,
     isOtpOpen,
-    activeInput,
-    showPassword,
-    showPasswordConfirm,
     isLoading,
     updateFormData,
     toggleMode,
+    showForgotPassword,
+    showLogin,
     handleSubmit,
-    setActiveInput,
-    setShowPassword,
-    setShowPasswordConfirm,
     setOtpOpen,
     handleOtpSuccess,
   } = useAuthForm();
 
-  const handleInputFocus = (inputName) => {
-    setActiveInput(inputName);
-  };
-
-  const handleInputBlur = () => {
-    setActiveInput(null);
-  };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  const togglePasswordConfirmVisibility = () => {
-    setShowPasswordConfirm(!showPasswordConfirm);
-  };
-
-  // Helper to get field error from hook errors
   const getFieldError = (fieldName) => {
-    return fieldErrors[fieldName] || "";
-  };
-
-  const hasFieldError = (fieldName) => {
-    return !!fieldErrors[fieldName];
+    return fieldErrors[fieldName] || '';
   };
 
   return (
     <PageWrapper>
       <BackgroundOverlay />
 
-      {/* Loading Overlay */}
-      {isLoading && (
-        <LoadingOverlay>
-          <LoadingContent>
-            <LoadingSpinner size="lg" />
-            <LoadingText>
-              {isRegistering ? "Creating your account..." : "Signing you in..."}
-            </LoadingText>
-          </LoadingContent>
-        </LoadingOverlay>
-      )}
-
-      <Container $isLoading={isLoading}>
+      <Container>
         <LeftSection>
           <HeroContent>
             <Logo src="/images/benzflex2.png" alt="benzflex logo" />
@@ -547,7 +384,7 @@ const LoginPage = () => {
               <Feature>1000+ Luxury Vehicles</Feature>
               <Feature>4.8/5 Customer Rating</Feature>
               <Feature>Secure & Insured</Feature>
-              <Feature> Easy Booking Process</Feature>
+              <Feature>Easy Booking Process</Feature>
             </FeaturesList>
           </HeroContent>
         </LeftSection>
@@ -560,193 +397,186 @@ const LoginPage = () => {
               </LogoBox>
 
               <FormTitle>
-                {isRegistering ? "Create Account" : "Welcome Back"}
+                {isForgotPassword 
+                  ? "Reset Password" 
+                  : isRegistering 
+                    ? "Create Account" 
+                    : "Welcome Back"
+                }
               </FormTitle>
               <FormSubtitle>
-                {isRegistering
-                  ? "Join our community today"
-                  : "Sign in to your account"}
+                {isForgotPassword
+                  ? "Enter your email address to reset your password"
+                  : isRegistering
+                    ? "Join our community today"
+                    : "Sign in to your account"
+                }
               </FormSubtitle>
             </FormHeader>
 
-            {displayError && (
-              <ErrorMessage>
-                <ErrorIcon>⚠️</ErrorIcon>
-                {displayError}
-              </ErrorMessage>
-            )}
-
-            <Form onSubmit={handleSubmit}>
-              {isRegistering && (
-                <>
-                  <InputGroup>
-                    <Input
-                      id="fullName"
-                      type="text"
-                      value={formData.fullName}
-                      onChange={(e) =>
-                        updateFormData("fullName", e.target.value)
-                      }
-                      onFocus={() => handleInputFocus("fullName")}
-                      onBlur={handleInputBlur}
-                      placeholder="Full Name"
-                      required
-                      $active={activeInput === "fullName"}
-                      $error={hasFieldError("fullName")}
-                      disabled={isLoading}
-                    />
-
-                    {hasFieldError("fullName") && (
-                      <FieldError>{getFieldError("fullName")}</FieldError>
-                    )}
-                  </InputGroup>
-
-                  <InputGroup>
-                    <Input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => updateFormData("email", e.target.value)}
-                      onFocus={() => handleInputFocus("email")}
-                      onBlur={handleInputBlur}
-                      placeholder="Email Address"
-                      required
-                      $active={activeInput === "email"}
-                      $error={hasFieldError("email")}
-                      disabled={isLoading}
-                    />
-
-                    {hasFieldError("email") && (
-                      <FieldError>{getFieldError("email")}</FieldError>
-                    )}
-                  </InputGroup>
-                </>
-              )}
-
-              <InputGroup>
-                <Input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => updateFormData("phone", e.target.value)}
-                  onFocus={() => handleInputFocus("phone")}
-                  onBlur={handleInputBlur}
-                  placeholder="(555) 555-5555"
-                  required
-                  $active={activeInput === "phone"}
-                  $error={
-                    hasFieldError("phone") ||
-                    (formData.phone && !validateUSAPhoneNumber(formData.phone))
-                  }
-                  disabled={isLoading}
-                  maxLength="17"
-                />
-                {hasFieldError("phone") && (
-                  <FieldError>{getFieldError("phone")}</FieldError>
+            {forgotPasswordSuccess ? (
+              <SuccessMessage>
+                <SuccessIcon>✅</SuccessIcon>
+                <SuccessText>
+                  <strong>Reset instructions sent!</strong><br />
+                  Please check your email for password reset instructions.
+                </SuccessText>
+                <BackToLoginButton onClick={showLogin}>
+                  Back to Login
+                </BackToLoginButton>
+              </SuccessMessage>
+            ) : (
+              <>
+                {displayError && (
+                  <ErrorMessage>
+                    <ErrorIcon>⚠️</ErrorIcon>
+                    {displayError}
+                  </ErrorMessage>
                 )}
-                <PhoneFormatHelper
-                  phone={formData.phone}
-                  isRegistering={isRegistering}
-                />
-              </InputGroup>
 
-              <InputGroup>
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={(e) => updateFormData("password", e.target.value)}
-                  onFocus={() => handleInputFocus("password")}
-                  onBlur={handleInputBlur}
-                  placeholder={
-                    isRegistering
-                      ? "Create Password (min 6 chars, 1 capital)"
-                      : "Enter Password"
-                  }
-                  required
-                  $active={activeInput === "password"}
-                  $error={hasFieldError("password")}
-                  disabled={isLoading}
-                />
-                <PasswordToggle
-                  type="button"
-                  onClick={togglePasswordVisibility}
-                  $visible={showPassword}
-                  disabled={isLoading}
-                >
-                  {showPassword ? <FaEyeSlash /> : <FaEye />}
-                </PasswordToggle>
-                {hasFieldError("password") && (
-                  <FieldError>{getFieldError("password")}</FieldError>
-                )}
-                {isRegistering && formData.password && (
-                  <PasswordStrengthIndicator password={formData.password} />
-                )}
-              </InputGroup>
+                <Form onSubmit={handleSubmit}>
+                  {isRegistering && (
+                    <>
+                      <FormField error={getFieldError("fullName")}>
+                        <Input
+                          id="fullName"
+                          type="text"
+                          value={formData.fullName}
+                          onChange={(e) => updateFormData("fullName", e.target.value)}
+                          placeholder="Full Name"
+                          required
+                          disabled={isLoading}
+                          error={!!getFieldError("fullName")}
+                        />
+                      </FormField>
+                    </>
+                  )}
 
-              {isRegistering && (
-                <InputGroup>
-                  <Input
-                    type={showPasswordConfirm ? "text" : "password"}
-                    value={formData.passwordConfirm}
-                    onChange={(e) =>
-                      updateFormData("passwordConfirm", e.target.value)
-                    }
-                    onFocus={() => handleInputFocus("passwordConfirm")}
-                    onBlur={handleInputBlur}
-                    placeholder="Confirm Password"
-                    required
-                    $active={activeInput === "passwordConfirm"}
-                    $error={hasFieldError("passwordConfirm")}
+                  {/* Show email field for forgot password OR register */}
+                  {(isForgotPassword || isRegistering) && (
+                    <FormField error={getFieldError("email")}>
+                      <Input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => updateFormData("email", e.target.value)}
+                        placeholder={
+                          isForgotPassword 
+                            ? "Enter your email address" 
+                            : "Email Address"
+                        }
+                        required
+                        disabled={isLoading}
+                        error={!!getFieldError("email")}
+                      />
+                    </FormField>
+                  )}
+
+                  {/* Show phone field for login and register (not for forgot password) */}
+                  {!isForgotPassword && (
+                    <FormField error={getFieldError("phone")}>
+                      <PhoneInput
+                        value={formData.phone}
+                        onChange={(value) => updateFormData("phone", value)}
+                        error={!!getFieldError("phone")}
+                        disabled={isLoading}
+                        placeholder="Phone Number"
+                      />
+                    </FormField>
+                  )}
+
+                  {!isForgotPassword && (
+                    <>
+                      <FormField error={getFieldError("password")}>
+                        <PasswordInput
+                          value={formData.password}
+                          onChange={(e) => updateFormData("password", e.target.value)}
+                          placeholder={
+                            isRegistering
+                              ? "Create Password (min 6 chars, 1 capital)"
+                              : "Enter Password"
+                          }
+                          required
+                          error={!!getFieldError("password")}
+                          disabled={isLoading}
+                        />
+                        {isRegistering && formData.password && (
+                          <PasswordStrengthIndicator password={formData.password} />
+                        )}
+                      </FormField>
+
+                      {isRegistering && (
+                        <FormField error={getFieldError("passwordConfirm")}>
+                          <PasswordInput
+                            value={formData.passwordConfirm}
+                            onChange={(e) => updateFormData("passwordConfirm", e.target.value)}
+                            placeholder="Confirm Password"
+                            required
+                            error={!!getFieldError("passwordConfirm")}
+                            disabled={isLoading}
+                          />
+                        </FormField>
+                      )}
+                    </>
+                  )}
+
+                  {!isRegistering && !isForgotPassword && (
+                    <ForgotPasswordLink onClick={showForgotPassword}>
+                      Forgot your password?
+                    </ForgotPasswordLink>
+                  )}
+
+                  <SubmitButton
+                    type="submit"
                     disabled={isLoading}
-                  />
-                  <PasswordToggle
+                    $isLoading={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <ButtonSpinner size="sm" />
+                        {isForgotPassword 
+                          ? "Sending Instructions..." 
+                          : isRegistering 
+                            ? "Creating Account..." 
+                            : "Signing In..."
+                        }
+                      </>
+                    ) : (
+                      <>
+                        {isForgotPassword 
+                          ? "Send Reset Instructions" 
+                          : isRegistering 
+                            ? "Create Account" 
+                            : "Sign In"
+                        }
+                      </>
+                    )}
+                  </SubmitButton>
+                </Form>
+
+                <ToggleSection>
+                  <ToggleText>
+                    {isForgotPassword 
+                      ? "Remember your password?" 
+                      : isRegistering
+                        ? "Already have an account?"
+                        : "Don't have an account?"
+                    }
+                  </ToggleText>
+                  <ToggleButton
+                    onClick={isForgotPassword ? showLogin : toggleMode}
                     type="button"
-                    onClick={togglePasswordConfirmVisibility}
-                    $visible={showPasswordConfirm}
                     disabled={isLoading}
                   >
-                    {showPasswordConfirm ? <FaEyeSlash /> : <FaEye />}
-                  </PasswordToggle>
-                  {hasFieldError("passwordConfirm") && (
-                    <FieldError>{getFieldError("passwordConfirm")}</FieldError>
-                  )}
-                </InputGroup>
-              )}
-
-              {!isRegistering && (
-                <ForgotPasswordLink to="/forgot-password">
-                  Forgot your password?
-                </ForgotPasswordLink>
-              )}
-
-              <SubmitButton
-                type="submit"
-                disabled={isLoading}
-                $isLoading={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <ButtonSpinner size="sm" />
-                    {isRegistering ? "Creating Account..." : "Signing In..."}
-                  </>
-                ) : (
-                  <>{isRegistering ? "Create Account" : "Sign In"}</>
-                )}
-              </SubmitButton>
-            </Form>
-
-            <ToggleSection>
-              <ToggleText>
-                {isRegistering
-                  ? "Already have an account?"
-                  : "Don't have an account?"}
-              </ToggleText>
-              <ToggleButton
-                onClick={toggleMode}
-                type="button"
-                disabled={isLoading}
-              >
-                {isRegistering ? "Sign In" : "Sign Up"}
-              </ToggleButton>
-            </ToggleSection>
+                    {isForgotPassword 
+                      ? "Back to Login" 
+                      : isRegistering 
+                        ? "Sign In" 
+                        : "Sign Up"
+                    }
+                  </ToggleButton>
+                </ToggleSection>
+              </>
+            )}
 
             <PrivacyNote>
               By continuing, you agree to our Terms of Service and Privacy
@@ -768,7 +598,7 @@ const LoginPage = () => {
 
 export default LoginPage;
 
-// Styled Components using Global CSS Variables
+// Styled Components
 const PageWrapper = styled.div`
   min-height: 100vh;
   background: var(--gradient-primary);
@@ -789,43 +619,6 @@ const BackgroundOverlay = styled.div`
   background: var(--gradient-overlay);
 `;
 
-// Loading Overlay Components
-const LoadingOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(4px);
-  animation: ${fadeIn} var(--transition-fast) ease-out;
-`;
-
-const LoadingContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-lg);
-  background: var(--white);
-  padding: var(--space-2xl);
-  border-radius: var(--radius-2xl);
-  box-shadow: var(--shadow-2xl);
-  min-width: 200px;
-`;
-
-const LoadingText = styled.p`
-  color: var(--text-primary);
-  font-size: var(--text-lg);
-  font-weight: var(--font-medium);
-  text-align: center;
-  font-family: var(--font-body);
-  margin: 0;
-`;
-
 const ButtonSpinner = styled(LoadingSpinner)`
   // Additional styling if needed for button spinner
 `;
@@ -841,8 +634,6 @@ const Container = styled.div`
   box-shadow: var(--shadow-xl);
   backdrop-filter: blur(10px);
   animation: ${slideUp} var(--transition-normal) ease-out;
-  opacity: ${(props) => (props.$isLoading ? 0.6 : 1)};
-  transition: opacity var(--transition-fast);
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
@@ -945,6 +736,7 @@ const FormHeader = styled.div`
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  margin-bottom: var(--space-lg);
 `;
 
 const FormTitle = styled.h2`
@@ -981,173 +773,42 @@ const ErrorIcon = styled.span`
   font-size: 1rem;
 `;
 
+const SuccessMessage = styled.div`
+  background: var(--success-light);
+  border: 1px solid var(--success);
+  color: var(--success-dark);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+  text-align: center;
+  animation: ${slideUp} var(--transition-fast) ease-out;
+`;
+
+const SuccessIcon = styled.div`
+  font-size: 2rem;
+  margin-bottom: var(--space-sm);
+`;
+
+const SuccessText = styled.p`
+  margin: 0 0 var(--space-md) 0;
+  line-height: 1.5;
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+`;
+
+const BackToLoginButton = styled(PrimaryButton)`
+  width: 100%;
+  margin-top: var(--space-sm);
+`;
+
 const Form = styled.form`
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
 `;
 
-const InputGroup = styled.div`
-  position: relative;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: var(--space-md) var(--space-2xl) var(--space-md) var(--space-2xl);
-  border: 2px solid
-    ${(props) => {
-      if (props.$error) return "var(--error)";
-      return props.$active ? "var(--primary)" : "var(--gray-300)";
-    }};
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  transition: all var(--transition-fast);
-  background: var(--white);
-  color: var(--text-primary);
-  font-family: var(--font-body);
-
-  &:focus {
-    outline: none;
-    border-color: ${(props) =>
-      props.$error ? "var(--error)" : "var(--primary)"};
-    box-shadow: 0 0 0 3px
-      ${(props) =>
-        props.$error ? "var(--error-light)" : "var(--primary-light)"};
-  }
-
-  &::placeholder {
-    color: var(--text-muted);
-  }
-
-  &:disabled {
-    background: var(--gray-100);
-    color: var(--text-muted);
-    cursor: not-allowed;
-  }
-`;
-
-const InputIcon = styled.span`
-  position: absolute;
-  left: var(--space-md);
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1rem;
-  color: var(--text-muted);
-`;
-
-const PasswordToggle = styled.button`
-  position: absolute;
-  right: var(--space-md);
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1rem;
-  color: var(--text-muted);
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-
-  /* Completely disable all hover, focus, and active states */
-  &:hover,
-  &:focus,
-  &:active {
-    transform: translateY(-50%) !important;
-    color: var(--text-muted) !important;
-    background: none !important;
-    outline: none !important;
-    box-shadow: none !important;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  svg {
-    width: 100%;
-    height: 100%;
-  }
-`;
-
-const FieldError = styled.span`
-  color: var(--error);
-  font-size: var(--text-xs);
-  margin-top: var(--space-xs);
-  display: block;
-  font-weight: var(--font-medium);
-  animation: ${fadeIn} var(--transition-fast) ease-out;
-`;
-
-// Phone helper text components
-const PhoneHelperText = styled.span`
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-  margin-top: var(--space-xs);
-  display: block;
-  font-weight: var(--font-medium);
-`;
-
-const PhoneErrorText = styled.span`
-  color: var(--error);
-  font-size: var(--text-xs);
-  margin-top: var(--space-xs);
-  display: block;
-  font-weight: var(--font-medium);
-`;
-
-const PhoneSuccessText = styled.span`
-  color: var(--success);
-  font-size: var(--text-xs);
-  margin-top: var(--space-xs);
-  display: block;
-  font-weight: var(--font-medium);
-`;
-
-// Password Strength Indicator
-const StrengthIndicator = styled.div`
-  margin-top: var(--space-sm);
-`;
-
-const StrengthBar = styled.div`
-  height: 4px;
-  background: var(--gray-200);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-  margin-bottom: var(--space-xs);
-`;
-
-const StrengthFill = styled.div`
-  height: 100%;
-  width: ${(props) => {
-    switch (props.$strength) {
-      case 0:
-        return "25%";
-      case 1:
-        return "50%";
-      case 2:
-        return "100%";
-      default:
-        return "0%";
-    }
-  }};
-  background: ${(props) => props.$color};
-  border-radius: var(--radius-full);
-  transition: all var(--transition-normal);
-`;
-
-const StrengthText = styled.div`
-  font-size: var(--text-xs);
-  color: ${(props) => props.$color};
-  font-weight: var(--font-medium);
-`;
-
 // Forgot Password Link Component
-const ForgotPasswordLink = styled(Link)`
+const ForgotPasswordLink = styled.button`
   text-align: right;
   color: var(--primary);
   font-size: var(--text-sm);
@@ -1157,10 +818,21 @@ const ForgotPasswordLink = styled(Link)`
   margin-bottom: var(--space-sm);
   transition: color var(--transition-fast);
   font-family: var(--font-body);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  width: fit-content;
+  align-self: flex-end;
 
   &:hover {
     color: var(--primary-dark);
     text-decoration: underline;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 `;
 

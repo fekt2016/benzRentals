@@ -63,8 +63,37 @@ const bookingApi = {
     });
     return response.data;
   },
-  CheckInBooking: async (bookingId, formData) => {
-    const response = await api.post(`/booking/${bookingId}/check-in`, formData);
+  checkInBooking: async (bookingId, formData) => {
+    const headers =
+      formData instanceof FormData
+        ? { "Content-Type": "multipart/form-data" }
+        : { "Content-Type": "application/json" };
+    const response = await api.post(
+      `/bookings/${bookingId}/check-in`,
+      formData,
+      {
+        headers,
+      }
+    );
+    return response;
+  },
+  checkOutBooking: async (bookingId, formData) => {
+    const headers =
+      formData instanceof FormData
+        ? { "Content-Type": "multipart/form-data" }
+        : { "Content-Type": "application/json" };
+    const response = await api.post(
+      `/bookings/${bookingId}/check-out`,
+      formData,
+      {
+        headers,
+      }
+    );
+    return response;
+  },
+
+  getCarBookings: async (id) => {
+    const response = await api.get(`/bookings/${id}/car`);
     return response;
   },
 };

@@ -1,8 +1,10 @@
+/* eslint-disable react/prop-types */
 // components/Modal/ReviewModal.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import { FaStar, FaRegStar, FaTimes, FaRegSmile } from "react-icons/fa";
+import { FaStar, FaRegStar, FaTimes, FaRegSmile, FaExclamationTriangle } from "react-icons/fa";
 import { useCreateReview } from "../../hooks/useReview";
+import { LoadingSpinner } from "../ui/LoadingSpinner";
 
 const ReviewModal = ({ show, onClose, booking }) => {
   const [reviewForm, setReviewForm] = useState({
@@ -10,27 +12,31 @@ const ReviewModal = ({ show, onClose, booking }) => {
     comment: "",
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { mutate: createReview } = useCreateReview();
+  const { mutate: createReview, isPending:isLoading, error } = useCreateReview();
+
+  // Clear form and errors when modal opens/closes
+  useEffect(() => {
+    if (!show) {
+      setReviewForm({ rating: 5, comment: "" });
+    }
+  }, [show]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!reviewForm.rating) return;
 
-    setIsSubmitting(true);
-    try {
-      createReview({
-        bookingId: booking._id, // Use bookingId as required by backend
-        rating: reviewForm.rating,
-        comment: reviewForm.comment.trim() || null, // Allow null if empty
-      });
-      setReviewForm({ rating: 5, comment: "" });
-      onClose();
-    } catch (error) {
-      console.error("Review submission failed:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    console.log("Submitting review:", reviewForm);
+    
+    createReview({
+      bookingId: booking._id,
+      rating: reviewForm.rating,
+      comment: reviewForm.comment.trim() || null,
+    }, {
+      onSuccess: () => {
+        setReviewForm({ rating: 5, comment: "" });
+        onClose();
+      }
+    });
   };
 
   const StarRating = ({ rating, onRatingChange }) => {
@@ -42,6 +48,7 @@ const ReviewModal = ({ show, onClose, booking }) => {
             onClick={() => onRatingChange(star)}
             type="button"
             $active={star <= rating}
+            $disabled={isLoading}
           >
             {star <= rating ? <FaStar /> : <FaRegStar />}
           </StarButton>
@@ -59,12 +66,24 @@ const ReviewModal = ({ show, onClose, booking }) => {
           <ModalTitle>
             <FaRegSmile /> Rate Your Experience
           </ModalTitle>
-          <CloseButton onClick={onClose}>
+          <CloseButton onClick={onClose} disabled={isLoading}>
             <FaTimes />
           </CloseButton>
         </ModalHeader>
 
         <ModalBody>
+          {/* Error Display */}
+          {error && (
+            <ErrorState>
+              <ErrorIcon>
+                <FaExclamationTriangle />
+              </ErrorIcon>
+              <ErrorText>
+                {error?.response?.data?.message  || "Failed to submit review. Please try again."}
+              </ErrorText>
+            </ErrorState>
+          )}
+
           <ReviewCarInfo>
             <CarImage
               src={booking.car?.images[0] || "/default-car.jpg"}
@@ -115,6 +134,7 @@ const ReviewModal = ({ show, onClose, booking }) => {
                 }
                 rows={4}
                 maxLength={500}
+                disabled={isLoading}
               />
               <CharCount>{reviewForm.comment.length}/500</CharCount>
             </FormGroup>
@@ -140,6 +160,7 @@ const ReviewModal = ({ show, onClose, booking }) => {
                     setReviewForm((prev) => ({ ...prev, rating: 5 }))
                   }
                   $active={reviewForm.rating === 5}
+                  disabled={isLoading}
                 >
                   Excellent
                 </QuickRatingButton>
@@ -148,6 +169,7 @@ const ReviewModal = ({ show, onClose, booking }) => {
                     setReviewForm((prev) => ({ ...prev, rating: 4 }))
                   }
                   $active={reviewForm.rating === 4}
+                  disabled={isLoading}
                 >
                   Very Good
                 </QuickRatingButton>
@@ -156,6 +178,7 @@ const ReviewModal = ({ show, onClose, booking }) => {
                     setReviewForm((prev) => ({ ...prev, rating: 3 }))
                   }
                   $active={reviewForm.rating === 3}
+                  disabled={isLoading}
                 >
                   Good
                 </QuickRatingButton>
@@ -165,19 +188,18 @@ const ReviewModal = ({ show, onClose, booking }) => {
         </ModalBody>
 
         <ModalActions>
-          <CancelButton type="button" onClick={onClose} disabled={isSubmitting}>
+          <CancelButton type="button" onClick={onClose} disabled={isLoading}>
             Cancel
           </CancelButton>
           <SubmitButton
             type="submit"
             onClick={handleSubmit}
-            disabled={!reviewForm.rating || isSubmitting}
-            $isSubmitting={isSubmitting}
+            disabled={!reviewForm.rating || isLoading}
           >
-            {isSubmitting ? (
+            {isLoading ? (
               <>
-                <Spinner />
-                Submitting...
+                <LoadingSpinner $size="sm" />
+                Submitting Review...
               </>
             ) : (
               <>
@@ -266,13 +288,14 @@ const CloseButton = styled.button`
   background: none;
   border: none;
   font-size: 1.25rem;
-  cursor: pointer;
-  color: #64748b;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  color: ${props => props.disabled ? '#9ca3af' : '#64748b'};
   padding: 0.5rem;
   border-radius: 50%;
   transition: all 0.2s;
+  opacity: ${props => props.disabled ? 0.6 : 1};
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: #f1f5f9;
     color: #374151;
   }
@@ -280,6 +303,43 @@ const CloseButton = styled.button`
 
 const ModalBody = styled.div`
   padding: 2rem;
+`;
+
+// Error State Components
+const ErrorState = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #fef2f2;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  margin-bottom: 1.5rem;
+  animation: slideDown 0.3s ease-out;
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
+
+const ErrorIcon = styled.div`
+  color: #dc2626;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+`;
+
+const ErrorText = styled.span`
+  color: #dc2626;
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.4;
 `;
 
 const ReviewCarInfo = styled.div`
@@ -363,14 +423,15 @@ const StarsContainer = styled.div`
 const StarButton = styled.button`
   background: none;
   border: none;
-  cursor: pointer;
-  color: ${(props) => (props.$active ? "#f59e0b" : "#d1d5db")};
+  cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
+  color: ${props => props.$active ? "#f59e0b" : "#d1d5db"};
   font-size: 2.5rem;
   transition: all 0.2s;
   padding: 0.25rem;
   border-radius: 4px;
+  opacity: ${props => props.$disabled ? 0.6 : 1};
 
-  &:hover {
+  &:hover:not(:disabled) {
     transform: scale(1.2);
     color: #f59e0b;
   }
@@ -401,6 +462,8 @@ const Textarea = styled.textarea`
   resize: vertical;
   transition: border-color 0.2s;
   font-family: inherit;
+  background-color: ${props => props.disabled ? '#f9fafb' : 'white'};
+  cursor: ${props => props.disabled ? 'not-allowed' : 'text'};
 
   &:focus {
     outline: none;
@@ -410,6 +473,10 @@ const Textarea = styled.textarea`
 
   &::placeholder {
     color: #9ca3af;
+  }
+
+  &:disabled {
+    opacity: 0.6;
   }
 `;
 
@@ -474,10 +541,11 @@ const QuickRatingButton = styled.button`
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 500;
-  cursor: pointer;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.2s;
+  opacity: ${props => props.disabled ? 0.6 : 1};
 
-  &:hover {
+  &:hover:not(:disabled) {
     border-color: #10b981;
     background: ${(props) => (props.$active ? "#10b981" : "#f0fdf4")};
   }
@@ -499,18 +567,14 @@ const CancelButton = styled.button`
   background: white;
   border-radius: 8px;
   font-weight: 600;
-  cursor: pointer;
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
   transition: all 0.2s;
   color: #374151;
+  opacity: ${props => props.disabled ? 0.6 : 1};
 
   &:hover:not(:disabled) {
     background: #f3f4f6;
     border-color: #9ca3af;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
   }
 `;
 
@@ -519,44 +583,22 @@ const SubmitButton = styled.button`
   padding: 0.75rem 1.5rem;
   border: none;
   background: ${(props) =>
-    props.$isSubmitting
+    props.disabled
       ? "#9ca3af"
       : "linear-gradient(135deg, #10b981, #059669)"};
   color: white;
   border-radius: 8px;
   font-weight: 600;
-  cursor: ${(props) => (props.$isSubmitting ? "not-allowed" : "pointer")};
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  opacity: ${props => props.disabled ? 0.6 : 1};
 
   &:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-`;
-
-const Spinner = styled.div`
-  width: 16px;
-  height: 16px;
-  border: 2px solid transparent;
-  border-top: 2px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
-    }
   }
 `;

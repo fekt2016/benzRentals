@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 // src/components/cards/CarCard.jsx
 import React from "react";
 import styled from "styled-components";
@@ -27,19 +28,19 @@ const CarCard = ({
   className = "",
   showOverlay = true,
   showBookButton = true,
-  showStatus = true, // New prop to show status badge
+  // showStatus = true, // New prop to show status badge
 }) => {
   // console.log(car.status);
   const carId = car?.id || car?._id;
   const image = getCarImage(car);
 
   // Determine availability status
-  const isAvailable = car.status === "available";
+  // const isAvailable = car.status === "available";
 
-  const statusText = isAvailable ? "Available" : "Unavailable";
-  const statusColor = isAvailable ? "var(--success)" : "var(--error)";
-  const statusBg = isAvailable ? "#f0fdf4" : "#fef2f2";
-  const statusBorder = isAvailable ? "#bbf7d0" : "#fecaca";
+  // const statusText = isAvailable ? "Available" : "Unavailable";
+  // const statusColor = isAvailable ? "var(--success)" : "var(--error)";
+  // const statusBg = isAvailable ? "#f0fdf4" : "#fef2f2";
+  // const statusBorder = isAvailable ? "#bbf7d0" : "#fecaca";
 
   return (
     <CardWrapper className={`luxury-card ${className}`}>
@@ -47,7 +48,7 @@ const CarCard = ({
         <img src={image} alt={car.model} />
 
         {/* Status Badge */}
-        {showStatus && (
+        {/* {showStatus && (
           <StatusBadge
             $color={statusColor}
             $bgColor={statusBg}
@@ -55,7 +56,7 @@ const CarCard = ({
           >
             {statusText}
           </StatusBadge>
-        )}
+        )} */}
 
         {showOverlay && (
           <CarOverlay>
@@ -83,15 +84,15 @@ const CarCard = ({
           <BookButtonWrapper>
             <PrimaryButton
               as={Link}
-              to={`/model/${car._id}`}
+              to={`/model/${carId}`}
               $size="md"
-              disabled={!isAvailable}
+              // disabled={!isAvailable}
             >
-              {isAvailable ? "Book This Car" : "Unavailable"}
+              Book This Car
             </PrimaryButton>
-            {!isAvailable && (
+            {/* {!isAvailable && (
               <StatusMessage>Currently not available for booking</StatusMessage>
-            )}
+            )} */}
           </BookButtonWrapper>
         )}
       </CarContent>
@@ -137,23 +138,23 @@ const CarImage = styled.div`
 `;
 
 // Status Badge Component
-const StatusBadge = styled.div`
-  position: absolute;
-  top: var(--space-md);
-  left: var(--space-md);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background: ${(props) => props.$bgColor};
-  color: ${(props) => props.$color};
-  border: 1px solid ${(props) => props.$borderColor};
-  font-family: var(--font-body);
-  z-index: 2;
-  backdrop-filter: blur(10px);
-`;
+// const StatusBadge = styled.div`
+//   position: absolute;
+//   top: var(--space-md);
+//   left: var(--space-md);
+//   padding: var(--space-xs) var(--space-sm);
+//   border-radius: var(--radius-full);
+//   font-size: var(--text-xs);
+//   font-weight: var(--font-semibold);
+//   text-transform: uppercase;
+//   letter-spacing: 0.05em;
+//   background: ${(props) => props.$bgColor};
+//   color: ${(props) => props.$color};
+//   border: 1px solid ${(props) => props.$borderColor};
+//   font-family: var(--font-body);
+//   z-index: 2;
+//   backdrop-filter: blur(10px);
+// `;
 
 const CarOverlay = styled.div`
   position: absolute;
@@ -274,13 +275,13 @@ const BookButtonWrapper = styled.div`
   }
 `;
 
-const StatusMessage = styled.p`
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  text-align: center;
-  margin: 0;
-  font-family: var(--font-body);
-  font-style: italic;
-`;
+// const StatusMessage = styled.p`
+//   font-size: var(--text-sm);
+//   color: var(--text-muted);
+//   text-align: center;
+//   margin: 0;
+//   font-family: var(--font-body);
+//   font-style: italic;
+// `;
 
 export default CarCard;

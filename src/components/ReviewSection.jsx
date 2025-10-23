@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { useState, useMemo } from "react";
 import styled, { keyframes } from "styled-components";
 import {
@@ -8,9 +9,9 @@ import {
   FaEdit,
   FaImages,
 } from "react-icons/fa";
-import { useGetUserReviews, useCreateReview } from "../hooks/useReview";
+import { useGetCarReviews, useCreateReview } from "../hooks/useReview";
 import { useGetBookings } from "../hooks/useBooking";
-import { PrimaryButton, SecondaryButton } from "../components/ui/Button";
+import { PrimaryButton,  } from "../components/ui/Button";
 import { devices } from "../styles/GlobalStyles";
 
 const ReviewSection = ({ modelId, userId }) => {
@@ -26,7 +27,7 @@ const ReviewSection = ({ modelId, userId }) => {
 
   // Custom hooks for data management
   const { data: reviewsData, isLoading: reviewsLoading } =
-    useGetUserReviews(modelId);
+    useGetCarReviews(modelId);
   const { mutate: createReview, isLoading: isSubmitting } = useCreateReview();
 
   // Use your actual hook for user bookings
@@ -287,8 +288,10 @@ const ReviewSection = ({ modelId, userId }) => {
             </EmptyText>
           </EmptyState>
         ) : (
-          filteredReviews.map((review) => (
-            <ReviewCard key={review.id}>
+          filteredReviews.map((review) => { 
+            
+
+            return (<ReviewCard key={review._id}>
               <ReviewHeader>
                 <UserInfo>
                   <UserAvatar>
@@ -299,10 +302,10 @@ const ReviewSection = ({ modelId, userId }) => {
                     )}
                   </UserAvatar>
                   <div>
-                    <UserName>{review.user?.name || "Anonymous User"}</UserName>
+                    <UserName>{review.user?.fullName || "Anonymous User"}</UserName>
                     <ReviewDate>
-                      <FaCalendar />{" "}
-                      {new Date(review.date).toLocaleDateString()}
+                      <FaCalendar />
+                      {new Date(review.createdAt).toLocaleDateString()}
                       {review.verified && (
                         <VerifiedBadge>
                           <FaCheckCircle /> Verified Rental
@@ -344,8 +347,8 @@ const ReviewSection = ({ modelId, userId }) => {
                   </PhotoGrid>
                 </ReviewPhotos>
               )}
-            </ReviewCard>
-          ))
+            </ReviewCard>)}
+          )
         )}
       </ReviewsList>
 
@@ -717,6 +720,7 @@ const ReviewsList = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+  
 `;
 
 const ReviewCard = styled.article`
@@ -891,6 +895,7 @@ const CTASection = styled.div`
   background: var(--gradient-subtle);
   border-radius: var(--radius-xl);
   text-align: center;
+  
 `;
 
 const CTACard = styled.div`

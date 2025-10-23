@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useMemo } from "react";
 import styled from "styled-components";
-// eslint-disable-next-line no-unused-vars
+ 
 import { motion, useInView, useAnimation } from "framer-motion";
 import { devices } from "../styles/GlobalStyles";
 
@@ -55,9 +55,7 @@ const HomePage = () => {
 
   const { data: carData } = useGetCars();
   const cars = useMemo(() => carData?.data?.data || [], [carData]);
-  const availableCars = useMemo(() => {
-    return cars.filter((car) => car.status === "available");
-  }, [cars]);
+
 
   const heroControls = useAnimation();
   const featuresControls = useAnimation();
@@ -73,6 +71,10 @@ const HomePage = () => {
   const statsInView = useInView(statsRef, { threshold: 0.3 });
   const discountInView = useInView(discountRef, { threshold: 0.3 });
   const ctaInView = useInView(ctaRef, { threshold: 0.4 });
+
+useEffect(() => {
+window.scrollTo(0, 0);
+}, []);
 
   // Trigger animations when elements come into view
   useEffect(() => {
@@ -101,8 +103,9 @@ const HomePage = () => {
 
   // Featured cars data - use actual cars if available, otherwise fallback
   const featuredCars = useMemo(() => {
-    if (availableCars && availableCars.length > 0) {
-      return getRandomItems(availableCars, 3).map((car, index) => ({
+    if (cars && cars.length > 0) {
+     
+      return getRandomItems(cars, 6).map((car, index) => ({
         id: car._id || index + 1,
         model: car.model || "Mercedes-Benz Model",
         series: car.series || "Premium Series",
@@ -149,7 +152,7 @@ const HomePage = () => {
         features: ["Luxury Interior", "MBUX System", "Driver Assist"],
       },
     ];
-  }, [availableCars]);
+  }, [cars]);
 
   // Stats data
   const stats = [
@@ -417,7 +420,7 @@ const HomePage = () => {
               <CTAContent>
                 <h2>Ready to Experience Luxury?</h2>
                 <p>
-                  Join thousands of satisfied customers who've chosen BenzRent
+                  Join thousands of satisfied customers who&apos;ve chosen BenzRent
                   for their premium mobility needs
                 </p>
                 <CTAButtons>

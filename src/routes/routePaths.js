@@ -2,6 +2,7 @@
 export const PATHS = {
   HOME: "/",
   FORGOT: "/forgot-password",
+  RESET: "/reset-password/:token",
   MODELS: "/models",
   MODEL: "/model/:modelId",
   LOCATIONS: "/locations",
@@ -25,6 +26,12 @@ export const PATHS = {
   FAQ: "/faq",
   PRIVACY: "/privacy",
   TERMS: "/terms",
+  POLICIES:"/policies",
+  REPORTS:"/reports",
+  BLOG:"/blog",
+  CAREERS:"/careers",
+  DISCLAIMER:"/disclaimer",
+  AGREEMENT:'/agreement'
 };
 
 export const ADMIN_PATHS = {
@@ -187,6 +194,41 @@ export const ROUTE_CONFIG = {
     title: "Forgot Password - BenzFlex",
     description: "Reset your password for BenzFlex account",
     keywords: "forgot password, reset password",
+  },
+  [PATHS.RESET_PASSWORD]: {
+    title: "Reset Password - BenzFlex",
+    description: "Create a new password for your BenzFlex account",
+    keywords: "reset password, new password, account security",
+  },
+   [PATHS.POLICIES]: {
+    title: "Policies - BenzFlex",
+    description: "Our rental policies and guidelines",
+    keywords: "policies, rental policies, guidelines",
+  },
+  [PATHS.REPORTS]: {
+    title: "Reports - BenzFlex",
+    description: "Reports and analytics",
+    keywords: "reports, analytics",
+  },
+  [PATHS.BLOG]: {
+    title: "Blog - BenzFlex",
+    description: "Latest news and articles from BenzFlex",
+    keywords: "blog, news, articles",
+  },
+  [PATHS.CAREERS]: {
+    title: "Careers - BenzFlex",
+    description: "Join the BenzFlex team",
+    keywords: "careers, jobs, employment",
+  },
+  [PATHS.DISCLAIMER]: {
+    title: "Disclaimer - BenzFlex",
+    description: "Legal disclaimer for BenzFlex services",
+    keywords: "disclaimer, legal",
+  },
+  [PATHS.AGREEMENT]: {
+    title: "Agreement - BenzFlex",
+    description: "User agreement and terms",
+    keywords: "agreement, user agreement",
   },
 };
 

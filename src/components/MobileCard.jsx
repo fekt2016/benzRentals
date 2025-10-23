@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 // components/MobileCard.js
 import React from "react";
 import styled from "styled-components";
@@ -12,7 +13,7 @@ import {
   FaCheckCircle,
   FaStar,
   FaEye,
-  FaCloudUploadAlt,
+  // FaCloudUploadAlt,
   FaBan,
 } from "react-icons/fa";
 
@@ -28,7 +29,7 @@ const MobileCard = ({
   fuelLevelLabels,
   formatDate,
   onViewDetails,
-  onUpdateDocuments,
+  // onUpdateDocuments,
   onCheckIn,
   onCancel,
   onReview,
@@ -164,14 +165,6 @@ const MobileCard = ({
         <MobileButton onClick={onViewDetails} $variant="primary" $size="sm">
           <FaEye />
           View Details
-        </MobileButton>
-        <MobileButton
-          onClick={onUpdateDocuments}
-          $variant="secondary"
-          $size="sm"
-        >
-          <FaCloudUploadAlt />
-          Update Documents
         </MobileButton>
         {showCheckInButton && (
           <MobileButton

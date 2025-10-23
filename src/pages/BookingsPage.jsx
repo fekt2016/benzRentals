@@ -1,55 +1,34 @@
-// BookingsPage.js - WITHOUT REVIEW MODAL
-import React, { useMemo, useState } from "react";
+// BookingsPage.js - REMOVED CHECK-IN/CHECKOUT FUNCTIONALITY
+import React, { useMemo, useState, useCallback } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
-import {
-  useMyBookings,
-  useUpdateUserBooking,
-  useCheckInBooking,
-} from "../hooks/useBooking";
+import { useMyBookings, useUpdateUserBooking } from "../hooks/useBooking";
 import { useMyDrivers } from "../hooks/useDriver";
 import UpdateDocumentsModal from "../components/Modal/UpdateDocumentsModal";
-import CheckInModal from "../components/Modal/CheckInModal";
 import Pagination from "../components/Pagination";
 import MobileCard from "../components/MobileCard";
 
 // Import UI Components
 import {
   PrimaryButton,
-  SecondaryButton,
   GhostButton,
-  DangerButton,
-  SuccessButton,
 } from "../components/ui/Button";
 import {
   EmptyState,
   LoadingState,
-  LoadingSpinner,
 } from "../components/ui/LoadingSpinner";
 
 // Icons
 import {
-  FaEdit,
   FaEye,
-  FaCalendarAlt,
-  FaMapMarkerAlt,
-  FaDollarSign,
   FaFileAlt,
   FaCheckCircle,
   FaClock,
-  FaCloudUploadAlt,
   FaTimes,
-  FaStar,
-  FaChevronLeft,
-  FaChevronRight,
-  FaEllipsisH,
-  FaBan,
   FaExclamationTriangle,
-  FaUndo,
   FaFilter,
   FaSearch,
   FaCalendar,
-  FaUser,
 } from "react-icons/fa";
 import usePageTitle from "../hooks/usePageTitle";
 
@@ -59,11 +38,8 @@ const BookingsPage = () => {
   const seoConfig = ROUTE_CONFIG[PATHS.BOOKINGS];
   usePageTitle(seoConfig.title, seoConfig.description);
 
-  const { data: BookingsData, isLoading, refetch } = useMyBookings();
+  const { data: BookingsData, isLoading } = useMyBookings();
   const [updatingBooking, setUpdatingBooking] = useState(null);
-  const [checkingInBooking, setCheckingInBooking] = useState(null);
-
-  // REMOVED: submittedReviews state and review-related states
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -76,14 +52,11 @@ const BookingsPage = () => {
     search: "",
   });
 
-  // Refs
-
   const { mutate: updateUserBooking } = useUpdateUserBooking(updatingBooking);
 
-  const { mutate: checkInBooking, isLoading: isCheckingIn } =
-    useCheckInBooking();
-
   const { data: DriversData } = useMyDrivers();
+
+  // FIX: Proper dependency arrays for useMemo
   const drivers = useMemo(() => DriversData?.data || [], [DriversData]);
   const bookings = useMemo(
     () => BookingsData?.data?.data || [],
@@ -92,31 +65,8 @@ const BookingsPage = () => {
 
   const navigate = useNavigate();
 
-  // REMOVED: handleReviewSuccess function
-
-  // Handle check-in submission
-  const handleCheckInSubmit = (formData) => {
-    if (!checkingInBooking) return;
-
-    checkInBooking(formData, {
-      onSuccess: () => {
-        setCheckingInBooking(null);
-        refetch();
-      },
-      onError: (error) => {
-        console.error("Check-in failed:", error);
-        alert("Check-in failed. Please try again.");
-      },
-    });
-  };
-
-  // Handle check-in close
-  const handleCheckInClose = () => {
-    setCheckingInBooking(null);
-  };
-
-  // Handle view driver details
-  const handleViewDriverDetails = (driver) => {
+  // FIX: Use useCallback for event handlers
+  const handleViewDriverDetails = useCallback((driver) => {
     if (driver && driver.verified) {
       console.log("View driver details:", driver);
       alert(
@@ -125,100 +75,21 @@ const BookingsPage = () => {
         }\nStatus: ${driver.verified ? "Verified" : "Pending"}`
       );
     }
-  };
+  }, []);
 
-  // Handle quick verification check
-  const handleQuickVerificationCheck = (booking) => {
+  const handleQuickVerificationCheck = useCallback((booking) => {
     if (booking.driver?.verified) {
-      alert("✅ Driver is verified and ready for check-in!");
+      alert("✅ Driver is verified and ready!");
     } else {
       alert(
-        "⚠️ Driver verification pending. Please complete verification to proceed with check-in."
+        "⚠️ Driver verification pending. Please complete verification."
       );
       setUpdatingBooking(booking._id);
     }
-  };
+  }, []);
 
-  // FIXED: Enhanced hasCheckedIn function
-  const hasCheckedIn = (booking) => {
-    return (
-      booking.checkInData?.checkInTime ||
-      booking.checkIn?.status === "completed" ||
-      booking.status === "active" ||
-      booking.status === "completed"
-    );
-  };
-
-  // NEW: Check if booking can show check-in button (only for confirmed status)
-  const canShowCheckInButton = (booking) => {
-    return booking.status === "confirmed" && !hasCheckedIn(booking);
-  };
-
-  // NEW: Check if check-in is ready (within time window)
-  const isCheckInReady = (booking) => {
-    try {
-      if (booking.status !== "confirmed" || hasCheckedIn(booking)) {
-        return false;
-      }
-
-      const now = new Date();
-      const pickupDate = new Date(booking.pickupDate);
-      const returnDate = new Date(booking.returnDate);
-
-      // Allow check-in from 2 hours before pickup until return date
-      const checkInStart = new Date(pickupDate.getTime() - 2 * 60 * 60 * 1000);
-
-      const isWithinTimeWindow = now >= checkInStart && now <= returnDate;
-
-      return isWithinTimeWindow;
-    } catch (error) {
-      console.error("Error in isCheckInReady:", error);
-      return false;
-    }
-  };
-
-  // NEW: Get check-in status message
-  const getCheckInStatus = (booking) => {
-    if (hasCheckedIn(booking)) {
-      return {
-        type: "checked-in",
-        message: "Checked In",
-        disabled: true,
-      };
-    }
-
-    if (booking.status !== "confirmed") {
-      return {
-        type: "not-available",
-        message: "Not available",
-        disabled: true,
-      };
-    }
-
-    const now = new Date();
-    const pickupDate = new Date(booking.pickupDate);
-    const checkInStart = new Date(pickupDate.getTime() - 2 * 60 * 60 * 1000);
-
-    if (now < checkInStart) {
-      const hoursUntilCheckIn = Math.ceil(
-        (checkInStart - now) / (1000 * 60 * 60)
-      );
-      return {
-        type: "waiting",
-        message: `Available in ${hoursUntilCheckIn}h`,
-        disabled: true,
-      };
-    }
-
-    return {
-      type: "ready",
-      message: "Check In",
-      disabled: false,
-    };
-  };
-
-  // Mock verified documents data - simplified without download URLs
-  const getVerifiedDocuments = (booking) => {
+  // FIX: Memoize helper functions
+  const getVerifiedDocuments = useCallback((booking) => {
     return [
       {
         name: "Driver's License",
@@ -233,10 +104,12 @@ const BookingsPage = () => {
         verifiedBy: booking.verifiedBy || "Admin User",
       },
     ];
-  };
+  }, []);
 
-  // Filter bookings based on filter criteria
+  // FIX: Memoize filtered bookings with proper dependencies
   const filteredBookings = useMemo(() => {
+    if (!bookings.length) return [];
+
     return bookings.filter((booking) => {
       if (filters.status !== "all" && booking.status !== filters.status) {
         return false;
@@ -269,51 +142,65 @@ const BookingsPage = () => {
 
       return true;
     });
-  }, [bookings, filters]);
+  }, [bookings, filters.status, filters.dateRange, filters.search]);
 
   // Reset pagination when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [filters]);
+  }, [filters.status, filters.dateRange, filters.search]);
 
-  // Pagination calculations based on filtered bookings
-  const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentBookings = filteredBookings.slice(startIndex, endIndex);
+  // FIX: Memoize pagination calculations
+  const paginationData = useMemo(() => {
+    const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentBookings = filteredBookings.slice(startIndex, endIndex);
 
-  const handleUpdateDocuments = (data) => {
-    try {
-      if (data instanceof FormData) {
-        updateUserBooking(data);
-      } else {
-        updateUserBooking({ driverId: data.driverId });
+    return {
+      totalPages,
+      startIndex,
+      endIndex,
+      currentBookings,
+    };
+  }, [filteredBookings, currentPage, itemsPerPage]);
+
+  const { totalPages, startIndex, endIndex, currentBookings } = paginationData;
+
+  // FIX: Memoize update documents handler
+  const handleUpdateDocuments = useCallback(
+    (data) => {
+      try {
+        if (data instanceof FormData) {
+          updateUserBooking(data);
+        } else {
+          updateUserBooking({ driverId: data.driverId });
+        }
+        setUpdatingBooking(null);
+      } catch (err) {
+        console.error("Update failed:", err);
       }
-      setUpdatingBooking(null);
-    } catch (err) {
-      console.error("Update failed:", err);
-    }
-  };
+    },
+    [updateUserBooking]
+  );
 
-  // Handle filter changes
-  const handleFilterChange = (filterType, value) => {
+  // FIX: Memoize filter handlers
+  const handleFilterChange = useCallback((filterType, value) => {
     setFilters((prev) => ({
       ...prev,
       [filterType]: value,
     }));
-  };
+  }, []);
 
-  // Clear all filters
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setFilters({
       status: "all",
       dateRange: "all",
       search: "",
     });
-  };
+  }, []);
 
-  // FIXED: Enhanced status configuration
-  const getStatusConfig = (status) => {
+  // FIX: Memoize status configuration
+  const getStatusConfig = useCallback((status) => {
     const config = {
       confirmed: {
         color: "var(--success)",
@@ -335,12 +222,12 @@ const BookingsPage = () => {
         icon: FaClock,
         canCancel: false,
       },
-      checked_in: {
-        color: "var(--info)",
+      active: {
+        color: "var(--success)",
         icon: FaCheckCircle,
         canCancel: false,
       },
-      active: {
+      in_progress: {
         color: "var(--success)",
         icon: FaCheckCircle,
         canCancel: false,
@@ -372,18 +259,16 @@ const BookingsPage = () => {
       },
     };
     return config[status?.toLowerCase()] || config.pending;
-  };
+  }, []);
 
-  const formatDate = (dateString) => {
+  const formatDate = useCallback((dateString) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
-  };
-
-  // REMOVED: canReviewBooking and hasReview functions
+  }, []);
 
   // Loading state
   if (isLoading) {
@@ -474,7 +359,8 @@ const BookingsPage = () => {
               <option value="license_required">License Required</option>
               <option value="verification_pending">Verification Pending</option>
               <option value="confirmed">Confirmed</option>
-              <option value="checked_in">Checked In</option>
+              <option value="active">Active</option>
+              <option value="in_progress">In Progress</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
             </Select>
@@ -531,7 +417,6 @@ const BookingsPage = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableHeader>Check-in</TableHeader>
               <TableHeader>Vehicle</TableHeader>
               <TableHeader>Rental Period</TableHeader>
               <TableHeader>Total</TableHeader>
@@ -544,41 +429,9 @@ const BookingsPage = () => {
             {currentBookings.map((booking) => {
               const statusConfig = getStatusConfig(booking.status);
               const StatusIcon = statusConfig.icon;
-              const showCheckInButton = canShowCheckInButton(booking);
-              const checkInReady = isCheckInReady(booking);
-              const checkInStatus = getCheckInStatus(booking);
-              const isCheckedIn = hasCheckedIn(booking);
 
               return (
                 <TableRow key={booking._id}>
-                  <TableCell>
-                    <CheckInCell>
-                      {isCheckedIn ? (
-                        <CheckedInBadge>
-                          <FaCheckCircle />
-                          Checked In
-                          {booking.checkIn?.mileage && (
-                            <CheckInDetails>
-                              Mileage:{" "}
-                              {booking.checkIn.mileage.toLocaleString()}
-                            </CheckInDetails>
-                          )}
-                        </CheckedInBadge>
-                      ) : showCheckInButton ? (
-                        <CheckInButton
-                          onClick={() => setCheckingInBooking(booking)}
-                          disabled={checkInStatus.disabled}
-                          $variant={checkInReady ? "success" : "secondary"}
-                          $size="sm"
-                        >
-                          <FaCheckCircle />
-                          {checkInStatus.message}
-                        </CheckInButton>
-                      ) : (
-                        <CheckInHint>{checkInStatus.message}</CheckInHint>
-                      )}
-                    </CheckInCell>
-                  </TableCell>
                   <TableCell>
                     <VehicleCell>
                       <CarImage
@@ -604,7 +457,7 @@ const BookingsPage = () => {
                         {formatDate(booking.pickupDate)}
                       </DateGroup>
                       <DateGroup>
-                        <strong>Time:</strong> {booking.pickupTime} AM
+                        <strong>Time:</strong> {booking.pickupTime}
                       </DateGroup>
                     </DateCell>
                   </TableCell>
@@ -624,20 +477,7 @@ const BookingsPage = () => {
                             : "Pending verification"
                           : "Provide License"}
                       </DocStatus>
-                      {/* Quick actions for driver verification */}
-                      {booking.driver && (
-                        <DriverQuickActions>
-                          <QuickActionButton
-                            onClick={() =>
-                              handleViewDriverDetails(booking.driver)
-                            }
-                            title="View driver details"
-                            $size="xs"
-                          >
-                            <FaEye />
-                          </QuickActionButton>
-                        </DriverQuickActions>
-                      )}
+                     
                     </DocumentsCell>
                   </TableCell>
 
@@ -650,8 +490,6 @@ const BookingsPage = () => {
                     </StatusCell>
                   </TableCell>
 
-                  {/* REMOVED: Review Column */}
-
                   <TableCell>
                     <ActionsCell>
                       <IconButton
@@ -659,18 +497,7 @@ const BookingsPage = () => {
                         title="View details"
                       >
                         <FaEye />
-                      </IconButton>
-
-                      {/* Verification check button */}
-                      {!booking.driver?.verified && (
-                        <IconButton
-                          onClick={() => handleQuickVerificationCheck(booking)}
-                          title="Check verification status"
-                          $variant="warning"
-                        >
-                          <FaExclamationTriangle />
-                        </IconButton>
-                      )}
+                      </IconButton>                    
                     </ActionsCell>
                   </TableCell>
                 </TableRow>
@@ -680,7 +507,7 @@ const BookingsPage = () => {
         </Table>
       </TableContainer>
 
-      {/* Mobile Card View - Using MobileCard Component */}
+      {/* Mobile Card View */}
       <MobileContainer>
         {currentBookings.map((booking) => {
           const statusConfig = getStatusConfig(booking.status);
@@ -691,18 +518,13 @@ const BookingsPage = () => {
               key={booking._id}
               booking={booking}
               statusConfig={statusConfig}
-              showCheckInButton={canShowCheckInButton(booking)}
-              checkInStatus={getCheckInStatus(booking)}
-              isCheckedIn={hasCheckedIn(booking)}
               verifiedDocuments={verifiedDocuments}
               formatDate={formatDate}
               onViewDetails={() => navigate(`/booking/${booking._id}`)}
-              onCheckIn={() => setCheckingInBooking(booking)}
               onViewDriverDetails={() =>
                 handleViewDriverDetails(booking.driver)
               }
               onVerificationCheck={() => handleQuickVerificationCheck(booking)}
-              // REMOVED: Review-related props
             />
           );
         })}
@@ -734,7 +556,7 @@ const BookingsPage = () => {
         />
       )}
 
-      {/* Update Modal - Keeping this for verification flow */}
+      {/* Update Modal */}
       {updatingBooking && (
         <UpdateDocumentsModal
           show={!!updatingBooking}
@@ -743,26 +565,13 @@ const BookingsPage = () => {
           onSubmit={(formData) => handleUpdateDocuments(formData)}
         />
       )}
-
-      {/* Check-in Modal */}
-      <CheckInModal
-        show={!!checkingInBooking}
-        onClose={handleCheckInClose}
-        booking={checkingInBooking}
-        onCheckIn={handleCheckInSubmit}
-        isCheckingIn={isCheckingIn}
-      />
-
-      {/* REMOVED: ReviewModal */}
     </PageWrapper>
   );
 };
 
 export default BookingsPage;
 
-// ============================================================================
-// STYLED COMPONENTS (Keep existing styles, they're fine)
-// ============================================================================
+
 
 const PageWrapper = styled.div`
   padding: 0;
@@ -1128,37 +937,6 @@ const DocStatus = styled.div`
   font-family: var(--font-body);
 `;
 
-// Driver Quick Actions
-const DriverQuickActions = styled.div`
-  display: flex;
-  gap: var(--space-xs);
-  margin-top: var(--space-xs);
-`;
-
-const QuickActionButton = styled(GhostButton)`
-  && {
-    padding: var(--space-xs);
-    min-width: auto;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--text-xs);
-
-    ${(props) =>
-      props.$variant === "warning" &&
-      `
-      color: var(--warning);
-      border-color: var(--warning);
-      
-      &:hover:not(:disabled) {
-        background: var(--warning);
-        color: var(--white);
-      }
-    `}
-  }
-`;
 
 const StatusCell = styled.div`
   text-align: left;
@@ -1176,63 +954,6 @@ const StatusBadge = styled.div`
   background: ${(props) => props.$color}20;
   color: ${(props) => props.$color};
   text-transform: capitalize;
-  font-family: var(--font-body);
-`;
-
-// Check-in Cell Styles
-const CheckInCell = styled.div`
-  display: flex;
-  justify-content: center;
-`;
-
-const CheckInButton = styled(SuccessButton)`
-  && {
-    padding: var(--space-sm) var(--space-md);
-    min-width: auto;
-    font-size: var(--text-xs);
-
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      background: var(--gray-300);
-      color: var(--gray-600);
-      border-color: var(--gray-300);
-
-      &:hover {
-        background: var(--gray-300);
-        color: var(--gray-600);
-        border-color: var(--gray-300);
-      }
-    }
-  }
-`;
-
-const CheckedInBadge = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--success);
-  color: var(--white);
-  border-radius: var(--radius-md);
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  text-align: center;
-  font-family: var(--font-body);
-`;
-
-const CheckInDetails = styled.span`
-  font-size: var(--text-xs);
-  opacity: 0.9;
-  font-weight: var(--font-normal);
-`;
-
-const CheckInHint = styled.div`
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  text-align: center;
-  font-style: italic;
   font-family: var(--font-body);
 `;
 

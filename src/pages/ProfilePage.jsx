@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 // src/pages/UserPage.jsx
 import React, { useMemo, useState, useRef } from "react";
 import styled from "styled-components";
@@ -11,7 +12,8 @@ import {
   GhostButton,
 } from "../components/ui/Button";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
-
+import ErrorState from "../components/ErrorState";
+import { formatDateOfBirth} from '../utils/helper'
 // Icons
 import {
   FaUser,
@@ -29,6 +31,8 @@ import {
   FaCamera,
   FaTimes,
   FaBars,
+  FaExclamationTriangle,
+  FaRedo,
 } from "react-icons/fa";
 import {
   useCurrentUser,
@@ -37,29 +41,56 @@ import {
   useUploadAvatar,
 } from "../hooks/useAuth";
 
+import NotificationsSection from "../components/Sections/NotificationsSection";
+
+
 const UserPage = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [isEditing, setIsEditing] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const fileInputRef = useRef(null);
-  const { data: userData } = useCurrentUser();
+
+  // Hook states with error handling
+  const { 
+    data: userData, 
+    error: userError, 
+    isLoading: isUserLoading,
+    refetch: refetchUser 
+  } = useCurrentUser();
+
+  const { 
+    mutate: updateProfile, 
+    isPending: isUpdatingProfile, 
+    error: updateProfileError,
+    reset: resetUpdateProfile 
+  } = useUpdateProfile();
+
+  const { 
+    mutate: changePassword, 
+    isPending: isChangingPassword, 
+    error: changePasswordError,
+    reset: resetChangePassword 
+  } = useChangePassword();
+
+
+  const { 
+    mutate: uploadAvatar, 
+    isPending: isUploadingAvatar, 
+    error: uploadAvatarError,
+    reset: resetUploadAvatar 
+  } = useUploadAvatar();
 
   const user = useMemo(() => userData?.user || null, [userData]);
-  const { mutate: updateProfile, isLoading } = useUpdateProfile();
-  const { mutate: changePassword, isLoading: isChangingPassword } =
-    useChangePassword();
-  const { mutate: uploadAvatar } = useUploadAvatar();
 
   // Form state
   const [profileForm, setProfileForm] = useState({
-    fullName: user?.fullName || "John Smith",
-    email: user?.email || "",
-    phone: user?.phone || "",
-    dateOfBirth: "1985-06-15",
-    address: "123 Main Street, New York, NY 10001",
-    emergencyContact: "+1 (555) 987-6543",
+    fullName: user?.fullName,
+    email: user?.email,
+    phone: user?.phone,
+    dateOfBirth: user?.dateOfBirth,
+    address: user?.address,
+    emergencyContact: user?.emergencyContact,
   });
 
   const [securityForm, setSecurityForm] = useState({
@@ -102,18 +133,22 @@ const UserPage = () => {
     },
   ]);
 
-  // Handle tab change - close mobile menu on tab select
+  // Reset errors when changing tabs
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
     setMobileMenuOpen(false);
+    // Reset errors when switching tabs
+    resetUpdateProfile();
+    resetChangePassword();
+    resetUploadAvatar();
   };
 
   // Separate avatar upload handler
   const handleAvatarUpload = async (file) => {
-    console.log("Uploading avatar:", file);
+   
     if (!file) return;
 
-    setIsUploadingAvatar(true);
+    resetUploadAvatar(); // Reset previous errors
 
     const formData = new FormData();
     formData.append("avatar", file);
@@ -122,22 +157,18 @@ const UserPage = () => {
       uploadAvatar(formData, {
         onSuccess: () => {
           console.log("Avatar uploaded successfully");
+          refetchUser(); // Refresh user data to get new avatar
         },
         onError: (error) => {
           console.error("Avatar upload failed:", error);
-          alert("Failed to upload avatar. Please try again.");
           setAvatarPreview(null);
           if (fileInputRef.current) {
             fileInputRef.current.value = "";
           }
         },
-        onSettled: () => {
-          setIsUploadingAvatar(false);
-        },
       });
     } catch (error) {
       console.error("Avatar upload error:", error);
-      setIsUploadingAvatar(false);
       setAvatarPreview(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -173,12 +204,13 @@ const UserPage = () => {
   };
 
   const handleRemoveAvatar = () => {
-    setIsUploadingAvatar(true);
     // Implementation for removing avatar
+    console.log("Remove avatar functionality");
   };
 
   const handleProfileChange = (e) => {
     setProfileForm({ ...profileForm, [e.target.name]: e.target.value });
+    resetUpdateProfile(); // Reset error when user starts typing
   };
 
   const handleSecurityChange = (e) => {
@@ -187,6 +219,7 @@ const UserPage = () => {
       ...securityForm,
       [name]: value,
     });
+    resetChangePassword(); // Reset error when user starts typing
   };
 
   const handlePreferenceChange = (section, key, value) => {
@@ -201,19 +234,25 @@ const UserPage = () => {
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
+    resetUpdateProfile(); // Reset previous errors
+    
     updateProfile(profileForm, {
       onSuccess: () => {
         setIsEditing(false);
+        refetchUser(); // Refresh user data
       },
     });
   };
 
   const handleSaveSecurity = (e) => {
     e.preventDefault();
+    resetChangePassword(); // Reset previous errors
+    
     if (securityForm.newPassword !== securityForm.newPasswordConfirm) {
       alert("New passwords don't match!");
       return;
     }
+    
     changePassword(securityForm, {
       onSuccess: () => {
         setSecurityForm({
@@ -242,6 +281,45 @@ const UserPage = () => {
     setPaymentMethods(paymentMethods.filter((method) => method.id !== id));
   };
 
+  // Loading State for user data
+  if (isUserLoading) {
+    return (
+      <PageWrapper>
+        <Container>
+          <LoadingState>
+            <LoadingSpinner />
+            <LoadingText>Loading your profile...</LoadingText>
+          </LoadingState>
+        </Container>
+      </PageWrapper>
+    );
+  }
+
+  // Error State for user data
+  if (userError && !user) {
+    return (
+      <PageWrapper>
+        <Container>
+          <ErrorState
+            icon={FaExclamationTriangle}
+            title="Failed to Load Profile"
+            message={userError?.message || "Unable to load your profile information. Please try again."}
+            actions={[
+              {
+                text: "Try Again",
+                onClick: () => refetchUser(),
+                variant: 'primary',
+                icon: FaRedo
+              }
+            ]}
+            centered={true}
+            size="lg"
+          />
+        </Container>
+      </PageWrapper>
+    );
+  }
+
   const tabs = [
     { id: "profile", label: "Profile", icon: FaUser },
     { id: "security", label: "Security", icon: FaShieldAlt },
@@ -261,17 +339,30 @@ const UserPage = () => {
             isEditing={isEditing}
             profileForm={profileForm}
             user={user}
+            error={updateProfileError}
             onEdit={() => setIsEditing(true)}
-            onCancel={() => setIsEditing(false)}
+            onCancel={() => {
+              setIsEditing(false);
+              resetUpdateProfile();
+              // Reset form to original user data
+              setProfileForm({
+                fullName: user?.fullName,
+                phone: user?.phone,
+                dateOfBirth: user?.dateOfBirth,
+                address: user?.address,
+                emergencyContact: user?.emergencyContact,
+              });
+            }}
             onChange={handleProfileChange}
             onSave={handleSaveProfile}
-            isLoading={isLoading}
+            isLoading={isUpdatingProfile}
           />
         );
       case "security":
         return (
           <SecuritySection
             securityForm={securityForm}
+            error={changePasswordError}
             onChange={handleSecurityChange}
             onSave={handleSaveSecurity}
             isLoading={isChangingPassword}
@@ -332,7 +423,7 @@ const UserPage = () => {
                 )}
                 <AvatarOverlay
                   onClick={handleAvatarClick}
-                  disabled={isUploadingAvatar || isLoading}
+                  disabled={isUploadingAvatar || isUpdatingProfile}
                 >
                   {isUploadingAvatar ? (
                     <UploadSpinner />
@@ -345,7 +436,7 @@ const UserPage = () => {
                 {currentAvatar && (
                   <RemoveAvatarButton
                     onClick={handleRemoveAvatar}
-                    disabled={isUploadingAvatar || isLoading}
+                    disabled={isUploadingAvatar || isUpdatingProfile}
                   >
                     <FaTimes />
                   </RemoveAvatarButton>
@@ -357,7 +448,7 @@ const UserPage = () => {
                 ref={fileInputRef}
                 onChange={handleAvatarChange}
                 accept="image/*"
-                disabled={isUploadingAvatar || isLoading}
+                disabled={isUploadingAvatar || isUpdatingProfile}
               />
 
               <AvatarUploadText>
@@ -366,6 +457,14 @@ const UserPage = () => {
                   : "Click to upload profile picture"}
               </AvatarUploadText>
               <AvatarRequirements>JPG, PNG or GIF • Max 5MB</AvatarRequirements>
+              
+              {/* Avatar Upload Error */}
+              {uploadAvatarError && (
+                <AvatarError>
+                  <FaExclamationTriangle />
+                  {uploadAvatarError.message || "Failed to upload avatar"}
+                </AvatarError>
+              )}
             </AvatarSection>
             <UserInfo>
               <UserName>{user?.fullName}</UserName>
@@ -416,7 +515,22 @@ const UserPage = () => {
             </TabList>
           </Sidebar>
 
-          <MainContent>{renderTabContent()}</MainContent>
+          <MainContent>
+            {/* Global Error for user data */}
+            {userError && user && (
+              <ErrorBanner>
+                <FaExclamationTriangle />
+                <div>
+                  <strong>Profile sync error:</strong> {userError.message || "Unable to sync latest profile data"}
+                </div>
+                <RetryButton onClick={() => refetchUser()} disabled={isUserLoading}>
+                  {isUserLoading ? <LoadingSpinner $size="sm" /> : <FaRedo />}
+                  Retry
+                </RetryButton>
+              </ErrorBanner>
+            )}
+            {renderTabContent()}
+          </MainContent>
         </ContentGrid>
       </Container>
 
@@ -428,11 +542,12 @@ const UserPage = () => {
   );
 };
 
-// Profile Section Component
+// Profile Section Component with Error Handling
 const ProfileSection = ({
   isEditing,
   profileForm,
   user,
+  error,
   onEdit,
   onCancel,
   onChange,
@@ -457,7 +572,7 @@ const ProfileSection = ({
           <PrimaryButton onClick={onSave} $size="sm" disabled={isLoading}>
             {isLoading ? (
               <>
-                <LoadingSpinner size="sm" />
+                <LoadingSpinner $size="sm" />
                 Saving...
               </>
             ) : (
@@ -469,6 +584,14 @@ const ProfileSection = ({
     </SectionHeader>
 
     <SectionContent>
+      {/* Profile Update Error */}
+      {error && (
+        <FormError>
+          <FaExclamationTriangle />
+          {error.message || "Failed to update profile. Please try again."}
+        </FormError>
+      )}
+
       {!isEditing ? (
         <InfoGrid>
           <InfoItem>
@@ -485,16 +608,16 @@ const ProfileSection = ({
           </InfoItem>
           <InfoItem>
             <InfoLabel>Date of Birth</InfoLabel>
-            <InfoValue>June 15, 1985</InfoValue>
+            <InfoValue>{formatDateOfBirth(user?.dateOfBirth)}</InfoValue>
           </InfoItem>
           <InfoItem fullWidth>
             <InfoLabel>Address</InfoLabel>
-            <InfoValue>123 Main Street, New York, NY 10001</InfoValue>
+            <InfoValue>{user?.address}</InfoValue>
           </InfoItem>
-          <InfoItem>
+          {/* <InfoItem>
             <InfoLabel>Emergency Contact</InfoLabel>
             <InfoValue>+1 (555) 987-6543</InfoValue>
-          </InfoItem>
+          </InfoItem> */}
         </InfoGrid>
       ) : (
         <Form onSubmit={onSave}>
@@ -571,8 +694,8 @@ const ProfileSection = ({
   </SectionCard>
 );
 
-// Security Section Component
-const SecuritySection = ({ securityForm, onChange, onSave, isLoading }) => (
+// Security Section Component with Error Handling
+const SecuritySection = ({ securityForm, error, onChange, onSave, isLoading }) => (
   <SectionCard>
     <SectionHeader>
       <SectionTitle>
@@ -582,6 +705,14 @@ const SecuritySection = ({ securityForm, onChange, onSave, isLoading }) => (
     </SectionHeader>
 
     <SectionContent>
+      {/* Password Change Error */}
+      {error && (
+        <FormError>
+          <FaExclamationTriangle />
+          {error.message || "Failed to change password. Please try again."}
+        </FormError>
+      )}
+
       <Form onSubmit={onSave}>
         <FormGroup fullWidth>
           <Label>Current Password</Label>
@@ -625,7 +756,7 @@ const SecuritySection = ({ securityForm, onChange, onSave, isLoading }) => (
         <PrimaryButton type="submit" $size="lg" disabled={isLoading}>
           {isLoading ? (
             <>
-              <LoadingSpinner size="sm" />
+              <LoadingSpinner $size="sm" />
               Updating Password...
             </>
           ) : (
@@ -809,66 +940,66 @@ const PreferencesSection = ({ preferences, onChange }) => (
 );
 
 // Notifications Section Component
-const NotificationsSection = ({ preferences, onChange }) => (
-  <SectionCard>
-    <SectionHeader>
-      <SectionTitle>
-        <FaBell />
-        Notification Preferences
-      </SectionTitle>
-    </SectionHeader>
+// const NotificationsSection = ({ preferences, onChange }) => (
+//   <SectionCard>
+//     <SectionHeader>
+//       <SectionTitle>
+//         <FaBell />
+//         Notification Preferences
+//       </SectionTitle>
+//     </SectionHeader>
 
-    <SectionContent>
-      <NotificationGroup>
-        <NotificationTitle>Booking Notifications</NotificationTitle>
-        <CheckboxLabel>
-          <Checkbox
-            type="checkbox"
-            checked={preferences.notifications.bookingConfirmations}
-            onChange={(e) =>
-              onChange(
-                "notifications",
-                "bookingConfirmations",
-                e.target.checked
-              )
-            }
-          />
-          <CheckboxText>Booking Confirmations</CheckboxText>
-        </CheckboxLabel>
-        <CheckboxLabel>
-          <Checkbox
-            type="checkbox"
-            checked={preferences.notifications.rentalReminders}
-            onChange={(e) =>
-              onChange("notifications", "rentalReminders", e.target.checked)
-            }
-          />
-          <CheckboxText>Rental Reminders</CheckboxText>
-        </CheckboxLabel>
-        <CheckboxLabel>
-          <Checkbox
-            type="checkbox"
-            checked={preferences.notifications.specialOffers}
-            onChange={(e) =>
-              onChange("notifications", "specialOffers", e.target.checked)
-            }
-          />
-          <CheckboxText>Special Offers & Promotions</CheckboxText>
-        </CheckboxLabel>
-        <CheckboxLabel>
-          <Checkbox
-            type="checkbox"
-            checked={preferences.notifications.smsAlerts}
-            onChange={(e) =>
-              onChange("notifications", "smsAlerts", e.target.checked)
-            }
-          />
-          <CheckboxText>SMS Alerts</CheckboxText>
-        </CheckboxLabel>
-      </NotificationGroup>
-    </SectionContent>
-  </SectionCard>
-);
+//     <SectionContent>
+//       <NotificationGroup>
+//         <NotificationTitle>Booking Notifications</NotificationTitle>
+//         <CheckboxLabel>
+//           <Checkbox
+//             type="checkbox"
+//             checked={preferences.notifications.bookingConfirmations}
+//             onChange={(e) =>
+//               onChange(
+//                 "notifications",
+//                 "bookingConfirmations",
+//                 e.target.checked
+//               )
+//             }
+//           />
+//           <CheckboxText>Booking Confirmations</CheckboxText>
+//         </CheckboxLabel>
+//         <CheckboxLabel>
+//           <Checkbox
+//             type="checkbox"
+//             checked={preferences.notifications.rentalReminders}
+//             onChange={(e) =>
+//               onChange("notifications", "rentalReminders", e.target.checked)
+//             }
+//           />
+//           <CheckboxText>Rental Reminders</CheckboxText>
+//         </CheckboxLabel>
+//         <CheckboxLabel>
+//           <Checkbox
+//             type="checkbox"
+//             checked={preferences.notifications.specialOffers}
+//             onChange={(e) =>
+//               onChange("notifications", "specialOffers", e.target.checked)
+//             }
+//           />
+//           <CheckboxText>Special Offers & Promotions</CheckboxText>
+//         </CheckboxLabel>
+//         <CheckboxLabel>
+//           <Checkbox
+//             type="checkbox"
+//             checked={preferences.notifications.smsAlerts}
+//             onChange={(e) =>
+//               onChange("notifications", "smsAlerts", e.target.checked)
+//             }
+//           />
+//           <CheckboxText>SMS Alerts</CheckboxText>
+//         </CheckboxLabel>
+//       </NotificationGroup>
+//     </SectionContent>
+//   </SectionCard>
+// );
 
 // ==================== STYLED COMPONENTS ====================
 
@@ -880,6 +1011,95 @@ const PageWrapper = styled.div`
   @media ${devices.sm} {
     padding: var(--space-md) 0;
   }
+`;
+
+const LoadingState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: var(--space-lg);
+`;
+
+const LoadingText = styled.p`
+  color: var(--text-secondary);
+  font-size: var(--text-lg);
+  font-family: var(--font-body);
+`;
+
+const ErrorBanner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--error-light);
+  color: var(--error-dark);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-lg);
+  font-size: var(--text-sm);
+
+  @media ${devices.sm} {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+`;
+
+const RetryButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--error);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: var(--transition-normal);
+  margin-left: auto;
+
+  &:hover:not(:disabled) {
+    background: var(--error-dark);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  @media ${devices.sm} {
+    margin-left: 0;
+    align-self: flex-end;
+  }
+`;
+
+const FormError = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--error-light);
+  color: var(--error-dark);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-lg);
+  font-size: var(--text-sm);
+`;
+
+const AvatarError = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--error-light);
+  color: var(--error-dark);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  margin-top: var(--space-sm);
 `;
 
 const MobileHeader = styled.div`
@@ -1501,12 +1721,15 @@ const PaymentIcon = styled.div`
   font-size: 2rem;
 `;
 
-const PaymentDetails = styled.div``;
+const PaymentDetails = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+`;
 
 const PaymentType = styled.div`
   font-weight: var(--font-semibold);
   color: var(--text-primary);
-  margin-bottom: var(--space-xs);
 `;
 
 const PaymentExpiry = styled.div`
@@ -1639,18 +1862,5 @@ const RadioText = styled.span`
   color: var(--text-primary);
 `;
 
-const NotificationGroup = styled.div``;
-
-const NotificationTitle = styled.h3`
-  font-size: var(--text-xl);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  margin-bottom: var(--space-lg);
-  font-family: var(--font-heading);
-
-  @media ${devices.sm} {
-    font-size: var(--text-lg);
-  }
-`;
 
 export default UserPage;

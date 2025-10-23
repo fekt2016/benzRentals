@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
 import styled from "styled-components";
 import { Link } from "react-router-dom";
-// eslint-disable-next-line no-unused-vars
+ 
 import { motion, useInView } from "framer-motion";
 import { devices } from "../styles/GlobalStyles";
 import { PrimaryButton, SecondaryButton } from "../components/ui/Button";

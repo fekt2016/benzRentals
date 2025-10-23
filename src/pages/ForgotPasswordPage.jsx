@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { Link, useNavigate } from "react-router-dom";
-import { PrimaryButton, GhostButton } from "../components/ui/Button";
+import { PrimaryButton } from "../components/ui/Button";
 import { Input } from "../components/forms/Form";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 import { useForgotPassword } from "../hooks/useAuth";
@@ -98,7 +98,7 @@ const ForgotPassword = () => {
             </Title>
 
             <Subtitle>
-              Don't worry! Just enter your email and we'll send you a link to
+              Don&apos;t worry! Just enter your email and we&apos;ll send you a link to
               reset your password.
             </Subtitle>
 
@@ -176,13 +176,13 @@ const ForgotPassword = () => {
                 <SuccessContent>
                   <SuccessIcon>✅</SuccessIcon>
                   <SuccessMessage>
-                    We've sent a password reset link to <strong>{email}</strong>
+                    We&apos;ve sent a password reset link to <strong>{email}</strong>
                     . Please check your inbox and follow the instructions to
                     reset your password.
                   </SuccessMessage>
 
                   <HelpText>
-                    Didn't receive the email? Check your spam folder or{" "}
+                    Didn&apos;t receive the email? Check your spam folder or{" "}
                     <ResendLink onClick={() => setIsSubmitted(false)}>
                       try again with a different email
                     </ResendLink>

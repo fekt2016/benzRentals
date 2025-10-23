@@ -1,8 +1,10 @@
+/* eslint-disable react/prop-types */
 // components/Modal/CheckInModal.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { SuccessButton, SecondaryButton } from "../ui/Button";
 import { LoadingSpinner } from "../ui/LoadingSpinner";
+import { useCheckInBooking } from "../../hooks/useBooking";
 import {
   FaCheckCircle,
   FaGasPump,
@@ -10,22 +12,65 @@ import {
   FaCamera,
   FaCheck,
   FaTimes,
+  FaArrowRight,
+  FaArrowLeft,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 
-const CheckInModal = ({
-  show,
-  onClose,
-  booking,
-  onCheckIn,
-  isCheckingIn = false,
-}) => {
+const CheckInModal = ({ show, onClose, booking }) => {
+  
+  const { mutate: checkInBooking, isPending: isLoading, error } = useCheckInBooking(
+    booking?._id
+  );
+
   // Check-in form state
   const [checkInData, setCheckInData] = useState({
     mileage: "",
     fuelLevel: "",
     notes: "",
-    // images: [],
+    images: [],
   });
+
+  // Image upload steps with better car visuals
+  const [currentImageStep, setCurrentImageStep] = useState(0);
+  const imageSteps = [
+    {
+      key: "front",
+      label: "Front View",
+      description: "Take a clear photo of the entire front of the vehicle",
+      example: "Include headlights, bumper, and license plate",
+    },
+    {
+      key: "driver_side",
+      label: "Driver Side",
+      description: "Full side view from driver's side",
+      example: "Show entire side from front to rear",
+    },
+    {
+      key: "passenger_side",
+      label: "Passenger Side",
+      description: "Full side view from passenger's side",
+      example: "Show entire side from front to rear",
+    },
+    {
+      key: "rear",
+      label: "Rear View",
+      description: "Clear photo of the back of the vehicle",
+      example: "Include taillights, bumper, and license plate",
+    },
+    {
+      key: "dashboard",
+      label: "Dashboard",
+      description: "Photo showing mileage and fuel gauge",
+      example: "Clear shot of odometer and fuel indicator",
+    },
+    {
+      key: "interior",
+      label: "Interior",
+      description: "Overall interior condition",
+      example: "Show seats, steering wheel, and general condition",
+    },
+  ];
 
   // Fuel level options
   const fuelLevelOptions = [
@@ -36,6 +81,20 @@ const CheckInModal = ({
     { value: "full", label: "Full", percentage: 100 },
   ];
 
+  // Clear error when modal is opened/closed or when form changes
+  useEffect(() => {
+    if (!show) {
+      // Reset form and error when modal closes
+      setCheckInData({
+        mileage: "",
+        fuelLevel: "",
+        notes: "",
+        images: [],
+      });
+      setCurrentImageStep(0);
+    }
+  }, [show]);
+
   // Handle check-in form changes
   const handleCheckInChange = (field, value) => {
     setCheckInData((prev) => ({
@@ -44,40 +103,64 @@ const CheckInModal = ({
     }));
   };
 
-  // Handle image upload for check-in
-  //   const handleImageUpload = (event) => {
-  //     const files = Array.from(event.target.files);
-  //     if (files.length + checkInData.images.length > 5) {
-  //       alert("Maximum 5 images allowed");
-  //       return;
-  //     }
+  // Handle image upload for current step
+  const handleImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
 
-  //     const newImages = files.map((file) => ({
-  //       file,
-  //       preview: URL.createObjectURL(file),
-  //       name: file.name,
-  //       type: file.type,
-  //     }));
+    const newImage = {
+      file,
+      preview: URL.createObjectURL(file),
+      name: file.name,
+      type: file.type,
+      step: imageSteps[currentImageStep].key,
+      label: imageSteps[currentImageStep].label,
+    };
 
-  //     setCheckInData((prev) => ({
-  //       ...prev,
-  //       images: [...prev.images, ...newImages],
-  //     }));
-  //   };
+    setCheckInData((prev) => ({
+      ...prev,
+      images: [...prev.images, newImage],
+    }));
+
+    // Auto-advance to next step if available
+    if (currentImageStep < imageSteps.length - 1) {
+      setCurrentImageStep(currentImageStep + 1);
+    }
+  };
 
   // Remove uploaded image
-  //   const removeImage = (index) => {
-  //     setCheckInData((prev) => ({
-  //       ...prev,
-  //       images: prev.images.filter((_, i) => i !== index),
-  //     }));
-  //   };
+  const removeImage = (index) => {
+    setCheckInData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Navigate between image steps
+  const goToNextStep = () => {
+    if (currentImageStep < imageSteps.length - 1) {
+      setCurrentImageStep(currentImageStep + 1);
+    }
+  };
+
+  const goToPrevStep = () => {
+    if (currentImageStep > 0) {
+      setCurrentImageStep(currentImageStep - 1);
+    }
+  };
+
+  // Get image for current step
+  const getCurrentStepImage = () => {
+    return checkInData.images.find(
+      (img) => img.step === imageSteps[currentImageStep].key
+    );
+  };
 
   // Handle check-in submission
-  const handleCheckInSubmit = () => {
+  const handleCheckInSubmit = async() => {
     if (!booking) return;
 
-    // Validation
+    // Validation (only mileage and fuel level are required)
     if (!checkInData.mileage || checkInData.mileage <= 0) {
       alert("Please enter a valid mileage");
       return;
@@ -88,19 +171,23 @@ const CheckInModal = ({
       return;
     }
 
-    // const formData = new FormData();
-    // formData.append("bookingId", booking._id);
-    // formData.append("mileage", parseInt(checkInData.mileage));
-    // formData.append("fuelLevel", checkInData.fuelLevel);
-    // formData.append("notes", checkInData.notes);
+    const formData = new FormData();
+    formData.append("bookingId", booking._id);
+    formData.append("mileage", parseInt(checkInData.mileage));
+    formData.append("fuelLevel", checkInData.fuelLevel);
+    formData.append("notes", checkInData.notes);
 
-    // Append images
-    // checkInData.images.forEach((image, index) => {
-    //   console.log(index);
-    //   formData.append(`images`, image.file);
-    // });
+    // Append images only if they exist
+    checkInData.images.forEach((image) => {
+      formData.append(`images`, image.file);
+    });
 
-    onCheckIn(checkInData);
+    checkInBooking(formData, {
+      onSuccess: (data) => {
+        console.log("check in successfully!!",data)
+        handleClose();
+      },
+    });
   };
 
   // Reset form when modal closes
@@ -109,8 +196,9 @@ const CheckInModal = ({
       mileage: "",
       fuelLevel: "",
       notes: "",
-      //   images: [],
+      images: [],
     });
+    setCurrentImageStep(0);
     onClose();
   };
 
@@ -123,11 +211,57 @@ const CheckInModal = ({
     });
   };
 
-  if (!show) return null;
+  // Render car visual based on current step
+  const renderCarVisual = () => {
+    const currentStep = imageSteps[currentImageStep];
+
+    return (
+      <VisualGuideContainer>
+        <StepHeader>
+          <StepTitle>{currentStep.label}</StepTitle>
+          <OptionalBadge>Optional</OptionalBadge>
+        </StepHeader>
+
+        <StepDescription>{currentStep.description}</StepDescription>
+
+        <StepExample>📸 {currentStep.example}</StepExample>
+
+        {/* Car Visual Representation */}
+        <CarVisualContainer>
+          {renderCarByStep(currentStep.key)}
+        </CarVisualContainer>
+      </VisualGuideContainer>
+    );
+  };
+
+  // Render proper car visual for each step
+  const renderCarByStep = (stepKey) => {
+    switch (stepKey) {
+      case "front":
+        return <FrontViewCar />;
+      case "driver_side":
+        return <SideViewCar $side="left" />;
+      case "passenger_side":
+        return <SideViewCar $side="right" />;
+      case "rear":
+        return <RearViewCar />;
+      case "dashboard":
+        return <DashboardView />;
+      case "interior":
+        return <InteriorView />;
+      default:
+        return <DefaultCarView />;
+    }
+  };
+
+  // Early return with null instead of false/undefined
+  if (!show) {
+    return null;
+  }
 
   return (
-    <CheckInModalOverlay>
-      <CheckInModalStyled>
+    <CheckInModalOverlay onClick={handleClose}>
+      <CheckInModalStyled onClick={(e)=> e.stopPropagation()}>
         <CheckInModalHeader>
           <CheckInIcon>
             <FaCheckCircle />
@@ -137,6 +271,18 @@ const CheckInModal = ({
             Record vehicle condition at pickup
           </CheckInModalSubtitle>
         </CheckInModalHeader>
+
+        {/* Error Display */}
+        {error && (
+          <ErrorState>
+            <ErrorIcon>
+              <FaExclamationTriangle />
+            </ErrorIcon>
+            <ErrorText>
+              {error?.response?.data?.message || "Failed to complete check-in. Please try again."}
+            </ErrorText>
+          </ErrorState>
+        )}
 
         <CheckInModalContent>
           <VehicleInfoSection>
@@ -170,7 +316,7 @@ const CheckInModal = ({
                 onChange={(e) => handleCheckInChange("mileage", e.target.value)}
                 min="0"
                 step="1"
-                disabled={isCheckingIn}
+                disabled={isLoading}
               />
               <FormHelp>
                 Please enter the exact mileage from the odometer
@@ -186,12 +332,12 @@ const CheckInModal = ({
                 {fuelLevelOptions.map((option) => (
                   <FuelLevelOption
                     key={option.value}
-                    $selected={checkInData.fuelLevel === option.value}
+                    $selected={checkInData.fuelLevel === option.percentage}
                     onClick={() =>
-                      !isCheckingIn &&
-                      handleCheckInChange("fuelLevel", option.value)
+                      !isLoading &&
+                      handleCheckInChange("fuelLevel", option.percentage)
                     }
-                    $disabled={isCheckingIn}
+                    $disabled={isLoading}
                   >
                     <FuelLevelIcon $level={option.percentage}>
                       <FaGasPump />
@@ -202,54 +348,129 @@ const CheckInModal = ({
               </FuelLevelGrid>
             </FormGroup>
 
-            {/* <FormGroup>
+            <FormGroup>
               <FormLabel>
                 <FaCamera />
-                Vehicle Photos (Optional)
+                Vehicle Photos (Optional) - {imageSteps[currentImageStep].label}
               </FormLabel>
-              <PhotoUploadSection>
-                <PhotoUploadButton>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageUpload}
-                    style={{ display: "none" }}
-                    id="photo-upload"
-                    disabled={isCheckingIn}
-                  />
-                  <PhotoUploadLabel
-                    htmlFor="photo-upload"
-                    $disabled={isCheckingIn}
-                  >
-                    <FaCamera />
-                    Add Photos
-                  </PhotoUploadLabel>
-                </PhotoUploadButton>
-                <PhotoHelp>
-                  Take photos of any existing damage or special features
-                </PhotoHelp>
 
-                {checkInData.images.length > 0 && (
-                  <PhotoPreviewGrid>
-                    {checkInData.images.map((image, index) => (
-                      <PhotoPreview key={index}>
-                        <PhotoPreviewImage
-                          src={image.preview}
-                          alt={`Preview ${index + 1}`}
-                        />
-                        <RemovePhotoButton
-                          onClick={() => !isCheckingIn && removeImage(index)}
-                          $disabled={isCheckingIn}
-                        >
-                          <FaTimes />
-                        </RemovePhotoButton>
-                      </PhotoPreview>
+              <PhotoUploadSection>
+                <StepIndicator>
+                  Step {currentImageStep + 1} of {imageSteps.length} (Optional)
+                </StepIndicator>
+
+                {/* Visual Guide */}
+                {renderCarVisual()}
+
+                <PhotoUploadArea>
+                  {getCurrentStepImage() ? (
+                    <PhotoPreview>
+                      <PhotoPreviewImage
+                        src={getCurrentStepImage().preview}
+                        alt={imageSteps[currentImageStep].label}
+                      />
+                      <RemovePhotoButton
+                        onClick={() => {
+                          const imageIndex = checkInData.images.findIndex(
+                            (img) =>
+                              img.step === imageSteps[currentImageStep].key
+                          );
+                          if (imageIndex !== -1) {
+                            removeImage(imageIndex);
+                          }
+                        }}
+                        $disabled={isLoading}
+                      >
+                        <FaTimes />
+                      </RemovePhotoButton>
+                    </PhotoPreview>
+                  ) : (
+                    <EmptyPhotoState>
+                      <CameraIcon>
+                        <FaCamera />
+                      </CameraIcon>
+                      <EmptyPhotoText>
+                        Ready to capture{" "}
+                        {imageSteps[currentImageStep].label.toLowerCase()}
+                      </EmptyPhotoText>
+                      <OptionalText>Optional - You can skip</OptionalText>
+                    </EmptyPhotoState>
+                  )}
+
+                  <PhotoUploadButton>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleImageUpload}
+                      style={{ display: "none" }}
+                      id={`photo-upload-${currentImageStep}`}
+                      disabled={isLoading}
+                    />
+                    <PhotoUploadLabel
+                      htmlFor={`photo-upload-${currentImageStep}`}
+                      $disabled={isLoading}
+                    >
+                      <FaCamera />
+                      {getCurrentStepImage() ? "Retake Photo" : "Take Photo"}
+                    </PhotoUploadLabel>
+                  </PhotoUploadButton>
+                </PhotoUploadArea>
+
+                {/* Step Navigation */}
+                <StepNavigation>
+                  <StepNavButton
+                    onClick={goToPrevStep}
+                    disabled={currentImageStep === 0 || isLoading}
+                    $variant="secondary"
+                  >
+                    <FaArrowLeft />
+                    Previous
+                  </StepNavButton>
+
+                  <StepProgress>
+                    {imageSteps.map((step, index) => (
+                      <StepDot
+                        key={step.key}
+                        $active={index === currentImageStep}
+                        $completed={checkInData.images.some(
+                          (img) => img.step === step.key
+                        )}
+                      />
                     ))}
-                  </PhotoPreviewGrid>
-                )}
+                  </StepProgress>
+
+                  <StepNavButton
+                    onClick={goToNextStep}
+                    disabled={
+                      currentImageStep === imageSteps.length - 1 || isLoading
+                    }
+                    $variant="primary"
+                  >
+                    Next
+                    <FaArrowRight />
+                  </StepNavButton>
+                </StepNavigation>
+
+                {/* Uploaded Images Preview */}
+                {checkInData.images.length > 0 ? (
+                  <UploadedImagesPreview>
+                    <UploadedImagesTitle>Uploaded Photos</UploadedImagesTitle>
+                    <UploadedImagesGrid>
+                      {checkInData.images.map((image, index) => (
+                        <UploadedImageItem key={index}>
+                          <UploadedImagePreview
+                            src={image.preview}
+                            alt={image.label}
+                          />
+                          <UploadedImageLabel>{image.label}</UploadedImageLabel>
+                        </UploadedImageItem>
+                      ))}
+                    </UploadedImagesGrid>
+                  </UploadedImagesPreview>
+                ) : null}
               </PhotoUploadSection>
-            </FormGroup> */}
+            </FormGroup>
 
             <FormGroup>
               <FormLabel>Additional Notes (Optional)</FormLabel>
@@ -258,7 +479,7 @@ const CheckInModal = ({
                 value={checkInData.notes}
                 onChange={(e) => handleCheckInChange("notes", e.target.value)}
                 rows="3"
-                disabled={isCheckingIn}
+                disabled={isLoading}
               />
             </FormGroup>
           </FormSection>
@@ -266,18 +487,22 @@ const CheckInModal = ({
           <CheckInTips>
             <TipsTitle>💡 Check-in Tips</TipsTitle>
             <TipsList>
-              <Tip>Take clear photos of all four sides of the vehicle</Tip>
-              <Tip>Capture close-ups of any existing scratches or damage</Tip>
-              <Tip>Ensure mileage reading is clear and accurate</Tip>
-              <Tip>Verify fuel level matches your selection</Tip>
+              <Tip>
+                Take clear photos in good lighting conditions (optional but
+                recommended)
+              </Tip>
+              <Tip>Ensure the entire area is visible in the frame</Tip>
+              <Tip>Capture close-ups of any existing damage</Tip>
+              <Tip>Make sure the mileage is clearly readable</Tip>
             </TipsList>
           </CheckInTips>
         </CheckInModalContent>
 
+        {/* Modal Actions */}
         <CheckInModalActions>
           <CheckInCancelButton
             onClick={handleClose}
-            disabled={isCheckingIn}
+            disabled={isLoading}
             $variant="secondary"
           >
             <FaTimes />
@@ -286,14 +511,14 @@ const CheckInModal = ({
           <CheckInConfirmButton
             onClick={handleCheckInSubmit}
             disabled={
-              isCheckingIn || !checkInData.mileage || !checkInData.fuelLevel
+              isLoading || !checkInData.mileage || !checkInData.fuelLevel
             }
             $variant="success"
           >
-            {isCheckingIn ? (
+            {isLoading ? (
               <>
                 <LoadingSpinner $size="sm" />
-                Processing...
+                Checking In...
               </>
             ) : (
               <>
@@ -314,6 +539,60 @@ export default CheckInModal;
 // STYLED COMPONENTS
 // ============================================================================
 
+// Error State Components
+const ErrorState = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--error-light);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--error);
+  margin-bottom: var(--space-lg);
+  animation: slideDown 0.3s ease-out;
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
+
+const ErrorIcon = styled.div`
+  color: var(--error);
+  font-size: var(--text-lg);
+  flex-shrink: 0;
+`;
+
+const ErrorText = styled.span`
+  color: var(--error);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  line-height: 1.4;
+`;
+
+const OptionalBadge = styled.span`
+  background: var(--gray-200);
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  margin-left: var(--space-sm);
+`;
+
+const OptionalText = styled.span`
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: var(--space-xs);
+`;
+
 const CheckInModalOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -326,6 +605,7 @@ const CheckInModalOverlay = styled.div`
   justify-content: center;
   z-index: 1000;
   padding: var(--space-md);
+  user-select: none; /* 🟢 prevent text selection */
 `;
 
 const CheckInModalStyled = styled.div`
@@ -557,6 +837,88 @@ const PhotoUploadSection = styled.div`
   gap: var(--space-md);
 `;
 
+const StepIndicator = styled.div`
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--primary);
+  text-align: center;
+  font-family: var(--font-body);
+`;
+
+const PhotoUploadArea = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border: 2px dashed var(--gray-300);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+`;
+
+const EmptyPhotoState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--text-muted);
+`;
+
+const CameraIcon = styled.div`
+  font-size: var(--text-2xl);
+  color: var(--gray-400);
+`;
+
+const EmptyPhotoText = styled.p`
+  font-size: var(--text-sm);
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-body);
+`;
+
+const PhotoPreview = styled.div`
+  position: relative;
+  width: 200px;
+  height: 150px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+`;
+
+const PhotoPreviewImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const RemovePhotoButton = styled.button`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  background: var(--error);
+  color: var(--white);
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ${(props) => (props.$disabled ? "not-allowed" : "pointer")};
+  font-size: var(--text-sm);
+  transition: all var(--transition-normal);
+  opacity: ${(props) => (props.$disabled ? 0.6 : 1)};
+
+  ${(props) =>
+    !props.$disabled &&
+    `
+    &:hover {
+      background: var(--error-dark);
+      transform: scale(1.1);
+    }
+  `}
+`;
+
 const PhotoUploadButton = styled.div`
   display: inline-block;
 `;
@@ -586,58 +948,95 @@ const PhotoUploadLabel = styled.label`
   `}
 `;
 
-const PhotoHelp = styled.span`
-  font-size: var(--text-xs);
-  color: var(--text-muted);
+const StepNavigation = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+`;
+
+const StepNavButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-md);
+  background: ${(props) =>
+    props.$variant === "primary" ? "var(--primary)" : "var(--white)"};
+  color: ${(props) =>
+    props.$variant === "primary" ? "var(--white)" : "var(--text-primary)"};
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+  transition: all var(--transition-normal);
+  font-family: var(--font-body);
+  opacity: ${(props) => (props.disabled ? 0.5 : 1)};
+
+  &:not(:disabled):hover {
+    background: ${(props) =>
+      props.$variant === "primary" ? "var(--primary-dark)" : "var(--gray-100)"};
+  }
+`;
+
+const StepProgress = styled.div`
+  display: flex;
+  gap: var(--space-xs);
+`;
+
+const StepDot = styled.div`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: ${(props) =>
+    props.$active
+      ? "var(--primary)"
+      : props.$completed
+      ? "var(--success)"
+      : "var(--gray-300)"};
+  transition: all var(--transition-normal);
+`;
+
+const UploadedImagesPreview = styled.div`
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--gray-200);
+`;
+
+const UploadedImagesTitle = styled.h4`
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-md) 0;
+  font-weight: var(--font-semibold);
   font-family: var(--font-body);
 `;
 
-const PhotoPreviewGrid = styled.div`
+const UploadedImagesGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
   gap: var(--space-sm);
 `;
 
-const PhotoPreview = styled.div`
-  position: relative;
-  width: 100px;
-  height: 100px;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-`;
-
-const PhotoPreviewImage = styled.img`
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-`;
-
-const RemovePhotoButton = styled.button`
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 24px;
-  height: 24px;
-  background: var(--error);
-  color: var(--white);
-  border: none;
-  border-radius: 50%;
+const UploadedImageItem = styled.div`
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  cursor: ${(props) => (props.$disabled ? "not-allowed" : "pointer")};
-  font-size: var(--text-xs);
-  transition: all var(--transition-normal);
-  opacity: ${(props) => (props.$disabled ? 0.6 : 1)};
+  gap: var(--space-xs);
+`;
 
-  ${(props) =>
-    !props.$disabled &&
-    `
-    &:hover {
-      background: var(--error-dark);
-      transform: scale(1.1);
-    }
-  `}
+const UploadedImagePreview = styled.img`
+  width: 80px;
+  height: 60px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  border: 1px solid var(--gray-200);
+`;
+
+const UploadedImageLabel = styled.span`
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  text-align: center;
+  font-family: var(--font-body);
 `;
 
 const NotesTextarea = styled.textarea`
@@ -702,6 +1101,8 @@ const CheckInModalActions = styled.div`
   display: flex;
   gap: var(--space-md);
   justify-content: flex-end;
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--gray-200);
 
   @media (max-width: 768px) {
     flex-direction: column;
@@ -731,4 +1132,183 @@ const CheckInConfirmButton = styled(SuccessButton)`
       min-width: auto;
     }
   }
+`;
+
+const VisualGuideContainer = styled.div`
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin: var(--space-md) 0;
+  border: 1px solid var(--gray-200);
+`;
+
+const StepHeader = styled.div`
+  text-align: center;
+  margin-bottom: var(--space-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+`;
+
+const StepTitle = styled.h4`
+  font-size: var(--text-lg);
+  color: var(--text-primary);
+  margin: 0;
+  font-weight: var(--font-bold);
+  font-family: var(--font-heading);
+`;
+
+const StepDescription = styled.p`
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-sm) 0;
+  font-size: var(--text-sm);
+  text-align: center;
+  font-family: var(--font-body);
+`;
+
+const StepExample = styled.div`
+  background: var(--info-light);
+  color: var(--info-dark);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  margin-bottom: var(--space-md);
+  text-align: center;
+  font-family: var(--font-body);
+`;
+
+const CarVisualContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 150px;
+  margin: var(--space-md) 0;
+`;
+
+// Simplified Car Views
+const FrontViewCar = styled.div`
+  width: 120px;
+  height: 60px;
+  background: var(--primary);
+  border-radius: 10px 10px 5px 5px;
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    left: 20px;
+    right: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #87ceeb, #b0e2ff);
+    clip-path: polygon(0% 100%, 50% 0%, 100% 100%);
+    border-radius: 3px;
+  }
+`;
+
+const SideViewCar = styled.div.attrs((props) => ({
+  $side: props.$side || "left",
+}))`
+  width: 150px;
+  height: 50px;
+  background: var(--primary);
+  border-radius: 8px 20px 20px 8px;
+  position: relative;
+  transform: ${(props) => (props.$side === "right" ? "scaleX(-1)" : "none")};
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 10px;
+    left: 20px;
+    right: 40px;
+    height: 15px;
+    background: linear-gradient(135deg, #87ceeb, #b0e2ff);
+    border-radius: 4px;
+  }
+`;
+
+const RearViewCar = styled.div`
+  width: 120px;
+  height: 60px;
+  background: var(--primary);
+  border-radius: 5px 5px 10px 10px;
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 15px;
+    left: 40px;
+    right: 40px;
+    height: 15px;
+    background: linear-gradient(135deg, #87ceeb, #b0e2ff);
+    border-radius: 3px;
+  }
+`;
+
+const DashboardView = styled.div`
+  width: 140px;
+  height: 70px;
+  background: var(--gray-800);
+  border-radius: 8px;
+  border: 2px solid var(--gray-600);
+  position: relative;
+
+  &::before {
+    content: "MILEAGE";
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    right: 15px;
+    height: 25px;
+    background: var(--info-light);
+    border: 1px solid var(--info);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--text-primary);
+    font-weight: bold;
+  }
+`;
+
+const InteriorView = styled.div`
+  width: 140px;
+  height: 70px;
+  background: var(--gray-200);
+  border-radius: 8px;
+  border: 2px solid var(--gray-400);
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 15px;
+    left: 20px;
+    width: 35px;
+    height: 25px;
+    background: var(--primary);
+    border-radius: 5px 5px 0 0;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    width: 35px;
+    height: 25px;
+    background: var(--primary);
+    border-radius: 5px 5px 0 0;
+  }
+`;
+
+const DefaultCarView = styled.div`
+  font-size: 3rem;
+  text-align: center;
+  color: var(--primary);
 `;

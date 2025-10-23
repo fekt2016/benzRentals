@@ -1,7 +1,7 @@
 // src/components/sections/HeroSection.jsx
 import React from "react";
 import styled from "styled-components";
-// eslint-disable-next-line no-unused-vars
+ 
 import { motion } from "framer-motion";
 import { ButtonLink, SecondaryButton } from "../ui/Button";
 import { devices } from "../../styles/GlobalStyles";

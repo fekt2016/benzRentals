@@ -1,4 +1,5 @@
-// src/pages/BookingDetailPage.jsx - COMPLETE WITH CHECK-IN FUNCTIONALITY
+/* eslint-disable react/react-in-jsx-scope */
+
 import { useMemo, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import styled from "styled-components";
@@ -7,16 +8,21 @@ import {
   useUpdateUserBooking,
   useCancelBooking,
   useCheckInBooking,
+  useCheckOutBooking,
 } from "../hooks/useBooking";
 import { ROUTE_CONFIG, PATHS } from "../routes/routePaths";
 import usePageTitle from "../hooks/usePageTitle";
+import { formatDate, formatTime } from '../utils/helper';
+import ErrorState from "../components/ErrorState";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner";
+import ModalWrapper from "../components/ModalWrapper";
+import StatusBadgeComponent from "../components/StatusBadgeComponent";
+import DriverDocumentModal from "../components/DriverDocument";
 
-// Button Components
 import {
   PrimaryButton,
   SecondaryButton,
-  AccentButtonLink,
-  GhostButton,
+  AccentButton,
   SuccessButton,
   DangerButton,
 } from "../components/ui/Button";
@@ -24,16 +30,15 @@ import {
 // Import Modals
 import ReviewModal from "../components/Modal/ReviewModal";
 import CheckInModal from "../components/Modal/CheckInModal";
+import CheckOutModal from "../components/Modal/CheckOutModal";
 
 // Icons
 import {
   FaArrowLeft,
-  FaCar,
   FaCalendarAlt,
   FaMapMarkerAlt,
   FaDollarSign,
   FaCreditCard,
-  FaFilePdf,
   FaDownload,
   FaCheckCircle,
   FaClock,
@@ -43,90 +48,75 @@ import {
   FaIdCard,
   FaShieldAlt,
   FaExclamationTriangle,
-  FaCheck,
   FaGasPump,
   FaCog,
   FaUsers,
   FaPalette,
-  FaEdit,
   FaBan,
   FaStar,
   FaUndo,
+  FaRedo,
+  FaSearch,
 } from "react-icons/fa";
 
 const BookingDetailPage = () => {
   const { bookingId } = useParams();
   const seoConfig = ROUTE_CONFIG[PATHS.BOOKING];
+  const navigate = useNavigate();
 
-  // Use the custom SEO hook
   usePageTitle(
     `Booking #${bookingId?.slice(-8).toUpperCase()} - Mercedes Rentals`,
     seoConfig.description
   );
 
-  const { data: bookingData, refetch } = useGetBookingById(bookingId);
+  const { 
+    data: bookingData, 
+    error: bookingError, 
+    isLoading: isBookingLoading,
+    refetch 
+  } = useGetBookingById(bookingId);
+  
   const { mutate: updateUserBooking } = useUpdateUserBooking(bookingId);
   const { mutate: cancelBooking, isLoading: isCancelling } = useCancelBooking();
-  const { mutate: checkInBooking, isLoading: isCheckingIn } =
-    useCheckInBooking();
+  const { mutate: checkInBooking, isLoading: isCheckingIn } = useCheckInBooking();
+  const { mutate: checkOutBooking, isLoading: isCheckingOut } = useCheckOutBooking();
 
   const booking = useMemo(() => bookingData?.data?.data || null, [bookingData]);
-  const navigate = useNavigate();
-
-  // State for file uploads
-  const [driverLicenseFile, setDriverLicenseFile] = useState(null);
-  const [insuranceFile, setInsuranceFile] = useState(null);
+  
+  // State for modals
   const [timeLeft, setTimeLeft] = useState({});
   const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [showCheckOutModal, setShowCheckOutModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showDriverDocumentModal, setShowDriverDocumentModal] = useState(false);
   const [cancellationReason, setCancellationReason] = useState("");
-
-  // Track submitted reviews locally
   const [submittedReviews, setSubmittedReviews] = useState(new Set());
 
-  // Countdown timer effect
+  const currentError = bookingError;
+
+  // Countdown timer
   useEffect(() => {
-    if (!booking?.pickupDate) return;
+    if (!booking?.pickupDate) {
+      setTimeLeft({});
+      return;
+    }
 
-    const calculateTimeLeft = () => {
-      const pickupDate = new Date(booking.pickupDate);
-      const now = new Date();
-      const difference = pickupDate - now;
+    const pickupDate = new Date(booking.pickupDate);
+    const now = new Date();
+    const difference = pickupDate - now;
 
-      if (difference > 0) {
-        setTimeLeft({
-          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((difference / 1000 / 60) % 60),
-          seconds: Math.floor((difference / 1000) % 60),
-        });
-      } else {
-        setTimeLeft({});
-      }
-    };
-
-    calculateTimeLeft();
-    const timer = setInterval(calculateTimeLeft, 1000);
-
-    return () => clearInterval(timer);
+    if (difference > 0) {
+      setTimeLeft({
+        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((difference / 1000 / 60) % 60),
+        seconds: Math.floor((difference / 1000) % 60),
+      });
+    } else {
+      setTimeLeft({});
+    }
   }, [booking?.pickupDate]);
-
-  if (!booking) {
-    return (
-      <PageWrapper>
-        <ErrorState>
-          <ErrorIcon>⚠️</ErrorIcon>
-          <ErrorTitle>Booking Not Found</ErrorTitle>
-          <ErrorText>The booking you're looking for doesn't exist.</ErrorText>
-          <SecondaryButton onClick={() => navigate("/bookings")} $size="lg">
-            <FaArrowLeft />
-            Back to My Bookings
-          </SecondaryButton>
-        </ErrorState>
-      </PageWrapper>
-    );
-  }
 
   // Handler functions
   const handleCheckInSubmit = (formData) => {
@@ -144,7 +134,26 @@ const BookingDetailPage = () => {
         },
         onError: (error) => {
           console.error("Check-in failed:", error);
-          alert("Check-in failed. Please try again.");
+        },
+      }
+    );
+  };
+
+  const handleCheckOutSubmit = (formData) => {
+    if (!booking) return;
+
+    checkOutBooking(
+      {
+        bookingId: booking._id,
+        ...formData,
+      },
+      {
+        onSuccess: () => {
+          setShowCheckOutModal(false);
+          refetch();
+        },
+        onError: (error) => {
+          console.error("Check-out failed:", error);
         },
       }
     );
@@ -166,13 +175,14 @@ const BookingDetailPage = () => {
         },
         onError: (error) => {
           console.error("Cancellation failed:", error);
-          alert("Cancellation failed. Please try again.");
         },
       }
     );
   };
 
   const handleReviewSuccess = () => {
+    if (!booking?._id) return;
+    
     setSubmittedReviews((prev) => {
       const newSet = new Set(prev);
       newSet.add(booking._id);
@@ -184,36 +194,29 @@ const BookingDetailPage = () => {
     }, 500);
   };
 
-  const handleFileUpload = async (e) => {
-    e.preventDefault();
-    try {
-      const formData = new FormData();
-      formData.append("driverLicense", driverLicenseFile);
-      formData.append("insurance", insuranceFile);
-      updateUserBooking(formData);
-    } catch (error) {
-      console.error("Upload error:", error);
-      alert("Upload failed. Please try again.");
-    }
+  const handleDocumentUpload = (formData) => {
+ updateUserBooking(formData, {
+      onSuccess: () => {
+        refetch();
+      },
+      onError: (error) => {
+        console.error("Document upload failed:", error);
+        throw new Error("Upload failed");
+      }
+    });
   };
 
   const handleProceedToPayment = () => {
-    const checkoutData = {
-      _id: booking._id,
-      car: {
-        model: booking.car?.model,
-        image: booking.car?.images?.[0],
-        pricePerDay: booking.car?.pricePerDay,
-      },
-      pickupDate: booking.pickupDate,
-      returnDate: booking.returnDate,
-      pickupLocation: booking.pickupLocation,
-      totalPrice: booking.totalPrice,
-      user: booking.user,
-      driverLicense: booking.driverLicenses,
-      insurance: booking.insurance,
-    };
-    navigate("/checkout", { state: { checkoutData } });
+    if (!booking?._id) {
+      console.error("No booking ID available");
+      return;
+    }
+    
+    navigate("/checkout", { 
+      state: { 
+        bookingId: booking._id 
+      } 
+    });
   };
 
   const handleDownloadDocument = (documentUrl) => {
@@ -231,6 +234,7 @@ const BookingDetailPage = () => {
         icon: FaCheckCircle,
         label: "Confirmed",
         canCancel: true,
+        animated: false
       },
       completed: {
         color: "var(--info)",
@@ -238,6 +242,7 @@ const BookingDetailPage = () => {
         icon: FaCheckCircle,
         label: "Completed",
         canCancel: false,
+        animated: false
       },
       cancelled: {
         color: "var(--error)",
@@ -245,6 +250,7 @@ const BookingDetailPage = () => {
         icon: FaTimes,
         label: "Cancelled",
         canCancel: false,
+        animated: false
       },
       pending: {
         color: "var(--warning)",
@@ -252,6 +258,7 @@ const BookingDetailPage = () => {
         icon: FaClock,
         label: "Pending",
         canCancel: true,
+        animated: false
       },
       active: {
         color: "var(--success)",
@@ -259,6 +266,15 @@ const BookingDetailPage = () => {
         icon: FaCheckCircle,
         label: "Active",
         canCancel: false,
+        animated: true
+      },
+      in_progress: {
+        color: "var(--primary)",
+        bgColor: "#e0f2fe",
+        icon: FaClock,
+        label: "In Progress",
+        canCancel: false,
+        animated: true
       },
       verification_pending: {
         color: "var(--warning)",
@@ -266,6 +282,7 @@ const BookingDetailPage = () => {
         icon: FaClock,
         label: "Verification Pending",
         canCancel: true,
+        animated: true
       },
       license_required: {
         color: "var(--warning)",
@@ -273,6 +290,7 @@ const BookingDetailPage = () => {
         icon: FaExclamationTriangle,
         label: "License Required",
         canCancel: true,
+        animated: false
       },
       pending_payment: {
         color: "var(--warning)",
@@ -280,73 +298,124 @@ const BookingDetailPage = () => {
         icon: FaClock,
         label: "Pending Payment",
         canCancel: true,
+        animated: false
       },
     };
     return config[status?.toLowerCase()] || config.pending;
   };
 
+  const hasCheckedIn = () => {
+    return (
+      booking?.checkInData?.checkInTime ||
+      booking?.checkIn?.status === "completed" ||
+      booking?.status === "active" ||
+      booking?.status === "in_progress"
+    );
+  };
+
+  const hasCheckedOut = () => {
+    return (
+      booking?.checkOutData?.checkOutTime ||
+      booking?.checkOut?.status === "completed" ||
+      booking?.status === "completed"
+    );
+  };
+
   const canCheckIn = () => {
     try {
-      if (!booking?.pickupDate) return { visible: false, enabled: false };
-      if (hasCheckedIn()) return { visible: false, enabled: false };
+      if (!booking?.pickupDate) return { visible: false, enabled: false, reason: "No pickup date" };
+      if (hasCheckedIn() || hasCheckedOut()) return { visible: false, enabled: false, reason: "Already checked in/out" };
+
+      // ADDED: Only allow check-in if payment is completed
+      const isPaid = booking?.paymentStatus === "paid";
+      if (!isPaid) return { visible: false, enabled: false, reason: "Payment required" };
 
       const now = new Date();
       const pickupDate = new Date(booking.pickupDate);
       const returnDate = new Date(booking.returnDate);
 
-      // Check-in available from 1 hour before pickup until return date
-      const checkInStart = new Date(pickupDate.getTime() - 60 * 60 * 1000); // 1 hour before
+      const checkInStart = new Date(pickupDate.getTime() - 60 * 60 * 1000);
 
       const allowedStatuses = [
         "confirmed",
         "active",
-        "pending_payment",
+        "in_progress",
+        "pending_payment", // Keep this but it won't show due to payment check above
         "verification_pending",
         "pending",
       ];
-
-      const isAlreadyCheckedIn =
-        booking.checkInData?.checkInTime ||
-        booking.checkIn?.status === "completed";
 
       const isWithinCheckInWindow = now >= checkInStart && now <= returnDate;
       const isCheckInEnabled = now >= checkInStart;
 
       return {
-        visible:
-          allowedStatuses.includes(booking.status) && !isAlreadyCheckedIn,
-        enabled:
-          allowedStatuses.includes(booking.status) &&
-          isWithinCheckInWindow &&
-          isCheckInEnabled &&
-          !isAlreadyCheckedIn,
+        visible: allowedStatuses.includes(booking.status) && !hasCheckedIn() && isPaid, // Added isPaid condition
+        enabled: allowedStatuses.includes(booking.status) && isWithinCheckInWindow && isCheckInEnabled && !hasCheckedIn() && isPaid, // Added isPaid condition
         timeUntilCheckIn: checkInStart - now,
+        reason: !isPaid ? "Payment required" :
+                !allowedStatuses.includes(booking.status) ? "Invalid status" :
+                !isWithinCheckInWindow ? "Outside check-in window" :
+                "Available"
       };
     } catch (error) {
       console.error("Error in canCheckIn:", error);
-      return { visible: false, enabled: false };
+      return { visible: false, enabled: false, reason: "Error" };
     }
   };
 
-  const hasCheckedIn = () => {
-    return (
-      booking.checkInData?.checkInTime ||
-      booking.checkIn?.status === "completed" ||
-      booking.status === "active" ||
-      booking.status === "completed"
-    );
+  const canCheckOut = () => {
+    try {
+      if (!booking?.returnDate) return { visible: false, enabled: false, reason: "No return date" };
+      if (hasCheckedOut()) return { visible: false, enabled: false, reason: "Already checked out" };
+      
+      if (!hasCheckedIn()) return { visible: false, enabled: false, reason: "Check in first" };
+
+      const now = new Date();
+      const returnDate = new Date(booking.returnDate);
+      
+      const timeUntilReturn = returnDate - now;
+      const oneHourInMs = 60 * 60 * 1000;
+
+      const isWithinLastHour = timeUntilReturn <= oneHourInMs && timeUntilReturn > 0;
+      const isReturnTimePassed = timeUntilReturn <= 0;
+
+      const allowedStatuses = ["active", "confirmed", "in_progress"];
+      const isStatusAllowed = allowedStatuses.includes(booking.status);
+
+      let timeDisplay = "";
+      if (timeUntilReturn > oneHourInMs) {
+        const hours = Math.floor(timeUntilReturn / (60 * 60 * 1000));
+        const minutes = Math.floor((timeUntilReturn % (60 * 60 * 1000)) / (60 * 1000));
+        timeDisplay = `${hours}h ${minutes}m`;
+      } else if (timeUntilReturn > 0) {
+        const minutes = Math.floor(timeUntilReturn / (60 * 1000));
+        timeDisplay = `${minutes}m`;
+      }
+
+      return {
+        visible: true,
+        enabled: isStatusAllowed && isWithinLastHour,
+        reason: !isStatusAllowed ? "Invalid booking status" : 
+                isReturnTimePassed ? "Return time has passed - please contact support" :
+                !isWithinLastHour ? `Check-out available in ${timeDisplay}` : 
+                `Available for check-out (${timeDisplay} left)`
+      };
+    } catch (error) {
+      console.error("Error in canCheckOut:", error);
+      return { visible: false, enabled: false, reason: "Error" };
+    }
   };
 
   const canReviewBooking = () => {
-    const canReview =
-      booking.status === "completed" &&
+    if (!booking) return false;
+    
+    return booking.status === "completed" &&
       !booking.review &&
       !submittedReviews.has(booking._id);
-    return canReview;
   };
 
   const hasReview = () => {
-    return booking.review || submittedReviews.has(booking._id);
+    return booking?.review || submittedReviews.has(booking?._id);
   };
 
   const getCancellationPolicy = () => {
@@ -383,23 +452,9 @@ const BookingDetailPage = () => {
     }
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const formatTime = (dateString) => {
-    return new Date(dateString).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   const calculateDuration = () => {
+    if (!booking?.pickupDate || !booking?.returnDate) return 0;
+    
     const pickup = new Date(booking.pickupDate);
     const returnDate = new Date(booking.returnDate);
     const diffTime = Math.abs(returnDate - pickup);
@@ -407,21 +462,71 @@ const BookingDetailPage = () => {
     return diffDays;
   };
 
-  // Data preparation
+  // Loading State
+  if (isBookingLoading) {
+    return (
+      <PageWrapper>
+        <LoadingState>
+          <LoadingSpinner />
+          <LoadingText>Loading booking details...</LoadingText>
+        </LoadingState>
+      </PageWrapper>
+    );
+  }
+
+  // Error State
+  if (currentError || !booking) {
+    return (
+      <PageWrapper>
+        <ErrorState
+          icon={FaExclamationTriangle}
+          title={booking ? "Something went wrong" : "Booking Not Found"}
+          message={
+            currentError?.message || 
+            "The booking you're looking for doesn't exist or cannot be loaded."
+          }
+          actions={[
+            {
+              text: "Try Again",
+              onClick: () => refetch(),
+              variant: 'primary',
+              icon: FaRedo
+            },
+            {
+              text: "Back to My Bookings",
+              onClick: () => navigate("/bookings"),
+              variant: 'secondary',
+              icon: FaArrowLeft
+            },
+            {
+              text: "Contact Support",
+              onClick: () => navigate("/support"),
+              variant: 'ghost',
+              icon: FaSearch
+            }
+          ]}
+          centered={true}
+          size="lg"
+        />
+      </PageWrapper>
+    );
+  }
+
+  // Computed values
   const statusConfig = getStatusConfig(booking.status);
-  const StatusIcon = statusConfig.icon;
-  const hasDriverLicense = !!booking.driver?.license?.fileUrl;
-  const hasInsurance = !!booking.driver?.insurance?.fileUrl;
+  const hasDriverLicense = !!booking?.driver?.license?.fileUrl;
   const areDocumentsVerified = booking?.driver?.verified;
-  const isPaymentPending = booking.paymentStatus !== "paid";
+  const isPaymentPending = booking?.paymentStatus !== "paid";
   const showPaymentButton = areDocumentsVerified && isPaymentPending;
-  const isUpcoming = new Date(booking.pickupDate) > new Date();
+  const isUpcoming = booking?.pickupDate && new Date(booking.pickupDate) > new Date();
   const showCountdown = isUpcoming && Object.keys(timeLeft).length > 0;
   const cancellationPolicy = getCancellationPolicy();
   const checkInInfo = canCheckIn();
+  const checkOutInfo = canCheckOut();
+  // const isPaymentCompleted = booking?.paymentStatus === "paid";
 
   const verifiedDocuments = [
-    ...(booking.driver?.verified
+    ...(booking?.driver?.verified
       ? [
           {
             type: "license",
@@ -434,7 +539,7 @@ const BookingDetailPage = () => {
           },
         ]
       : []),
-    ...(booking.insurance?.verified
+    ...(booking?.insurance?.verified
       ? [
           {
             type: "insurance",
@@ -450,41 +555,106 @@ const BookingDetailPage = () => {
   ];
 
   const carDetails = {
-    model: booking.car?.model || "Unknown Model",
-    make: booking.car?.make || "Unknown Make",
-    year: booking.car?.year || "Unknown Year",
-    type: booking.car?.type || "Luxury Sedan",
-    transmission: booking.car?.transmission || "Automatic",
-    fuelType: booking.car?.fuelType || "Petrol",
-    seats: booking.car?.seats || 5,
-    color: booking.car?.color || "Unknown Color",
-    licensePlate: booking.car?.licensePlate || "N/A",
-    images: booking.car?.images || [],
-    features: booking.car?.features || [],
-    dailyPrice: booking.car?.dailyPrice || 0,
+    model: booking?.car?.model || "Unknown Model",
+    make: booking?.car?.make || "Unknown Make",
+    year: booking?.car?.year || "Unknown Year",
+    type: booking?.car?.type || "Luxury Sedan",
+    transmission: booking?.car?.transmission || "Automatic",
+    fuelType: booking?.car?.fuelType || "Petrol",
+    seats: booking?.car?.seats || 5,
+    color: booking?.car?.color || "Unknown Color",
+    licensePlate: booking?.car?.licensePlate || "N/A",
+    images: booking?.car?.images || [],
+    features: booking?.car?.features || [],
+    dailyPrice: booking?.car?.dailyPrice || 0,
   };
+
+  const totalDays = calculateDuration();
+  const totalPrice = booking?.totalPrice || 0;
 
   return (
     <PageWrapper>
       {/* Header with Car Details and Countdown */}
       <Header>
-        <BackButton>
-          <SecondaryButton onClick={() => navigate("/bookings")} $size="sm">
-            <FaArrowLeft />
-            Back to Bookings
-          </SecondaryButton>
-        </BackButton>
+        <StatuCheck>
+          <BackButton>
+            <SecondaryButton onClick={() => navigate("/bookings")} $size="sm">
+              <FaArrowLeft />
+              Back to Bookings
+            </SecondaryButton>
+          </BackButton>
+          
+          {checkInInfo.visible && (
+            <CheckInButtonContainer>
+              <SuccessButton
+                onClick={() => setShowCheckInModal(true)}
+                disabled={!checkInInfo.enabled}
+                $size="sm"
+              >
+                <FaCheckCircle />
+                {checkInInfo.enabled ? "Check In" : "Check In Soon"}
+              </SuccessButton>
+
+              {!checkInInfo.enabled && checkInInfo.timeUntilCheckIn > 0 && (
+                <CheckInHint>
+                  in {Math.ceil(checkInInfo.timeUntilCheckIn / (1000 * 60))} min
+                </CheckInHint>
+              )}
+              {!checkInInfo.enabled && checkInInfo.timeUntilCheckIn <= 0 && (
+                <CheckInHint>
+                  Check-in available from 1 hour before pickup time
+                </CheckInHint>
+              )}
+            </CheckInButtonContainer>
+          )}
+
+          {/* ADDED: Show payment requirement message when check-in is not visible due to payment */}
+          {!checkInInfo.visible && !hasCheckedIn() && isUpcoming && isPaymentPending && (
+            <PaymentRequiredMessage>
+              <FaCreditCard />
+              Complete payment to enable check-in
+            </PaymentRequiredMessage>
+          )}
+           
+          {showPaymentButton && (
+            <ActionButton fullWidth>
+              <AccentButton
+                onClick={handleProceedToPayment}
+                $size="sm"
+              >
+                <FaShoppingCart />
+                Complete Payment
+              </AccentButton>
+            </ActionButton>
+          )}
+
+          {checkOutInfo.visible && (
+            <CheckOutButtonContainer>
+              <DangerButton
+                onClick={() => setShowCheckOutModal(true)}
+                // disabled={!checkOutInfo.enabled}
+                $size="sm"
+              >
+                <FaTimes />
+                Check Out
+                {!checkOutInfo.enabled && " (Disabled)"}
+              </DangerButton>
+
+              {checkOutInfo.enabled && (
+                <CheckOutHint>
+                  ⏰ Less than 1 hour until return time - Check out now
+                </CheckOutHint>
+              )}
+            </CheckOutButtonContainer>
+          )}
+        </StatuCheck>
+        
         <div>
           <HeaderActions>
             <StatusSection>
-              <StatusBadge
-                color={statusConfig.color}
-                bgColor={statusConfig.bgColor}
-              >
-                <StatusIcon />
-                {statusConfig.label}
-              </StatusBadge>
+              <StatusBadgeComponent booking={booking} getStatusConfig={getStatusConfig} />
             </StatusSection>
+            
             {showCountdown && booking.status === "confirmed" && (
               <CountdownSection>
                 <CountdownLabel>Pickup in: </CountdownLabel>
@@ -510,53 +680,9 @@ const BookingDetailPage = () => {
                 </CountdownTimer>
               </CountdownSection>
             )}
-
-            {/* Check-in Button in Header */}
-            {checkInInfo.visible && (
-              <CheckInButtonContainer>
-                <SuccessButton
-                  onClick={() => setShowCheckInModal(true)}
-                  disabled={!checkInInfo.enabled}
-                  $size="sm"
-                >
-                  <FaCheckCircle />
-                  {checkInInfo.enabled ? "Check In " : "Check In  Soon"}
-                </SuccessButton>
-
-                {!checkInInfo.enabled && checkInInfo.timeUntilCheckIn > 0 && (
-                  <CheckInHint>
-                    in
-                    {Math.ceil(checkInInfo.timeUntilCheckIn / (1000 * 60))}
-                    min
-                  </CheckInHint>
-                )}
-                {!checkInInfo.enabled && checkInInfo.timeUntilCheckIn <= 0 && (
-                  <CheckInHint>
-                    Check-in available from 1 hour before pickup time
-                  </CheckInHint>
-                )}
-              </CheckInButtonContainer>
-            )}
-            {hasCheckedIn() && (
-              <CheckedInBadge>
-                <FaCheckCircle />
-                Vehicle Checked In
-                {booking.checkInData?.checkInTime && (
-                  <CheckInTime>
-                    Checked in at {formatTime(booking.checkInData.checkInTime)}
-                    {booking.checkInData?.mileage && (
-                      <span>
-                        {" "}
-                        • Mileage:{" "}
-                        {booking.checkInData.mileage.toLocaleString()}
-                      </span>
-                    )}
-                  </CheckInTime>
-                )}
-              </CheckedInBadge>
-            )}
           </HeaderActions>
         </div>
+        
         <HeaderMain>
           <CarHeaderSection>
             <CarImageLarge
@@ -589,10 +715,6 @@ const BookingDetailPage = () => {
                   <span>{carDetails.color}</span>
                 </CarSpecItem>
               </CarSpecsGrid>
-
-              <LicensePlateBadge>
-                License: {carDetails.licensePlate}
-              </LicensePlateBadge>
             </CarHeaderInfo>
           </CarHeaderSection>
         </HeaderMain>
@@ -653,59 +775,59 @@ const BookingDetailPage = () => {
                   </DetailIcon>
                   <DetailContent>
                     <DetailLabel>Duration</DetailLabel>
-                    <DetailValue>{calculateDuration()} days</DetailValue>
+                    <DetailValue>{totalDays} days</DetailValue>
                   </DetailContent>
                 </DetailItem>
               </DetailGrid>
             </CardContent>
           </Card>
 
-          {/* Check-in Details */}
-          {hasCheckedIn() && (
+          {/* Check-out Details */}
+          {hasCheckedOut() && (
             <Card>
               <CardHeader>
                 <CardTitle>
                   <FaCheckCircle />
-                  Check-in Details
+                  Check-out Details
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <CheckInDetailsSection>
-                  <CheckInDetailItem>
+                <CheckOutDetailsSection>
+                  <CheckOutDetailItem>
                     <strong>Status:</strong>
-                    <CheckedInBadgeSmall>
+                    <CheckedOutBadgeSmall>
                       <FaCheckCircle />
-                      Checked In
-                    </CheckedInBadgeSmall>
-                  </CheckInDetailItem>
-                  {booking.checkInData?.checkInTime && (
-                    <CheckInDetailItem>
-                      <strong>Check-in Time:</strong>
-                      {formatDate(booking.checkInData.checkInTime)} at{" "}
-                      {formatTime(booking.checkInData.checkInTime)}
-                    </CheckInDetailItem>
+                      Checked Out
+                    </CheckedOutBadgeSmall>
+                  </CheckOutDetailItem>
+                  {booking.checkOutData?.checkOutTime && (
+                    <CheckOutDetailItem>
+                      <strong>Check-out Time:</strong>
+                      {formatDate(booking.checkOutData.checkOutTime)} at{" "}
+                      {formatTime(booking.checkOutData.checkOutTime)}
+                    </CheckOutDetailItem>
                   )}
-                  {booking.checkInData?.mileage && (
-                    <CheckInDetailItem>
-                      <strong>Starting Mileage:</strong>
-                      {booking.checkInData.mileage.toLocaleString()} miles
-                    </CheckInDetailItem>
+                  {booking.checkOutData?.mileage && (
+                    <CheckOutDetailItem>
+                      <strong>Final Mileage:</strong>
+                      {booking.checkOutData.mileage.toLocaleString()} miles
+                    </CheckOutDetailItem>
                   )}
-                  {booking.checkInData?.fuelLevel && (
-                    <CheckInDetailItem>
-                      <strong>Fuel Level:</strong>
-                      <FuelLevelBadge level={booking.checkInData.fuelLevel}>
-                        {booking.checkInData.fuelLevel}
+                  {booking.checkOutData?.fuelLevel && (
+                    <CheckOutDetailItem>
+                      <strong>Fuel Level at Return:</strong>
+                      <FuelLevelBadge level={booking.checkOutData.fuelLevel}>
+                        {booking.checkOutData.fuelLevel}
                       </FuelLevelBadge>
-                    </CheckInDetailItem>
+                    </CheckOutDetailItem>
                   )}
-                  {booking.checkInData?.notes && (
-                    <CheckInDetailItem>
+                  {booking.checkOutData?.notes && (
+                    <CheckOutDetailItem>
                       <strong>Notes:</strong>
-                      <CheckInNotes>{booking.checkInData.notes}</CheckInNotes>
-                    </CheckInDetailItem>
+                      <CheckOutNotes>{booking.checkOutData.notes}</CheckOutNotes>
+                    </CheckOutDetailItem>
                   )}
-                </CheckInDetailsSection>
+                </CheckOutDetailsSection>
               </CardContent>
             </Card>
           )}
@@ -725,8 +847,7 @@ const BookingDetailPage = () => {
                     How was your experience with the {carDetails.model}?
                   </ReviewPrompt>
                   <ReviewDescription>
-                    Share your feedback to help other customers and improve our
-                    service.
+                    Share your feedback to help other customers and improve our service.
                   </ReviewDescription>
                   <PrimaryButton
                     onClick={() => setShowReviewModal(true)}
@@ -755,8 +876,7 @@ const BookingDetailPage = () => {
                     Thank you for your review!
                   </ReviewedBadge>
                   <ReviewedText>
-                    Your feedback helps us improve our service for future
-                    customers.
+                    Your feedback helps us improve our service for future customers.
                   </ReviewedText>
                 </ReviewedSection>
               </CardContent>
@@ -790,9 +910,7 @@ const BookingDetailPage = () => {
                             </VerifiedBadge>
                           </DocumentInfo>
                           <DownloadButton
-                            onClick={() =>
-                              handleDownloadDocument(doc.documentUrl)
-                            }
+                            onClick={() => handleDownloadDocument(doc.documentUrl)}
                             title={`Download ${doc.name}`}
                             $size="sm"
                           >
@@ -803,9 +921,7 @@ const BookingDetailPage = () => {
                         <VerificationDetails>
                           <VerificationDetail>
                             <strong>Verified on:</strong>{" "}
-                            {doc.verifiedAt
-                              ? formatDate(doc.verifiedAt)
-                              : "Recently"}
+                            {doc.verifiedAt ? formatDate(doc.verifiedAt) : "Recently"}
                           </VerificationDetail>
                           {doc.verifiedBy && (
                             <VerificationDetail>
@@ -851,16 +967,53 @@ const BookingDetailPage = () => {
                       {checkInInfo.enabled ? "Check In" : "Check In Soon"}
                     </SuccessButton>
 
-                    {!checkInInfo.enabled &&
-                      checkInInfo.timeUntilCheckIn > 0 && (
-                        <CheckInTimeHint>
-                          Available in
-                          {Math.ceil(
-                            checkInInfo.timeUntilCheckIn / (1000 * 60)
-                          )}
-                          min
-                        </CheckInTimeHint>
-                      )}
+                    {!checkInInfo.enabled && checkInInfo.timeUntilCheckIn > 0 && (
+                      <CheckInTimeHint>
+                        Available in{" "}
+                        {Math.ceil(checkInInfo.timeUntilCheckIn / (1000 * 60))}{" "}
+                        min
+                      </CheckInTimeHint>
+                    )}
+                  </ActionButton>
+                )}
+
+                  {showPaymentButton && (
+            <ActionButton fullWidth>
+              <AccentButton
+                onClick={handleProceedToPayment}
+                $size="sm"
+              >
+                <FaShoppingCart />
+                Complete Payment
+              </AccentButton>
+            </ActionButton>
+          )}
+                
+
+                {/* Check-out Button */}
+                {checkOutInfo.visible && (
+                  <ActionButton fullWidth>
+                    <DangerButton
+                      onClick={() => setShowCheckOutModal(true)}
+                      $size="sm"
+                      disabled={!checkOutInfo.enabled}
+                    >
+                      <FaTimes />
+                      Check Out
+                    
+                    </DangerButton>
+
+                    {!checkOutInfo.enabled && checkOutInfo.reason !== "Available for check-out" && (
+                      <CheckOutTimeHint>
+                        {checkOutInfo.reason}
+                      </CheckOutTimeHint>
+                    )}
+                    
+                    {checkOutInfo.enabled && (
+                      <CheckOutTimeHint>
+                        ⏰ Check-out enabled - Less than 1 hour until return
+                      </CheckOutTimeHint>
+                    )}
                   </ActionButton>
                 )}
 
@@ -890,177 +1043,21 @@ const BookingDetailPage = () => {
                   </ActionButton>
                 )}
 
-                {/* Payment Button */}
-                {showPaymentButton && (
-                  <ActionButton fullWidth>
-                    <AccentButtonLink
-                      onClick={handleProceedToPayment}
-                      $size="sm"
-                    >
-                      <FaShoppingCart />
-                      Complete Payment
-                    </AccentButtonLink>
-                  </ActionButton>
-                )}
-
-                {/* Document Update Section */}
+                {/* Document Management Section */}
                 <ActionSectionTitle>Document Management</ActionSectionTitle>
 
                 {!hasDriverLicense && (
                   <ActionButton fullWidth>
                     <SecondaryButton
-                      onClick={() =>
-                        document.getElementById("driver-license-upload").click()
-                      }
+                      onClick={() => setShowDriverDocumentModal(true)}
                       $size="sm"
                     >
                       <FaCloudUploadAlt />
-                      Upload Driver's License
-                    </SecondaryButton>
-                  </ActionButton>
-                )}
-
-                {!hasInsurance && (
-                  <ActionButton fullWidth>
-                    <SecondaryButton
-                      onClick={() =>
-                        document.getElementById("insurance-upload").click()
-                      }
-                      $size="sm"
-                    >
-                      <FaCloudUploadAlt />
-                      Upload Insurance
+                      Upload Driver Documents
                     </SecondaryButton>
                   </ActionButton>
                 )}
               </ActionButtons>
-            </CardContent>
-          </Card>
-
-          {/* Documents Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                <FaFilePdf />
-                Documents
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Form
-                encType="multipart/form-data"
-                noValidate
-                onSubmit={handleFileUpload}
-              >
-                <DocumentsList>
-                  {/* Driver's License Section */}
-                  {hasDriverLicense ? (
-                    <DocumentItem>
-                      <DocumentInfo>
-                        <DocumentName>Driver's License</DocumentName>
-                        <DocumentStatus verified={booking.driver?.verified}>
-                          {booking.driver?.verified
-                            ? "Verified"
-                            : "Pending Verification"}
-                        </DocumentStatus>
-                      </DocumentInfo>
-                      <DownloadButton
-                        onClick={() =>
-                          handleDownloadDocument(
-                            booking.driver?.license?.fileUrl
-                          )
-                        }
-                        $size="sm"
-                      >
-                        <FaDownload />
-                      </DownloadButton>
-                    </DocumentItem>
-                  ) : (
-                    <UploadSection>
-                      <UploadTitle>Upload Driver's License</UploadTitle>
-                      <FileInput
-                        type="file"
-                        accept="image/*,.pdf"
-                        onChange={(e) =>
-                          setDriverLicenseFile(e.target.files[0])
-                        }
-                        id="driver-license-upload"
-                      />
-                      <FileLabel htmlFor="driver-license-upload">
-                        <UploadIcon>
-                          <FaCloudUploadAlt />
-                        </UploadIcon>
-                        <div>
-                          <div>Choose license file</div>
-                          <FileHint>PNG, JPG, or PDF (max 5MB)</FileHint>
-                        </div>
-                        {driverLicenseFile && (
-                          <FileName>{driverLicenseFile.name}</FileName>
-                        )}
-                      </FileLabel>
-                    </UploadSection>
-                  )}
-
-                  {/* Insurance Section */}
-                  {hasInsurance ? (
-                    <DocumentItem>
-                      <DocumentInfo>
-                        <DocumentName>Insurance Document</DocumentName>
-                        <DocumentStatus verified={booking.insurance?.verified}>
-                          {booking.insurance?.verified
-                            ? "Verified"
-                            : "Pending Verification"}
-                        </DocumentStatus>
-                      </DocumentInfo>
-                      <DownloadButton
-                        onClick={() =>
-                          handleDownloadDocument(booking.insurance?.documentUrl)
-                        }
-                        $size="sm"
-                      >
-                        <FaDownload />
-                      </DownloadButton>
-                    </DocumentItem>
-                  ) : (
-                    <UploadSection>
-                      <UploadTitle>Upload Insurance Document</UploadTitle>
-                      <FileInput
-                        type="file"
-                        accept="image/*,.pdf"
-                        onChange={(e) => setInsuranceFile(e.target.files[0])}
-                        id="insurance-upload"
-                      />
-                      <FileLabel htmlFor="insurance-upload">
-                        <UploadIcon>
-                          <FaCloudUploadAlt />
-                        </UploadIcon>
-                        <div>
-                          <div>Choose insurance file</div>
-                          <FileHint>PNG, JPG, or PDF (max 5MB)</FileHint>
-                        </div>
-                        {insuranceFile && (
-                          <FileName>{insuranceFile.name}</FileName>
-                        )}
-                      </FileLabel>
-                      {driverLicenseFile && insuranceFile && (
-                        <UploadAction>
-                          <PrimaryButton type="submit" $size="sm">
-                            Upload Documents
-                          </PrimaryButton>
-                          <GhostButton
-                            onClick={() => {
-                              setDriverLicenseFile(null);
-                              setInsuranceFile(null);
-                            }}
-                            $size="sm"
-                          >
-                            <FaTimes />
-                          </GhostButton>
-                        </UploadAction>
-                      )}
-                    </UploadSection>
-                  )}
-                </DocumentsList>
-              </Form>
             </CardContent>
           </Card>
 
@@ -1076,22 +1073,18 @@ const BookingDetailPage = () => {
               <PriceBreakdown>
                 <PriceItem>
                   <span>
-                    ${booking.car?.pricePerDay || 0} × {calculateDuration()}{" "}
-                    days
+                    ${booking.car?.pricePerDay || 0} × {totalDays} days
                   </span>
-                  <span>${booking.totalPrice}</span>
+                  <span>${totalPrice.toFixed(2)}</span>
                 </PriceItem>
                 <PriceItem>
                   <span>Tax (8%)</span>
-                  <span>${(booking.totalPrice * 0.08).toFixed(2)}</span>
+                  <span>${(totalPrice * 0.08).toFixed(2)}</span>
                 </PriceItem>
                 <TotalPrice>
                   <span>Total Amount</span>
                   <span>
-                    $
-                    {(booking.totalPrice + booking.totalPrice * 0.08).toFixed(
-                      2
-                    )}
+                    ${(totalPrice + totalPrice * 0.08).toFixed(2)}
                   </span>
                 </TotalPrice>
               </PriceBreakdown>
@@ -1120,7 +1113,7 @@ const BookingDetailPage = () => {
                 </PaymentItem>
                 <PaymentItem>
                   <span>Paid Amount:</span>
-                  <span>${booking.totalPrice}</span>
+                  <span>${totalPrice.toFixed(2)}</span>
                 </PaymentItem>
 
                 {isPaymentPending && !areDocumentsVerified && (
@@ -1130,10 +1123,17 @@ const BookingDetailPage = () => {
                   </PaymentMessage>
                 )}
 
+                {isPaymentPending && areDocumentsVerified && (
+                  <PaymentMessage warning>
+                    <FaExclamationTriangle />
+                    Payment required to complete booking and enable check-in.
+                  </PaymentMessage>
+                )}
+
                 {!isPaymentPending && (
                   <PaymentMessage success>
                     <FaCheckCircle />
-                    Payment completed. Your booking is confirmed.
+                    Payment completed. Your booking is confirmed and ready for check-in.
                   </PaymentMessage>
                 )}
               </PaymentInfo>
@@ -1153,201 +1153,144 @@ const BookingDetailPage = () => {
         </PrimaryButton>
       </ActionSection>
 
-      {/* Check-in Modal */}
-      <CheckInModal
-        show={showCheckInModal}
+      {/* Modals */}
+      <ModalWrapper 
+        show={showCheckInModal} 
         onClose={() => setShowCheckInModal(false)}
-        booking={booking}
-        onCheckIn={handleCheckInSubmit}
-        isCheckingIn={isCheckingIn}
-      />
+      >
+        <CheckInModal
+          show={showCheckInModal}
+          onClose={() => setShowCheckInModal(false)}
+          booking={booking}
+          onCheckIn={handleCheckInSubmit}
+          isCheckingIn={isCheckingIn}
+        />
+      </ModalWrapper>
 
-      {/* Review Modal */}
-      <ReviewModal
-        show={showReviewModal}
+      <ModalWrapper 
+        show={showCheckOutModal} 
+        onClose={() => setShowCheckOutModal(false)}
+      >
+        <CheckOutModal
+          show={showCheckOutModal}
+          onClose={() => setShowCheckOutModal(false)}
+          booking={booking}
+          onCheckOut={handleCheckOutSubmit}
+          isCheckingOut={isCheckingOut}
+        />
+      </ModalWrapper>
+
+      <ModalWrapper 
+        show={showReviewModal} 
         onClose={() => setShowReviewModal(false)}
-        booking={booking}
-        onSuccess={handleReviewSuccess}
-      />
+      >
+        <ReviewModal
+          show={showReviewModal}
+          onClose={() => setShowReviewModal(false)}
+          booking={booking}
+          onSuccess={handleReviewSuccess}
+        />
+      </ModalWrapper>
+
+      {/* Driver Document Modal */}
+      <ModalWrapper 
+        show={showDriverDocumentModal} 
+        onClose={() => setShowDriverDocumentModal(false)}
+      >
+        <DriverDocumentModal
+          show={showDriverDocumentModal}
+          onClose={() => setShowDriverDocumentModal(false)}
+          bookingId={bookingId}
+          onDocumentUpload={handleDocumentUpload}
+        />
+      </ModalWrapper>
 
       {/* Cancel Booking Modal */}
-      {showCancelModal && (
-        <CancelModalOverlay>
-          <CancelModal>
-            <CancelModalHeader>
-              <WarningIcon>
-                <FaExclamationTriangle />
-              </WarningIcon>
-              <CancelModalTitle>Cancel Booking</CancelModalTitle>
-            </CancelModalHeader>
+      <ModalWrapper 
+        show={showCancelModal} 
+        onClose={() => {
+          setShowCancelModal(false);
+          setCancellationReason("");
+        }}
+      >
+        <CancelModal>
+          <CancelModalHeader>
+            <WarningIcon>
+              <FaExclamationTriangle />
+            </WarningIcon>
+            <CancelModalTitle>Cancel Booking</CancelModalTitle>
+          </CancelModalHeader>
 
-            <CancelModalContent>
-              <p>Are you sure you want to cancel this booking?</p>
+          <CancelModalContent>
+            <p>Are you sure you want to cancel this booking?</p>
 
-              <BookingInfo>
-                <strong>Vehicle:</strong> {carDetails.model}
-                <br />
-                <strong>Pickup:</strong> {formatDate(booking.pickupDate)}
-                <br />
-                <strong>Return:</strong> {formatDate(booking.returnDate)}
-                <br />
-                <strong>Total:</strong> ${booking.totalPrice || "0"}
-              </BookingInfo>
+            <BookingInfo>
+              <strong>Vehicle:</strong> {carDetails.model}
+              <br />
+              <strong>Pickup:</strong> {formatDate(booking.pickupDate)}
+              <br />
+              <strong>Return:</strong> {formatDate(booking.returnDate)}
+              <br />
+              <strong>Total:</strong> ${totalPrice.toFixed(2)}
+            </BookingInfo>
 
-              <CancellationPolicy>
-                <PolicyTitle>📋 Cancellation Policy</PolicyTitle>
-                <PolicyMessage $type={cancellationPolicy.type}>
-                  {cancellationPolicy.message}
-                </PolicyMessage>
-                <PolicyNote>{cancellationPolicy.note}</PolicyNote>
-              </CancellationPolicy>
+            <CancellationPolicy>
+              <PolicyTitle>📋 Cancellation Policy</PolicyTitle>
+              <PolicyMessage $type={cancellationPolicy.type}>
+                {cancellationPolicy.message}
+              </PolicyMessage>
+              <PolicyNote>{cancellationPolicy.note}</PolicyNote>
+            </CancellationPolicy>
 
-              <ReasonSection>
-                <ReasonLabel>Reason for cancellation (optional):</ReasonLabel>
-                <ReasonTextarea
-                  placeholder="Please let us know why you're cancelling..."
-                  value={cancellationReason}
-                  onChange={(e) => setCancellationReason(e.target.value)}
-                />
-              </ReasonSection>
-            </CancelModalContent>
+            <ReasonSection>
+              <ReasonLabel>Reason for cancellation (optional):</ReasonLabel>
+              <ReasonTextarea
+                placeholder="Please let us know why you're cancelling..."
+                value={cancellationReason}
+                onChange={(e) => setCancellationReason(e.target.value)}
+              />
+            </ReasonSection>
+          </CancelModalContent>
 
-            <CancelModalActions>
-              <CancelButton
-                onClick={() => {
-                  setShowCancelModal(false);
-                  setCancellationReason("");
-                }}
-                $variant="secondary"
-                disabled={isCancelling}
-              >
-                <FaUndo />
-                Keep Booking
-              </CancelButton>
-              <CancelConfirmButton
-                onClick={handleCancelBooking}
-                disabled={isCancelling}
-                $variant="danger"
-              >
-                {isCancelling ? (
-                  <>
-                    <LoadingSpinner $size="sm" />
-                    Cancelling...
-                  </>
-                ) : (
-                  <>
-                    <FaBan />
-                    Confirm Cancellation
-                  </>
-                )}
-              </CancelConfirmButton>
-            </CancelModalActions>
-          </CancelModal>
-        </CancelModalOverlay>
-      )}
+          <CancelModalActions>
+            <CancelButton
+              onClick={() => {
+                setShowCancelModal(false);
+                setCancellationReason("");
+              }}
+              $variant="secondary"
+              disabled={isCancelling}
+            >
+              <FaUndo />
+              Keep Booking
+            </CancelButton>
+            <CancelConfirmButton
+              onClick={handleCancelBooking}
+              disabled={isCancelling}
+              $variant="danger"
+            >
+              {isCancelling ? (
+                <>
+                  <LoadingSpinner $size="sm" />
+                  Cancelling...
+                </>
+              ) : (
+                <>
+                  <FaBan />
+                  Confirm Cancellation
+                </>
+              )}
+            </CancelConfirmButton>
+          </CancelModalActions>
+        </CancelModal>
+      </ModalWrapper>
     </PageWrapper>
   );
 };
 
 export default BookingDetailPage;
 
-// ============================================================================
-// STYLED COMPONENTS
-// ============================================================================
-
-// Add the new Check-in related styled components
-const CheckInDetailsSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-`;
-
-const CheckInDetailItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-sm) 0;
-  border-bottom: 1px solid var(--gray-100);
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  strong {
-    color: var(--text-primary);
-    font-family: var(--font-body);
-  }
-`;
-
-const CheckedInBadgeSmall = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-xs) var(--space-sm);
-  background: var(--success);
-  color: var(--white);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  font-family: var(--font-body);
-`;
-
-const FuelLevelBadge = styled.span`
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  background: ${(props) => {
-    switch (props.level) {
-      case "full":
-        return "#d1fae5";
-      case "three_quarters":
-        return "#bbf7d0";
-      case "half":
-        return "#fef3c7";
-      case "quarter":
-        return "#fed7aa";
-      case "empty":
-        return "#fee2e2";
-      default:
-        return "#e5e7eb";
-    }
-  }};
-  color: ${(props) => {
-    switch (props.level) {
-      case "full":
-        return "#065f46";
-      case "three_quarters":
-        return "#065f46";
-      case "half":
-        return "#92400e";
-      case "quarter":
-        return "#9a3412";
-      case "empty":
-        return "#991b1b";
-      default:
-        return "#374151";
-    }
-  }};
-  text-transform: capitalize;
-  font-family: var(--font-body);
-`;
-
-const CheckInNotes = styled.p`
-  color: var(--text-secondary);
-  font-style: italic;
-  margin: 0;
-  font-family: var(--font-body);
-`;
-
-const CheckInTimeHint = styled.div`
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  text-align: center;
-  margin-top: var(--space-xs);
-  font-family: var(--font-body);
-`;
-
+// Styled Components
 const PageWrapper = styled.div`
   min-height: 100vh;
   background: var(--background);
@@ -1363,7 +1306,7 @@ const Header = styled.div`
   gap: var(--space-lg);
 
   @media (max-width: 768px) {
-    padding: var(--space-lg);
+    padding: var(--space-sm);
     gap: var(--space-md);
   }
 `;
@@ -1375,8 +1318,7 @@ const BackButton = styled.div`
 
 const HeaderMain = styled.div`
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: var(--space-xl);
+  gap: var(--space-xl); 
   align-items: start;
 
   @media (max-width: 1024px) {
@@ -1393,7 +1335,30 @@ const CarHeaderSection = styled.div`
   @media (max-width: 768px) {
     flex-direction: column;
     text-align: center;
+    align-items: center;
+    gap: 0;
   }
+`;
+
+const LoadingState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: var(--space-lg);
+`;
+
+const StatuCheck = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const LoadingText = styled.p`
+  color: var(--text-secondary);
+  font-size: var(--text-lg);
+  font-family: var(--font-body);
 `;
 
 const CarImageLarge = styled.img`
@@ -1443,11 +1408,13 @@ const CarMakeYear = styled.p`
 const CarSpecsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
+  align-self: center;
   gap: var(--space-sm);
   margin: var(--space-sm) 0;
+  width: 100%;
 
   @media (max-width: 480px) {
-    grid-template-columns: 1fr;
+    grid-template-columns: 2fr;
   }
 `;
 
@@ -1463,59 +1430,55 @@ const CarSpecItem = styled.div`
   font-family: var(--font-body);
 `;
 
-const LicensePlateBadge = styled.div`
-  display: inline-block;
-  padding: var(--space-xs) var(--space-md);
-  background: var(--primary);
-  color: var(--white);
-  border-radius: var(--radius-full);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  font-family: var(--font-body);
-  width: fit-content;
-`;
-
 const HeaderActions = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-md);
 `;
 
 const StatusSection = styled.div``;
 
-const StatusBadge = styled.div`
+const CountdownSection = styled.div`
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-md) var(--space-lg);
-  background: ${(props) => props.bgColor};
-  color: ${(props) => props.color};
-  border-radius: var(--radius-xl);
-  font-weight: var(--font-semibold);
-  text-transform: capitalize;
-  white-space: nowrap;
-  font-size: var(--text-lg);
+`;
+
+const CountdownLabel = styled.div`
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
   font-family: var(--font-body);
-  justify-content: center;
 `;
-
-const CountdownSection = styled.div`
-  display: flex;
-`;
-
-const CountdownLabel = styled.div``;
 
 const CountdownTimer = styled.div`
   display: flex;
+  gap: var(--space-sm);
 `;
 
 const CountdownUnit = styled.div`
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--surface);
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  min-width: 60px;
 `;
 
-const CountdownValue = styled.div``;
+const CountdownValue = styled.div`
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--primary);
+  font-family: var(--font-heading);
+`;
 
-const CountdownLabelSmall = styled.div``;
+const CountdownLabelSmall = styled.div`
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-family: var(--font-body);
+`;
 
 const CheckInButtonContainer = styled.div`
   text-align: center;
@@ -1528,56 +1491,34 @@ const CheckInHint = styled.div`
   font-family: var(--font-body);
 `;
 
-const CheckedInBadge = styled.div`
+const CheckOutButtonContainer = styled.div`
+  text-align: center;
   display: flex;
-  flex-direction: column;
+`;
+
+const CheckOutHint = styled.div`
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-top: var(--space-sm);
+  font-family: var(--font-body);
+`;
+
+// ADDED: New styled components for payment messaging
+const PaymentRequiredMessage = styled.div`
+  display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-lg);
-  background: var(--success);
-  color: var(--white);
-  border-radius: var(--radius-xl);
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  text-align: center;
-  font-family: var(--font-body);
-`;
-
-const CheckInTime = styled.div`
+  padding: var(--space-md);
+  background: var(--warning-light);
+  color: var(--warning-dark);
+  border-radius: var(--radius-md);
   font-size: var(--text-sm);
-  opacity: 0.9;
-  font-weight: var(--font-normal);
-`;
-
-const ErrorState = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: var(--space-2xl) var(--space-lg);
-  max-width: 400px;
-  margin: 0 auto;
-  min-height: 400px;
-`;
-
-const ErrorIcon = styled.div`
-  font-size: 4rem;
-  margin-bottom: var(--space-lg);
-`;
-
-const ErrorTitle = styled.h2`
-  font-size: var(--text-2xl);
-  color: var(--text-primary);
-  margin-bottom: var(--space-sm);
-  font-family: var(--font-heading);
-`;
-
-const ErrorText = styled.p`
-  color: var(--text-secondary);
-  margin-bottom: var(--space-xl);
+  font-weight: var(--font-medium);
+  border: 1px solid var(--warning);
   font-family: var(--font-body);
 `;
+
+
 
 const ContentGrid = styled.div`
   display: grid;
@@ -1586,6 +1527,7 @@ const ContentGrid = styled.div`
   padding: var(--space-lg);
   max-width: 1400px;
   margin: 0 auto;
+ 
 
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
@@ -1642,8 +1584,6 @@ const CardContent = styled.div`
   padding: var(--space-lg);
 `;
 
-const Form = styled.form``;
-
 const DetailGrid = styled.div`
   display: flex;
   flex-direction: column;
@@ -1687,7 +1627,6 @@ const DetailValue = styled.div`
   font-family: var(--font-body);
 `;
 
-// Action Buttons Styles
 const ActionButtons = styled.div`
   display: flex;
   flex-direction: column;
@@ -1695,8 +1634,8 @@ const ActionButtons = styled.div`
 `;
 
 const ActionButton = styled.div`
-  display: flex;
-  ${(props) => props.fullWidth && "width: 100%;"}
+  /* display: flex;
+  ${(props) => props.fullWidth && "width: 100%;"} */
 `;
 
 const ActionSectionTitle = styled.h4`
@@ -1706,6 +1645,106 @@ const ActionSectionTitle = styled.h4`
   margin: var(--space-lg) 0 var(--space-sm) 0;
   padding-bottom: var(--space-xs);
   border-bottom: 1px solid var(--gray-200);
+  font-family: var(--font-body);
+`;
+
+const CheckOutDetailsSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+`;
+
+const CheckOutDetailItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--gray-100);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  strong {
+    color: var(--text-primary);
+    font-family: var(--font-body);
+  }
+`;
+
+const CheckedOutBadgeSmall = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--error);
+  color: var(--white);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  font-family: var(--font-body);
+`;
+
+const FuelLevelBadge = styled.span`
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  background: ${(props) => {
+    switch (props.level) {
+      case "full":
+        return "#d1fae5";
+      case "three_quarters":
+        return "#bbf7d0";
+      case "half":
+        return "#fef3c7";
+      case "quarter":
+        return "#fed7aa";
+      case "empty":
+        return "#fee2e2";
+      default:
+        return "#e5e7eb";
+    }
+  }};
+  color: ${(props) => {
+    switch (props.level) {
+      case "full":
+        return "#065f46";
+      case "three_quarters":
+        return "#065f46";
+      case "half":
+        return "#92400e";
+      case "quarter":
+        return "#9a3412";
+      case "empty":
+        return "#991b1b";
+      default:
+        return "#374151";
+    }
+  }};
+  text-transform: capitalize;
+  font-family: var(--font-body);
+`;
+
+const CheckOutNotes = styled.p`
+  color: var(--text-secondary);
+  font-style: italic;
+  margin: 0;
+  font-family: var(--font-body);
+`;
+
+const CheckInTimeHint = styled.div`
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: var(--space-xs);
+  font-family: var(--font-body);
+`;
+
+const CheckOutTimeHint = styled.div`
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: var(--space-xs);
   font-family: var(--font-body);
 `;
 
@@ -1755,7 +1794,6 @@ const ReviewedText = styled.p`
   font-family: var(--font-body);
 `;
 
-// Verified Documents Styles
 const VerifiedDocumentsList = styled.div`
   display: flex;
   flex-direction: column;
@@ -1845,83 +1883,6 @@ const VerificationNote = styled.div`
   font-family: var(--font-body);
 `;
 
-const DocumentsList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-`;
-
-const DocumentItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-lg);
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-`;
-
-const UploadSection = styled.div`
-  padding: var(--space-lg);
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  border: 2px dashed var(--gray-300);
-`;
-
-const UploadTitle = styled.h4`
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  margin: 0 0 var(--space-md) 0;
-  font-family: var(--font-body);
-`;
-
-const FileInput = styled.input`
-  display: none;
-`;
-
-const FileLabel = styled.label`
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-lg);
-  border: 2px dashed var(--gray-400);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  background: var(--white);
-
-  &:hover {
-    border-color: var(--primary);
-    background: rgba(211, 47, 47, 0.1);
-  }
-`;
-
-const UploadIcon = styled.div`
-  color: var(--text-muted);
-  font-size: 1.5rem;
-`;
-
-const FileHint = styled.div`
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  font-family: var(--font-body);
-`;
-
-const FileName = styled.div`
-  margin-left: auto;
-  font-size: var(--text-sm);
-  color: var(--success);
-  font-weight: var(--font-semibold);
-  font-family: var(--font-body);
-`;
-
-const UploadAction = styled.div`
-  display: flex;
-  gap: var(--space-sm);
-  margin-top: var(--space-lg);
-  align-items: center;
-`;
-
 const DownloadButton = styled(PrimaryButton)`
   && {
     padding: var(--space-sm) var(--space-md);
@@ -1983,6 +1944,7 @@ const PaymentStatus = styled.span`
   font-family: var(--font-body);
 `;
 
+// UPDATED: PaymentMessage to handle warning state
 const PaymentMessage = styled.div`
   display: flex;
   align-items: center;
@@ -1991,10 +1953,22 @@ const PaymentMessage = styled.div`
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   margin-top: var(--space-lg);
-  background: ${(props) => (props.success ? "#d1fae5" : "#eff6ff")};
-  color: ${(props) => (props.success ? "#065f46" : "#374151")};
+  background: ${(props) => 
+    props.success ? "#d1fae5" : 
+    props.warning ? "#fef3c7" : 
+    "#eff6ff"
+  };
+  color: ${(props) => 
+    props.success ? "#065f46" : 
+    props.warning ? "#92400e" : 
+    "#374151"
+  };
   border-left: 4px solid
-    ${(props) => (props.success ? "var(--success)" : "var(--info)")};
+    ${(props) => 
+      props.success ? "var(--success)" : 
+      props.warning ? "var(--warning)" : 
+      "var(--info)"
+    };
   font-family: var(--font-body);
 `;
 
@@ -2015,31 +1989,6 @@ const ActionSection = styled.div`
     flex-direction: column;
     padding: var(--space-md);
   }
-`;
-
-const DocumentStatus = styled.span`
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-full);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  background: ${(props) => (props.verified ? "#d1fae5" : "#fef3c7")};
-  color: ${(props) => (props.verified ? "#065f46" : "#92400e")};
-  font-family: var(--font-body);
-`;
-
-// Cancel Modal Styles
-const CancelModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: var(--space-md);
 `;
 
 const CancelModal = styled.div`
@@ -2224,24 +2173,6 @@ const CancelConfirmButton = styled(DangerButton)`
 
     @media (max-width: 768px) {
       min-width: auto;
-    }
-  }
-`;
-
-const LoadingSpinner = styled.div`
-  width: ${(props) => (props.$size === "sm" ? "16px" : "20px")};
-  height: ${(props) => (props.$size === "sm" ? "16px" : "20px")};
-  border: 2px solid transparent;
-  border-top: 2px solid currentColor;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(360deg);
     }
   }
 `;

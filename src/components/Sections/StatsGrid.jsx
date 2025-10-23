@@ -1,7 +1,7 @@
 // src/components/sections/StatsGrid.jsx (Flexbox version)
 import React from "react";
 import styled from "styled-components";
-// eslint-disable-next-line no-unused-vars
+ 
 import { motion } from "framer-motion";
 import { devices } from "../../styles/GlobalStyles";
 

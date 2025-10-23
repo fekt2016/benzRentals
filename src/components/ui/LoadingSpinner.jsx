@@ -1,36 +1,251 @@
-import styled, { keyframes } from "styled-components";
+/* eslint-disable react/prop-types */
+
+import React from 'react';
+import styled from "styled-components";
 import { FaExclamationTriangle, FaInfoCircle, FaCar } from "react-icons/fa";
+import{spin, pulse, float, fadeIn} from '../../styles/animations';
 
-// Animations using global transition variables
-const spin = keyframes`
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-`;
 
-const pulse = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-`;
-
-const float = keyframes`
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-`;
-
-const fadeIn = keyframes`
-  from { 
-    opacity: 0; 
-    transform: translateY(20px); 
-  }
-  to { 
-    opacity: 1; 
-    transform: translateY(0); 
-  }
-`;
-
-// Loading Spinner Component with global styles
-export const LoadingSpinner = styled.div`
+// Base Spinner Styles
+const BaseSpinner = styled.div`
   display: inline-block;
+  border-radius: 50%;
+  animation: ${spin} 0.8s linear infinite;
+  border: 2px solid transparent;
+`;
+
+// Primary Loading Spinner Component
+export const LoadingSpinner = styled(BaseSpinner)`
+  width: ${({ size = "md" }) => {
+    switch (size) {
+      case "sm":
+        return "16px";
+      case "lg":
+        return "32px";
+      case "xl":
+        return "48px";
+      default:
+        return "24px";
+    }
+  }};
+  height: ${({ size = "md" }) => {
+    switch (size) {
+      case "sm":
+        return "16px";
+      case "lg":
+        return "32px";
+      case "xl":
+        return "48px";
+      default:
+        return "24px";
+    }
+  }};
+  border-top: 2px solid var(--primary);
+  border-right: 2px solid var(--primary);
+  border-bottom: 2px solid var(--gray-300);
+  border-left: 2px solid var(--gray-300);
+`;
+
+// Button Spinner Component - Perfect for form submissions
+export const ButtonSpinner = styled(BaseSpinner)`
+  width: ${({ size = "sm" }) => {
+    switch (size) {
+      case "sm":
+        return "16px";
+      case "md":
+        return "20px";
+      case "lg":
+        return "24px";
+      default:
+        return "16px";
+    }
+  }};
+  height: ${({ size = "sm" }) => {
+    switch (size) {
+      case "sm":
+        return "16px";
+      case "md":
+        return "20px";
+      case "lg":
+        return "24px";
+      default:
+        return "16px";
+    }
+  }};
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid transparent;
+  border-left: 2px solid transparent;
+`;
+
+// Page Load Spinner Component - For full page loading
+export const PageSpinner = styled(BaseSpinner)`
+  width: 60px;
+  height: 60px;
+  border-top: 3px solid var(--primary);
+  border-right: 3px solid var(--primary);
+  border-bottom: 3px solid var(--gray-200);
+  border-left: 3px solid var(--gray-200);
+`;
+
+// Gradient Spinner Component - For premium features
+export const GradientSpinner = styled(BaseSpinner)`
+  width: ${({ size = "md" }) => {
+    switch (size) {
+      case "sm":
+        return "20px";
+      case "lg":
+        return "40px";
+      case "xl":
+        return "60px";
+      default:
+        return "30px";
+    }
+  }};
+  height: ${({ size = "md" }) => {
+    switch (size) {
+      case "sm":
+        return "20px";
+      case "lg":
+        return "40px";
+      case "xl":
+        return "60px";
+      default:
+        return "30px";
+    }
+  }};
+  background: conic-gradient(transparent, var(--gradient-primary));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), white 0);
+`;
+
+// Dots Spinner Component - For modern UI
+export const DotsSpinner = styled.div`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+
+  &::after {
+    content: '';
+    width: ${({ size = "sm" }) => {
+      switch (size) {
+        case "sm": return "3px";
+        case "md": return "4px";
+        case "lg": return "5px";
+        default: return "3px";
+      }
+    }};
+    height: ${({ size = "sm" }) => {
+      switch (size) {
+        case "sm": return "3px";
+        case "md": return "4px";
+        case "lg": return "5px";
+        default: return "3px";
+      }
+    }};
+    border-radius: 50%;
+    background: currentColor;
+    animation: ${pulse} 1.4s ease-in-out infinite both;
+  }
+
+  &::before {
+    content: '';
+    width: ${({ size = "sm" }) => {
+      switch (size) {
+        case "sm": return "3px";
+        case "md": return "4px";
+        case "lg": return "5px";
+        default: return "3px";
+      }
+    }};
+    height: ${({ size = "sm" }) => {
+      switch (size) {
+        case "sm": return "3px";
+        case "md": return "4px";
+        case "lg": return "5px";
+        default: return "3px";
+      }
+    }};
+    border-radius: 50%;
+    background: currentColor;
+    animation: ${pulse} 1.4s ease-in-out 0.2s infinite both;
+    margin-right: 4px;
+  }
+`;
+
+// Pulse Spinner Component - For subtle loading
+export const PulseSpinner = styled.div`
+  width: ${({ size = "md" }) => {
+    switch (size) {
+      case "sm":
+        return "20px";
+      case "lg":
+        return "40px";
+      case "xl":
+        return "60px";
+      default:
+        return "30px";
+    }
+  }};
+  height: ${({ size = "md" }) => {
+    switch (size) {
+      case "sm":
+        return "20px";
+      case "lg":
+        return "40px";
+      case "xl":
+        return "60px";
+      default:
+        return "30px";
+    }
+  }};
+  border-radius: 50%;
+  background: var(--primary);
+  animation: ${pulse} 2s infinite ease-in-out;
+`;
+
+// Dual Ring Spinner Component - Classic style
+export const DualRingSpinner = styled(BaseSpinner)`
+  width: ${({ size = "md" }) => {
+    switch (size) {
+      case "sm":
+        return "20px";
+      case "lg":
+        return "40px";
+      case "xl":
+        return "60px";
+      default:
+        return "30px";
+    }
+  }};
+  height: ${({ size = "md" }) => {
+    switch (size) {
+      case "sm":
+        return "20px";
+      case "lg":
+        return "40px";
+      case "xl":
+        return "60px";
+      default:
+        return "30px";
+    }
+  }};
+  
+  &::after {
+    content: " ";
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    border-color: var(--primary) transparent var(--primary) transparent;
+    animation: ${spin} 1.2s linear infinite;
+  }
+`;
+
+// Circle Spinner Component - Simple outline
+export const CircleSpinner = styled(BaseSpinner)`
   width: ${({ size = "md" }) => {
     switch (size) {
       case "sm":
@@ -57,8 +272,6 @@ export const LoadingSpinner = styled.div`
   }};
   border: 2px solid var(--gray-300);
   border-top: 2px solid var(--primary);
-  border-radius: 50%;
-  animation: ${spin} var(--transition-slow) linear infinite;
 `;
 
 // Skeleton Loading Component
@@ -210,11 +423,27 @@ const SuccessStateAction = styled(EmptyStateAction)``;
 export const LoadingState = ({
   message = "Loading...",
   size = "lg",
+  spinnerType = "default",
   ...props
 }) => {
+  const renderSpinner = () => {
+    switch (spinnerType) {
+      case "dots":
+        return <DotsSpinner size="lg" />;
+      case "pulse":
+        return <PulseSpinner size={size} />;
+      case "gradient":
+        return <GradientSpinner size={size} />;
+      case "dual-ring":
+        return <DualRingSpinner size={size} />;
+      default:
+        return <LoadingSpinner size={size} />;
+    }
+  };
+
   return (
     <LoadingStateWrapper {...props}>
-      <LoadingSpinner size={size} />
+      {renderSpinner()}
       <LoadingMessage>{message}</LoadingMessage>
     </LoadingStateWrapper>
   );
@@ -328,15 +557,46 @@ const ProgressBarFill = styled.div`
     $color === "var(--primary)" ? "var(--gradient-primary)" : $color};
 `;
 
+// Spinner Container for consistent spacing
+export const SpinnerContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-md);
+  
+  ${({ fullScreen }) => fullScreen && `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 1000;
+  `}
+`;
+
 // Export all components
 export default {
+  // Spinners
   LoadingSpinner,
+  ButtonSpinner,
+  PageSpinner,
+  GradientSpinner,
+  DotsSpinner,
+  PulseSpinner,
+  DualRingSpinner,
+  CircleSpinner,
+  
+  // States
   Skeleton,
   EmptyState,
   ErrorState,
   SuccessState,
   LoadingState,
+  
+  // Layout
   SkeletonGrid,
   SkeletonCard,
   ProgressBar,
+  SpinnerContainer,
 };

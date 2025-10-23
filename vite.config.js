@@ -36,5 +36,9 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ["core-js", "regenerator-runtime"],
+  }, test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/setupTests.js',
   },
 });

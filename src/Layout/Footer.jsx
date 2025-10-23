@@ -1,3 +1,4 @@
+/* eslint-disable react/react-in-jsx-scope */
 // src/components/Footer.js
 import styled, { keyframes } from "styled-components";
 import {
@@ -48,7 +49,30 @@ const Footer = () => {
               </ContactItem>
             </ContactInfo>
           </BrandColumn>
-
+<LinksColumn>
+            <ColumnTitle>Account</ColumnTitle>
+            <LinksList>
+              <LinkItem>
+                <LinkArrow>
+                  <FaArrowRight />
+                </LinkArrow>
+                <FooterLink to="/">Home</FooterLink>
+              </LinkItem>
+              <LinkItem>
+                <LinkArrow>
+                  <FaArrowRight />
+                </LinkArrow>
+                <FooterLink to="/models">Book</FooterLink>
+              </LinkItem>
+              <LinkItem>
+                <LinkArrow>
+                  <FaArrowRight />
+                </LinkArrow>
+                <FooterLink to="/bookings">My Trips</FooterLink>
+              </LinkItem>
+             
+            </LinksList>
+          </LinksColumn>
           {/* Quick Links */}
           <LinksColumn>
             <ColumnTitle>Quick Links</ColumnTitle>
@@ -57,56 +81,62 @@ const Footer = () => {
                 <LinkArrow>
                   <FaArrowRight />
                 </LinkArrow>
-                <FooterLink to="/models">Our Fleet</FooterLink>
+                <FooterLink to="/reports">Report An Incident</FooterLink>
               </LinkItem>
               <LinkItem>
                 <LinkArrow>
                   <FaArrowRight />
                 </LinkArrow>
-                <FooterLink to="/locations">Locations</FooterLink>
+                <FooterLink to="/blog">Blog</FooterLink>
               </LinkItem>
               <LinkItem>
                 <LinkArrow>
                   <FaArrowRight />
                 </LinkArrow>
-                <FooterLink to="/pricing">Pricing</FooterLink>
+                <FooterLink to="/corporate">Corporate</FooterLink>
               </LinkItem>
               <LinkItem>
                 <LinkArrow>
                   <FaArrowRight />
                 </LinkArrow>
-                <FooterLink to="/testimonials">Testimonials</FooterLink>
+                <FooterLink to="/careers">Careers</FooterLink>
               </LinkItem>
             </LinksList>
           </LinksColumn>
 
           {/* Services */}
           <LinksColumn>
-            <ColumnTitle>Our Services</ColumnTitle>
+            <ColumnTitle>Legal</ColumnTitle>
             <LinksList>
               <LinkItem>
                 <LinkArrow>
                   <FaArrowRight />
                 </LinkArrow>
-                <FooterLink to="/luxury-rentals">Luxury Rentals</FooterLink>
+                <FooterLink to="/policies">Policy</FooterLink>
               </LinkItem>
               <LinkItem>
                 <LinkArrow>
                   <FaArrowRight />
                 </LinkArrow>
-                <FooterLink to="/chauffeur">Chauffeur Service</FooterLink>
+                <FooterLink to="/terms">Terms Of Use</FooterLink>
               </LinkItem>
               <LinkItem>
                 <LinkArrow>
                   <FaArrowRight />
                 </LinkArrow>
-                <FooterLink to="/corporate">Corporate Programs</FooterLink>
+                <FooterLink to="/disclaimer">Disclaimer</FooterLink>
               </LinkItem>
               <LinkItem>
                 <LinkArrow>
                   <FaArrowRight />
                 </LinkArrow>
-                <FooterLink to="/events">Event Transportation</FooterLink>
+                <FooterLink to="/privacy">Privacy</FooterLink>
+              </LinkItem>
+              <LinkItem>
+                <LinkArrow>
+                  <FaArrowRight />
+                </LinkArrow>
+                <FooterLink to="/agreement">Rental Agreement</FooterLink>
               </LinkItem>
             </LinksList>
           </LinksColumn>
@@ -186,10 +216,6 @@ const Footer = () => {
 export default Footer;
 
 // Animations
-const float = keyframes`
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-5px); }
-`;
 
 const slideUp = keyframes`
   from {
@@ -234,7 +260,7 @@ const MainFooter = styled.div`
 
 const FooterContainer = styled.div`
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1.5fr;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr;
   gap: var(--space-xl);
   align-items: start;
 
@@ -272,22 +298,7 @@ const LogoImage = styled.img`
   border-radius: var(--radius-lg);
 `;
 
-const CarIcon = styled.div`
-  font-size: 2.5rem;
-  animation: ${float} 3s ease-in-out infinite;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-`;
 
-const BrandName = styled.h3`
-  font-size: var(--text-3xl);
-  font-weight: var(--font-semibold);
-  font-family: var(--font-heading);
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin: 0;
-`;
 
 const BrandDescription = styled.p`
   color: var(--text-light);

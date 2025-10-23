@@ -4,7 +4,7 @@ import styled from "styled-components";
 import { devices } from "../../styles/GlobalStyles";
 
 const FeatureCard = ({
-  // eslint-disable-next-line no-unused-vars
+   
   icon: Icon,
   title,
   description,

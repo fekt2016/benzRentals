@@ -1,35 +1,35 @@
-import { useMemo, useState } from "react";
+/* eslint-disable react/react-in-jsx-scope */
+import { useMemo, useState, lazy, Suspense } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
-import { formatDate } from "../utils/helper";
-import UpdateDocumentsModal from "../components/Modal/UpdateDocumentsModal";
+
+
+const UpdateDocumentsModal = lazy(()=>import('../components/Modal/UpdateDocumentsModal'))
+const BookingSummarySection = lazy(()=>import('../components/BookingSummarySection'))
 import {
   FiArrowLeft,
-  FiCheck,
-  FiClock,
   FiCreditCard,
   FiShield,
-  FiMapPin,
-  FiCalendar,
-  FiUser,
   FiAlertCircle,
-  FiUpload,
   FiLoader,
+  FiXCircle,
+  FiRefreshCw,
 } from "react-icons/fi";
 import { useMyDrivers } from "../hooks/useDriver";
 import { useAddBookingDriver, useGetBookingById } from "../hooks/useBooking";
 import { useStripePayment } from "../hooks/usePayment";
 import usePageTitle from "../hooks/usePageTitle";
+import ErrorState from "../components/ErrorState";
 
 import { ROUTE_CONFIG, PATHS } from "../routes/routePaths";
 
 // Import your design system components
-import { Card, LuxuryCard } from "../components/Cards/Card";
+import {  LuxuryCard } from "../components/Cards/Card";
 import {
   PrimaryButton,
   SecondaryButton,
-  GhostButton,
+  
 } from "../components/ui/Button";
 import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 
@@ -43,22 +43,60 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
   const { bookingId } = location?.state || {};
 
-  const { data: bookingResponse } = useGetBookingById(bookingId);
-  const { data: myDrivers } = useMyDrivers();
-  const { mutate: processStripePayment, isPending: isStripeProcessing } =
-    useStripePayment();
-
-  const drivers = useMemo(() => myDrivers?.data || [], [myDrivers]);
-  const booking = useMemo(
+  // Query hooks with loading and error states
+  const { 
+    data: bookingResponse, 
+    isLoading: isLoadingBooking, 
+    error: bookingError,
+    refetch: refetchBooking,
+    isFetching: isFetchingBooking
+  } = useGetBookingById(bookingId, {
+    enabled: !!bookingId, // Only run if bookingId exists
+  });
+    const booking = useMemo(
     () => bookingResponse?.data?.data || {},
     [bookingResponse]
   );
 
-  // Add loading state for document upload
-  const { mutate: addBookingDriver, isPending: isUploadingDocuments } =
-    useAddBookingDriver(booking?._id);
+  const { 
+    data: myDrivers, 
+    isLoading: isLoadingDrivers, 
+    error: driversError,
+    refetch: refetchDrivers
+  } = useMyDrivers();
+
+  // Mutation hooks with loading and error states
+  const { 
+    mutate: processStripePayment, 
+    isPending: isStripeProcessing,
+    error: stripeError,
+    reset: resetStripeError
+  } = useStripePayment();
+
+  const { 
+    mutate: addBookingDriver, 
+    isPending: isUploadingDocuments,
+    error: uploadError,
+    reset: resetUploadError 
+  } = useAddBookingDriver(booking?._id);
+
+  const drivers = useMemo(() => myDrivers?.data || [], [myDrivers]);
 
   const [showModal, setShowModal] = useState(false);
+  const [localError, setLocalError] = useState(null);
+
+  // Clear errors when modal opens/closes
+  const handleOpenModal = () => {
+    setLocalError(null);
+    resetUploadError?.();
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setLocalError(null);
+    resetUploadError?.();
+    setShowModal(false);
+  };
 
   // Calculate total price
   const totalDays = useMemo(() => {
@@ -79,9 +117,15 @@ export default function CheckoutPage() {
   // Check if documents are currently being processed
   const isDocumentsProcessing = isUploadingDocuments;
 
+  // Handle stripe payment with error handling
   const handleStripePayment = async () => {
     if (!allVerified) {
-      alert("Documents are pending verification. Cannot proceed to payment.");
+      setLocalError("Documents are pending verification. Cannot proceed to payment.");
+      return;
+    }
+
+    if (!booking?._id) {
+      setLocalError("Booking information is incomplete. Please try refreshing the page.");
       return;
     }
 
@@ -92,6 +136,7 @@ export default function CheckoutPage() {
             currency: "usd",
             product_data: {
               name: booking?.car?.name || "Car Rental",
+              description: `Rental for ${totalDays} days - ${booking?.car?.model || 'Vehicle'}`,
             },
             unit_amount: Math.round(totalPrice * 100),
           },
@@ -108,25 +153,172 @@ export default function CheckoutPage() {
       },
     };
 
-    processStripePayment(paymentData);
+    processStripePayment(paymentData, {
+      onSuccess: async (data) => {
+        console.log("Stripe payment successful",data);
+        setLocalError(null);
+        resetStripeError?.();
+        
+      },
+      onError: (error) => {
+        console.error("Stripe payment failed:", error);
+        setLocalError(error.message || "Payment processing failed. Please try again.");
+      }
+    });
   };
-
-  const handleOpenModal = () => setShowModal(true);
-  const handleCloseModal = () => setShowModal(false);
 
   const handleUpdateDocuments = (formData) => {
     try {
       if (formData instanceof FormData) {
         addBookingDriver(formData, {
           onSuccess: () => {
+            setLocalError(null);
             handleCloseModal();
+            // Refetch booking to get updated driver status
+            refetchBooking();
+          },
+          onError: (error) => {
+            console.error("Update failed:", error);
+            setLocalError(error.message || "Failed to upload documents. Please try again.");
           },
         });
       }
     } catch (err) {
       console.error("Update failed:", err);
+      setLocalError("An unexpected error occurred. Please try again.");
     }
   };
+
+  // Handle retry for failed queries
+  const handleRetry = () => {
+    setLocalError(null);
+    resetStripeError?.();
+    resetUploadError?.();
+    
+    if (bookingError) {
+      refetchBooking();
+    }
+    if (driversError) {
+      refetchDrivers();
+    }
+  };
+
+  // Clear specific errors
+  const clearError = (errorType) => {
+    switch (errorType) {
+      case 'local':
+        setLocalError(null);
+        break;
+      case 'stripe':
+        resetStripeError?.();
+        break;
+      case 'upload':
+        resetUploadError?.();
+        break;
+      default:
+        setLocalError(null);
+        resetStripeError?.();
+        resetUploadError?.();
+    }
+  };
+
+  // Show loading state for initial booking load
+  if (isLoadingBooking) {
+    return (
+      <PageWrapper>
+        <LoadingState>
+          <LoadingSpinner size="xl" />
+          <LoadingText>Loading your booking details...</LoadingText>
+          <LoadingSubtext>Please wait while we prepare your checkout</LoadingSubtext>
+        </LoadingState>
+      </PageWrapper>
+    );
+  }
+
+  // Show error state for booking
+  if (bookingError && !isFetchingBooking) {
+    return (
+       <PageWrapper>
+      <ErrorState
+        icon={FiXCircle}
+        title="Failed to Load Booking"
+        message={bookingError.message || "We couldn't load your booking details. This might be due to a network issue or the booking may no longer exist."}
+        actions={[
+          {
+            text: "Try Again",
+            onClick: handleRetry,
+            icon: FiRefreshCw,
+            variant: 'primary'
+          },
+          {
+            text: "Go Back",
+            onClick: () => navigate(-1),
+            icon: FiArrowLeft,
+            variant: 'ghost'
+          }
+        ]}
+        size="lg"
+        centered={true}
+      />
+    </PageWrapper>
+    );
+  }
+
+  // Show error if no booking ID
+  if (!bookingId) {
+    return (
+       <PageWrapper>
+      <ErrorState
+        icon={FiAlertCircle}
+        title="Booking Not Found"
+        message="We couldn't find your booking details. Please start the booking process again from the beginning."
+        actions={[
+          {
+            text: "Start New Booking",
+            onClick: () => navigate(PATHS.HOME),
+            variant: 'primary'
+          },
+          {
+            text: "Go Back",
+            onClick: () => navigate(-1),
+            icon: FiArrowLeft,
+            variant: 'ghost'
+          }
+        ]}
+        size="lg"
+        centered={true}
+      />
+    </PageWrapper>
+    );
+  }
+
+  // Show error if booking data is empty but no error
+  if (!booking?._id && !isLoadingBooking && !bookingError) {
+    return (
+      <PageWrapper>
+      <ErrorState
+        icon={FiAlertCircle}
+        title="Invalid Booking"
+        message="The booking information appears to be invalid or incomplete. Please try starting over."
+        actions={[
+          {
+            text: "Try Again",
+            onClick: handleRetry,
+            icon: FiRefreshCw,
+            variant: 'primary'
+          },
+          {
+            text: "Start New Booking",
+            onClick: () => navigate(PATHS.HOME),
+            variant: 'primary'
+          }
+        ]}
+        size="lg"
+        centered={true}
+      />
+    </PageWrapper>
+    );
+  }
 
   return (
     <PageWrapper>
@@ -136,266 +328,78 @@ export default function CheckoutPage() {
           as={motion.div}
           whileHover={{ x: -4 }}
           whileTap={{ scale: 0.95 }}
-          disabled={isDocumentsProcessing}
+          disabled={isDocumentsProcessing || isStripeProcessing}
         >
           <FiArrowLeft />
           Back to Booking
         </BackButton>
-        <Title>Complete Your Booking</Title>
+        
+        <TitleContainer>
+          <Title>Complete Your Booking</Title>
+          {isFetchingBooking && (
+            <RefetchIndicator>
+              <FiLoader className="spinner" />
+              Updating...
+            </RefetchIndicator>
+          )}
+        </TitleContainer>
+        
         <SecurityBadge>
           <FiShield />
           Secure Checkout
         </SecurityBadge>
       </Header>
 
+      {/* Global Error Display */}
+      {(localError || stripeError) && (
+        <GlobalError>
+          <ErrorIconSmall>
+            <FiAlertCircle />
+          </ErrorIconSmall>
+          <ErrorContent>
+            <ErrorTitleSmall>
+              {stripeError ? "Payment Error" : "Error"}
+            </ErrorTitleSmall>
+            <ErrorMessageSmall>
+              {localError || stripeError?.message}
+            </ErrorMessageSmall>
+          </ErrorContent>
+          <ActionButtonsHorizontal>
+            <RetryButton onClick={handleRetry} $size="sm">
+              <FiRefreshCw />
+            </RetryButton>
+            <CloseButton onClick={() => clearError(stripeError ? 'stripe' : 'local')}>
+              <FiXCircle />
+            </CloseButton>
+          </ActionButtonsHorizontal>
+        </GlobalError>
+      )}
+
       <ContentGrid>
         {/* Left Column - Booking Summary */}
-        <SummarySection>
-          <SectionCard>
-            <SectionHeader>
-              <SectionTitle>Booking Summary</SectionTitle>
-              <EditLink disabled={isDocumentsProcessing}>Edit Details</EditLink>
-            </SectionHeader>
-
-            <CarCard>
-              <CarImage
-                src={booking?.car?.images?.[0] || "/default-car.jpg"}
-                alt={booking?.car?.model}
-              />
-              <CarDetails>
-                <CarName>{booking?.car?.name || "Car"}</CarName>
-                <CarSpecs>
-                  {booking?.car?.specifications ||
-                    "Automatic • 5 Seats • Premium"}
-                </CarSpecs>
-                <CarPrice>${booking?.car?.pricePerDay || 0}/day</CarPrice>
-              </CarDetails>
-            </CarCard>
-          </SectionCard>
-
-          <SectionCard>
-            <SectionTitle>Rental Details</SectionTitle>
-            <DetailsGrid>
-              <DetailItem>
-                <DetailIcon>
-                  <FiCalendar />
-                </DetailIcon>
-                <DetailContent>
-                  <DetailLabel>Pickup Date</DetailLabel>
-                  <DetailValue>
-                    {booking?.pickupDate
-                      ? formatDate(booking.pickupDate)
-                      : "Not set"}
-                  </DetailValue>
-                </DetailContent>
-              </DetailItem>
-
-              <DetailItem>
-                <DetailIcon>
-                  <FiCalendar />
-                </DetailIcon>
-                <DetailContent>
-                  <DetailLabel>Return Date</DetailLabel>
-                  <DetailValue>
-                    {booking?.returnDate
-                      ? formatDate(booking.returnDate)
-                      : "Not set"}
-                  </DetailValue>
-                </DetailContent>
-              </DetailItem>
-
-              <DetailItem>
-                <DetailIcon>
-                  <FiClock />
-                </DetailIcon>
-                <DetailContent>
-                  <DetailLabel>Duration</DetailLabel>
-                  <DetailValue>{totalDays} days</DetailValue>
-                </DetailContent>
-              </DetailItem>
-
-              <DetailItem>
-                <DetailIcon>
-                  <FiMapPin />
-                </DetailIcon>
-                <DetailContent>
-                  <DetailLabel>Pickup Location</DetailLabel>
-                  <DetailValue>
-                    {booking?.pickupLocation || "Not specified"}
-                  </DetailValue>
-                </DetailContent>
-              </DetailItem>
-            </DetailsGrid>
-          </SectionCard>
-
-          <SectionCard>
-            <SectionTitle>Price Breakdown</SectionTitle>
-            <PriceList>
-              <PriceItem>
-                <span>
-                  ${booking?.car?.pricePerDay || 0} × {totalDays} days
-                </span>
-                <span>${subtotal.toFixed(2)}</span>
-              </PriceItem>
-              <PriceItem>
-                <span>Tax (8%)</span>
-                <span>${tax.toFixed(2)}</span>
-              </PriceItem>
-              <PriceDivider />
-              <TotalPrice>
-                <span>Total Amount</span>
-                <span>${totalPrice.toFixed(2)}</span>
-              </TotalPrice>
-            </PriceList>
-          </SectionCard>
-
-          {/* Driver Documents Section */}
-          <SectionCard $disabled={isDocumentsProcessing}>
-            {isDocumentsProcessing && <ProcessingOverlay />}
-            <SectionHeader>
-              <SectionTitle>Driver Information</SectionTitle>
-              {!booking?.driver && (
-                <StatusBadge $status="required">Required</StatusBadge>
-              )}
-              {isDocumentsProcessing && (
-                <StatusBadge $status="processing">
-                  <FiLoader className="spinner" />
-                  Processing...
-                </StatusBadge>
-              )}
-            </SectionHeader>
-
-            {!booking?.driver ? (
-              <EmptyDriverState>
-                <EmptyStateIcon>
-                  <FiUser />
-                </EmptyStateIcon>
-                <EmptyStateContent>
-                  <h4>Driver Required</h4>
-                  <p>Add driver information to complete your booking</p>
-                </EmptyStateContent>
-                <PrimaryButton
-                  onClick={handleOpenModal}
-                  $size="md"
-                  disabled={isDocumentsProcessing}
-                >
-                  <FiUpload />
-                  {isDocumentsProcessing ? "Uploading..." : "Add Driver"}
-                </PrimaryButton>
-              </EmptyDriverState>
-            ) : (
-              <DriverStatusSection>
-                <DocumentStatus
-                  verified={allVerified}
-                  $processing={isDocumentsProcessing}
-                >
-                  <StatusIcon
-                    verified={allVerified}
-                    $processing={isDocumentsProcessing}
-                  >
-                    {isDocumentsProcessing ? (
-                      <FiLoader className="spinner" />
-                    ) : allVerified ? (
-                      <FiCheck />
-                    ) : (
-                      <FiClock />
-                    )}
-                  </StatusIcon>
-                  <StatusContent>
-                    <StatusTitle>
-                      {isDocumentsProcessing
-                        ? "Processing Documents..."
-                        : allVerified
-                        ? "All Documents Verified"
-                        : "Pending Verification"}
-                    </StatusTitle>
-                    <StatusDescription>
-                      {isDocumentsProcessing
-                        ? "Please wait while we process your documents..."
-                        : allVerified
-                        ? "Your driver information has been verified and approved"
-                        : "Waiting for admin approval of your documents"}
-                    </StatusDescription>
-                  </StatusContent>
-                </DocumentStatus>
-
-                <DocumentsGrid>
-                  <DocumentItem
-                    verified={booking?.driver.insurance?.verified}
-                    $processing={isDocumentsProcessing}
-                  >
-                    <DocumentIcon $processing={isDocumentsProcessing}>
-                      <FiShield />
-                    </DocumentIcon>
-                    <DocumentInfo>
-                      <DocumentName>Insurance Document</DocumentName>
-                      <DocumentStatusText
-                        verified={booking?.driver.insurance?.verified}
-                        $processing={isDocumentsProcessing}
-                      >
-                        {isDocumentsProcessing
-                          ? "Processing..."
-                          : booking?.driver.insurance?.verified
-                          ? "Verified"
-                          : "Pending"}
-                      </DocumentStatusText>
-                    </DocumentInfo>
-                  </DocumentItem>
-
-                  <DocumentItem
-                    verified={booking?.driver.license?.verified}
-                    $processing={isDocumentsProcessing}
-                  >
-                    <DocumentIcon $processing={isDocumentsProcessing}>
-                      <FiCreditCard />
-                    </DocumentIcon>
-                    <DocumentInfo>
-                      <DocumentName>Driver License</DocumentName>
-                      <DocumentStatusText
-                        verified={booking?.driver.license?.verified}
-                        $processing={isDocumentsProcessing}
-                      >
-                        {isDocumentsProcessing
-                          ? "Processing..."
-                          : booking?.driver.license?.verified
-                          ? "Verified"
-                          : "Pending"}
-                      </DocumentStatusText>
-                    </DocumentInfo>
-                  </DocumentItem>
-                </DocumentsGrid>
-
-                {!allVerified && !isDocumentsProcessing && (
-                  <UpdateDocumentsPrompt>
-                    <FiAlertCircle />
-                    <span>Documents pending verification</span>
-                    <GhostButton onClick={handleOpenModal} $size="sm">
-                      Update Documents
-                    </GhostButton>
-                  </UpdateDocumentsPrompt>
-                )}
-
-                {isDocumentsProcessing && (
-                  <ProcessingMessage>
-                    <FiLoader className="spinner" />
-                    <div>
-                      <strong>Documents are being processed</strong>
-                      <p>
-                        This may take a few moments. Please don't refresh the
-                        page.
-                      </p>
-                    </div>
-                  </ProcessingMessage>
-                )}
-              </DriverStatusSection>
-            )}
-          </SectionCard>
-        </SummarySection>
-
+        <BookingSummarySection
+  booking={booking}
+  totalDays={totalDays}
+  subtotal={subtotal}
+  tax={tax}
+  totalPrice={totalPrice}
+  allVerified={allVerified}
+  isDocumentsProcessing={isDocumentsProcessing}
+  isFetchingBooking={isFetchingBooking}
+  uploadError={uploadError}
+  handleOpenModal={handleOpenModal}
+  clearError={clearError}
+  onEditDetails={() => navigate(-1)}
+  isLoadingDrivers={isLoadingDrivers}
+  driversError={driversError}
+/>
         {/* Right Column - Payment Section */}
         <PaymentSection>
-          <PaymentCard $disabled={isDocumentsProcessing}>
-            {isDocumentsProcessing && <ProcessingOverlay />}
+          <PaymentCard 
+            $disabled={isDocumentsProcessing || isFetchingBooking}
+            $loading={isFetchingBooking}
+          >
+            {(isDocumentsProcessing || isFetchingBooking) && <ProcessingOverlay />}
             <PaymentHeader>
               <SectionTitle>Payment Details</SectionTitle>
               <SecureBadge>
@@ -413,15 +417,15 @@ export default function CheckoutPage() {
                     <PaymentOption
                       key={method.id}
                       $selected={true}
-                      $disabled={isDocumentsProcessing}
+                      $disabled={isDocumentsProcessing || isFetchingBooking}
                     >
-                      <PaymentIcon $disabled={isDocumentsProcessing}>
+                      <PaymentIcon $disabled={isDocumentsProcessing || isFetchingBooking}>
                         <IconComponent />
                       </PaymentIcon>
                       <PaymentName>{method.name}</PaymentName>
                       <RadioIndicator
                         $selected={true}
-                        $disabled={isDocumentsProcessing}
+                        $disabled={isDocumentsProcessing || isFetchingBooking}
                       />
                     </PaymentOption>
                   );
@@ -429,9 +433,9 @@ export default function CheckoutPage() {
               </PaymentOptions>
             </PaymentMethodSection>
 
-            <PaymentMessage $disabled={isDocumentsProcessing}>
+            <PaymentMessage $disabled={isDocumentsProcessing || isFetchingBooking}>
               <p>
-                {isDocumentsProcessing
+                {isDocumentsProcessing || isFetchingBooking
                   ? "Document processing in progress. Payment will be available once complete."
                   : "You will be redirected to Stripe to complete your payment securely. All transactions are encrypted and protected."}
               </p>
@@ -460,18 +464,27 @@ export default function CheckoutPage() {
               <PaymentButton
                 onClick={handleStripePayment}
                 disabled={
-                  !allVerified || isStripeProcessing || isDocumentsProcessing
+                  !allVerified || 
+                  isStripeProcessing || 
+                  isDocumentsProcessing || 
+                  isFetchingBooking
                 }
                 $processing={isStripeProcessing}
-                $disabled={isDocumentsProcessing}
+                $disabled={isDocumentsProcessing || isFetchingBooking}
                 as={motion.button}
                 whileHover={
-                  !allVerified || isStripeProcessing || isDocumentsProcessing
+                  !allVerified || 
+                  isStripeProcessing || 
+                  isDocumentsProcessing || 
+                  isFetchingBooking
                     ? {}
                     : { scale: 1.02 }
                 }
                 whileTap={
-                  !allVerified || isStripeProcessing || isDocumentsProcessing
+                  !allVerified || 
+                  isStripeProcessing || 
+                  isDocumentsProcessing || 
+                  isFetchingBooking
                     ? {}
                     : { scale: 0.98 }
                 }
@@ -481,10 +494,10 @@ export default function CheckoutPage() {
                     <LoadingSpinner size="sm" />
                     Processing Payment...
                   </>
-                ) : isDocumentsProcessing ? (
+                ) : isDocumentsProcessing || isFetchingBooking ? (
                   <>
                     <FiLoader className="spinner" />
-                    Documents Processing...
+                    {isFetchingBooking ? "Updating..." : "Documents Processing..."}
                   </>
                 ) : (
                   <>
@@ -495,14 +508,14 @@ export default function CheckoutPage() {
                 <Amount>${totalPrice.toFixed(2)}</Amount>
               </PaymentButton>
 
-              {!allVerified && !isDocumentsProcessing && (
+              {!allVerified && !isDocumentsProcessing && !isFetchingBooking && (
                 <WarningMessage>
                   <FiAlertCircle />
                   Complete driver verification to proceed with payment
                 </WarningMessage>
               )}
 
-              {isDocumentsProcessing && (
+              {(isDocumentsProcessing || isFetchingBooking) && (
                 <InfoMessage>
                   <FiLoader className="spinner" />
                   Please wait for document processing to complete
@@ -521,22 +534,26 @@ export default function CheckoutPage() {
       {/* Update Documents Modal */}
       <AnimatePresence>
         {showModal && (
+          <Suspense fallback={<div>Loading...</div>}>
           <UpdateDocumentsModal
             show={showModal}
             onClose={handleCloseModal}
             drivers={drivers}
             onSubmit={handleUpdateDocuments}
             isLoading={isUploadingDocuments}
+            error={uploadError}
+            loadingDrivers={isLoadingDrivers}
+            driversError={driversError}
+            onRetryDrivers={refetchDrivers}
           />
+          </Suspense>
         )}
       </AnimatePresence>
     </PageWrapper>
   );
 }
 
-//
-// 💅 Styled Components
-//
+// Styled Components
 const PageWrapper = styled.div`
   max-width: 1400px;
   margin: 0 auto;
@@ -582,6 +599,13 @@ const BackButton = styled(SecondaryButton)`
   `}
 `;
 
+const TitleContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+`;
+
 const Title = styled.h1`
   font-size: var(--text-4xl);
   font-weight: var(--font-bold);
@@ -596,6 +620,19 @@ const Title = styled.h1`
   @media (max-width: 768px) {
     font-size: var(--text-3xl);
     order: -1;
+  }
+`;
+
+const RefetchIndicator = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+
+  .spinner {
+    animation: spin 1s linear infinite;
   }
 `;
 
@@ -627,28 +664,6 @@ const ContentGrid = styled.div`
   }
 `;
 
-const SummarySection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
-`;
-
-const SectionCard = styled(Card)`
-  padding: var(--space-xl);
-  background: var(--white);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--gray-200);
-  position: relative;
-  transition: all var(--transition-normal);
-
-  ${(props) =>
-    props.$disabled &&
-    `
-    opacity: 0.7;
-    pointer-events: none;
-  `}
-`;
 
 const ProcessingOverlay = styled.div`
   position: absolute;
@@ -665,12 +680,12 @@ const ProcessingOverlay = styled.div`
   justify-content: center;
 `;
 
-const SectionHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-lg);
-`;
+// const SectionHeader = styled.div`
+//   display: flex;
+//   justify-content: space-between;
+//   align-items: center;
+//   margin-bottom: var(--space-lg);
+// `;
 
 const SectionTitle = styled.h2`
   font-size: var(--text-xl);
@@ -680,366 +695,7 @@ const SectionTitle = styled.h2`
   font-family: var(--font-heading);
 `;
 
-const EditLink = styled.button`
-  background: none;
-  border: none;
-  color: ${(props) => (props.disabled ? "var(--gray-400)" : "var(--primary)")};
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
-  text-decoration: underline;
-  transition: color var(--transition-fast);
 
-  &:hover {
-    color: ${(props) =>
-      props.disabled ? "var(--gray-400)" : "var(--primary-dark)"};
-  }
-`;
-
-const CarCard = styled.div`
-  display: flex;
-  gap: var(--space-lg);
-  align-items: center;
-`;
-
-const CarImage = styled.img`
-  width: 120px;
-  height: 90px;
-  border-radius: var(--radius-lg);
-  object-fit: cover;
-  box-shadow: var(--shadow-sm);
-`;
-
-const CarDetails = styled.div`
-  flex: 1;
-`;
-
-const CarName = styled.h3`
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  margin: 0 0 var(--space-xs) 0;
-  font-family: var(--font-heading);
-`;
-
-const CarSpecs = styled.p`
-  color: var(--text-muted);
-  margin: 0 0 var(--space-sm) 0;
-  font-size: var(--text-sm);
-`;
-
-const CarPrice = styled.div`
-  color: var(--primary);
-  font-weight: var(--font-bold);
-  font-size: var(--text-lg);
-`;
-
-const DetailsGrid = styled.div`
-  display: grid;
-  gap: var(--space-md);
-`;
-
-const DetailItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-lg);
-  padding: var(--space-md) 0;
-
-  &:not(:last-child) {
-    border-bottom: 1px solid var(--gray-200);
-  }
-`;
-
-const DetailIcon = styled.div`
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-lg);
-  background: var(--gray-100);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--primary);
-  font-size: var(--text-lg);
-  flex-shrink: 0;
-`;
-
-const DetailContent = styled.div`
-  flex: 1;
-`;
-
-const DetailLabel = styled.div`
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  margin-bottom: var(--space-xs);
-`;
-
-const DetailValue = styled.div`
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  font-size: var(--text-base);
-`;
-
-const PriceList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-`;
-
-const PriceItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  color: var(--text-secondary);
-  font-size: var(--text-base);
-`;
-
-const PriceDivider = styled.div`
-  height: 1px;
-  background: var(--gray-300);
-  margin: var(--space-sm) 0;
-`;
-
-const TotalPrice = styled.div`
-  display: flex;
-  justify-content: space-between;
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
-  color: var(--text-primary);
-  padding-top: var(--space-sm);
-`;
-
-const StatusBadge = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-md);
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  text-transform: uppercase;
-  background: ${(props) => {
-    switch (props.$status) {
-      case "required":
-        return "var(--warning)";
-      case "processing":
-        return "var(--primary)";
-      default:
-        return "var(--gray-200)";
-    }
-  }};
-  color: var(--white);
-
-  .spinner {
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-`;
-
-const EmptyDriverState = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: var(--space-2xl);
-  gap: var(--space-lg);
-`;
-
-const EmptyStateIcon = styled.div`
-  font-size: 3rem;
-  color: var(--primary);
-  opacity: 0.7;
-`;
-
-const EmptyStateContent = styled.div`
-  h4 {
-    font-size: var(--text-lg);
-    font-weight: var(--font-semibold);
-    color: var(--text-primary);
-    margin: 0 0 var(--space-xs) 0;
-  }
-
-  p {
-    color: var(--text-muted);
-    margin: 0;
-    font-size: var(--text-base);
-  }
-`;
-
-const DriverStatusSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-`;
-
-const DocumentStatus = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-lg);
-  padding: var(--space-lg);
-  background: ${(props) => {
-    if (props.$processing) return "var(--gradient-primary)";
-    return props.verified
-      ? "linear-gradient(135deg, var(--success) 0%, #34d399 100%)"
-      : "linear-gradient(135deg, var(--warning) 0%, #f59e0b 100%)";
-  }};
-  color: var(--white);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-  position: relative;
-`;
-
-const StatusIcon = styled.div`
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--text-xl);
-  flex-shrink: 0;
-
-  .spinner {
-    animation: spin 1s linear infinite;
-  }
-`;
-
-const StatusContent = styled.div`
-  flex: 1;
-`;
-
-const StatusTitle = styled.div`
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  margin-bottom: var(--space-xs);
-`;
-
-const StatusDescription = styled.div`
-  font-size: var(--text-sm);
-  opacity: 0.9;
-`;
-
-const DocumentsGrid = styled.div`
-  display: grid;
-  gap: var(--space-md);
-`;
-
-const DocumentItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-lg);
-  padding: var(--space-lg);
-  background: var(--gray-50);
-  border-radius: var(--radius-lg);
-  border-left: 4px solid
-    ${(props) => {
-      if (props.$processing) return "var(--primary)";
-      return props.verified ? "var(--success)" : "var(--warning)";
-    }};
-  transition: all var(--transition-normal);
-
-  ${(props) =>
-    props.$processing &&
-    `
-    background: var(--primary-light);
-    border-left-color: var(--primary);
-  `}
-`;
-
-const DocumentIcon = styled.div`
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-md);
-  background: ${(props) =>
-    props.$processing ? "var(--primary)" : "var(--white)"};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${(props) => {
-    if (props.$processing) return "var(--white)";
-    return "var(--gray-600)";
-  }};
-  font-size: var(--text-lg);
-  box-shadow: var(--shadow-sm);
-  flex-shrink: 0;
-  transition: all var(--transition-normal);
-`;
-
-const DocumentInfo = styled.div`
-  flex: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const DocumentName = styled.span`
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  font-size: var(--text-base);
-`;
-
-const DocumentStatusText = styled.span`
-  color: ${(props) => {
-    if (props.$processing) return "var(--primary)";
-    return props.verified ? "var(--success)" : "var(--warning)";
-  }};
-  font-weight: var(--font-semibold);
-  font-size: var(--text-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  transition: color var(--transition-normal);
-`;
-
-const UpdateDocumentsPrompt = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-md);
-  background: var(--gray-100);
-  border-radius: var(--radius-lg);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-
-  @media (max-width: 480px) {
-    flex-direction: column;
-    text-align: center;
-  }
-`;
-
-const ProcessingMessage = styled.div`
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-lg);
-  background: var(--primary-light);
-  border: 1px solid var(--primary);
-  border-radius: var(--radius-lg);
-  color: var(--primary-dark);
-
-  strong {
-    display: block;
-    margin-bottom: var(--space-xs);
-  }
-
-  p {
-    margin: 0;
-    font-size: var(--text-sm);
-    opacity: 0.8;
-  }
-
-  .spinner {
-    animation: spin 1s linear infinite;
-    font-size: var(--text-xl);
-    flex-shrink: 0;
-  }
-`;
 
 const PaymentSection = styled.div`
   position: sticky;
@@ -1064,6 +720,12 @@ const PaymentCard = styled(LuxuryCard)`
     `
     opacity: 0.7;
     pointer-events: none;
+  `}
+
+  ${(props) =>
+    props.$loading &&
+    `
+    border-color: var(--primary);
   `}
 `;
 
@@ -1306,3 +968,97 @@ const SecurityNote = styled.div`
   font-size: var(--text-sm);
   text-align: center;
 `;
+
+// New styled components for error and loading states
+const LoadingState = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: var(--space-lg);
+  text-align: center;
+`;
+
+const LoadingText = styled.p`
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0;
+`;
+
+const LoadingSubtext = styled.p`
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  margin: 0;
+`;
+
+
+
+
+const GlobalError = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--error-light);
+  border: 1px solid var(--error);
+  border-radius: var(--radius-lg);
+  color: var(--error-dark);
+  margin-bottom: var(--space-xl);
+  position: relative;
+`;
+
+const ErrorIconSmall = styled.div`
+  font-size: var(--text-xl);
+  color: var(--error);
+  flex-shrink: 0;
+`;
+
+const ErrorContent = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+`;
+
+const ErrorTitleSmall = styled.div`
+  font-weight: var(--font-semibold);
+  font-size: var(--text-base);
+  color: var(--error-dark);
+`;
+
+const ErrorMessageSmall = styled.div`
+  font-size: var(--text-sm);
+  color: var(--error-dark);
+  opacity: 0.9;
+`;
+
+const ActionButtonsHorizontal = styled.div`
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+`;
+
+const RetryButton = styled(SecondaryButton)`
+  padding: var(--space-sm);
+  min-width: auto;
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  color: var(--error-dark);
+  cursor: pointer;
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.1);
+  }
+`;
+
+
