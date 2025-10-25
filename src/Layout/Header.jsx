@@ -39,6 +39,7 @@ export default function Header() {
   const location = useLocation();
   const dropdownRef = useRef();
   const headerRef = useRef();
+  const sentinelRef = useRef(); // Ref for our intersection observer sentinel
   const navigate = useNavigate();
 
   const user = useMemo(() => userData?.user || null, [userData]);
@@ -63,15 +64,30 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Scroll effect
+  // Intersection Observer for scroll detection - More performant
   useEffect(() => {
-    const handleScroll = () => {
-      const isScrolled = window.scrollY > 50;
-      setScrolled(isScrolled);
-    };
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // When the sentinel is not intersecting (scrolled down), set scrolled to true
+        setScrolled(!entry.isIntersecting);
+      },
+      {
+        root: null, // viewport
+        rootMargin: '-50px 0px 0px 0px', // Trigger when 50px from top
+        threshold: 0,
+      }
+    );
+
+    observer.observe(sentinel);
+
+    return () => {
+      if (sentinel) {
+        observer.unobserve(sentinel);
+      }
+    };
   }, []);
 
   // Close mobile menu on route change
@@ -96,228 +112,245 @@ export default function Header() {
   ];
 
   return (
-    <StyledHeader
-      ref={headerRef}
-      scrolled={scrolled}
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
-    >
-      <HeaderContainer>
-        {/* Logo */}
-        <Logo to={PATHS.HOME}>
-          <LogoImage src="/images/benzflex3.png" alt="benzflex logo" />
-        </Logo>
+    <>
+      {/* Sentinel element for intersection observer */}
+      <Sentinel ref={sentinelRef} />
+      
+      <StyledHeader
+        ref={headerRef}
+        $scrolled={scrolled} // Using transient prop
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
+        <HeaderContainer>
+          {/* Logo */}
+          <Logo to={PATHS.HOME}>
+            <LogoImage src="/images/benzflex3.png" alt="benzflex logo" />
+          </Logo>
 
-        {/* Desktop Navigation */}
-        <NavContainer>
-          <Nav>
-            {navItems.map((item) => (
-              <NavItem key={item.path}>
-                <NavLink
-                  to={item.path}
-                  $isActive={location.pathname === item.path}
-                >
-                  {item.label}
-                  {location.pathname === item.path && (
-                    <ActiveIndicator layoutId="activeIndicator" />
-                  )}
-                </NavLink>
-              </NavItem>
-            ))}
-          </Nav>
-
-          {/* Right Section */}
-          <RightSection>
-            {user ? (
-              <>
-                {/* Notification Bell - Only show for logged-in users */}
-                <NotificationBellWrapper>
-                  <NotificationBell />
-                </NotificationBellWrapper>
-
-                <UserSection ref={dropdownRef}>
-                  <UserAvatar
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {user.avatar ? (
-                      <AvatarImage src={user.avatar} alt={user.name} />
-                    ) : (
-                      <AvatarPlaceholder>
-                        <FiUser />
-                      </AvatarPlaceholder>
-                    )}
-                    <UserName>{user.fulName?.split(" ")[0]}</UserName>
-                    <FiChevronDown
-                      className={`chevron ${dropdownOpen ? "open" : ""}`}
-                    />
-                  </UserAvatar>
-
-                  <AnimatePresence>
-                    {dropdownOpen && (
-                      <DropdownMenu
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <DropdownHeader>
-                          <div>Signed in as</div>
-                          <div className="user-email">{user.fullName}</div>
-                          <div className="user-email">{user.email}</div>
-                        </DropdownHeader>
-
-                        <DropdownItem to="/bookings">
-                          <FiCalendar />
-                          My Bookings
-                        </DropdownItem>
-
-                        <DropdownItem to="/reviews">
-                          <FiStar />
-                          My Reviews
-                        </DropdownItem>
-
-                        <DropdownItem to="/notifications">
-                          <FiBell />
-                          Notifications
-                        </DropdownItem>
-
-                        <DropdownItem to="/profile">
-                          <FiSettings />
-                          Profile Settings
-                        </DropdownItem>
-
-                        <DropdownDivider />
-
-                        <LogoutButton onClick={handleLogout}>
-                          <FiLogOut />
-                          Sign Out
-                        </LogoutButton>
-                      </DropdownMenu>
-                    )}
-                  </AnimatePresence>
-                </UserSection>
-              </>
-            ) : (
-              <AuthButton to={PATHS.LOGIN} $size="md">
-                <FiUser style={{ marginRight: "var(--space-xs)" }} />
-                Account
-              </AuthButton>
-            )}
-
-            {/* Mobile Menu Button */}
-            <MobileMenuButton
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              $size="sm"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {mobileMenuOpen ? <FiX /> : <FiMenu />}
-            </MobileMenuButton>
-          </RightSection>
-        </NavContainer>
-      </HeaderContainer>
-
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <MobileMenu
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <MobileNav>
+          {/* Desktop Navigation */}
+          <NavContainer>
+            <Nav>
               {navItems.map((item) => (
-                <MobileNavItem key={item.path}>
-                  <MobileNavLink
+                <NavItem key={item.path}>
+                  <NavLink
                     to={item.path}
                     $isActive={location.pathname === item.path}
                   >
                     {item.label}
-                  </MobileNavLink>
-                </MobileNavItem>
+                    {location.pathname === item.path && (
+                      <ActiveIndicator layoutId="activeIndicator" />
+                    )}
+                  </NavLink>
+                </NavItem>
               ))}
+            </Nav>
 
+            {/* Right Section */}
+            <RightSection>
               {user ? (
                 <>
-                  {/* Mobile Notification Bell for logged-in users */}
-                  <MobileNavItem>
-                    <MobileNotificationSection>
-                      <NotificationBell mobileView={true} />
-                    </MobileNotificationSection>
-                  </MobileNavItem>
+                  {/* Notification Bell - Only show for logged-in users */}
+                  <NotificationBellWrapper>
+                    <NotificationBell />
+                  </NotificationBellWrapper>
 
-                  <MobileNavItem>
-                    <MobileNavLink to="/bookings">
-                      <FiCalendar style={{ marginRight: "var(--space-xs)" }} />
-                      My Bookings
-                    </MobileNavLink>
-                  </MobileNavItem>
+                  <UserSection ref={dropdownRef}>
+                    <UserAvatar
+                      onClick={() => setDropdownOpen(!dropdownOpen)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {user.avatar ? (
+                        <AvatarImage src={user.avatar} alt={user.name} />
+                      ) : (
+                        <AvatarPlaceholder>
+                          <FiUser />
+                        </AvatarPlaceholder>
+                      )}
+                      <UserName>{user.fulName?.split(" ")[0]}</UserName>
+                      <FiChevronDown
+                        className={`chevron ${dropdownOpen ? "open" : ""}`}
+                      />
+                    </UserAvatar>
 
-                  <MobileNavItem>
-                    <MobileNavLink to="/reviews">
-                      <FiStar style={{ marginRight: "var(--space-xs)" }} />
-                      My Reviews
-                    </MobileNavLink>
-                  </MobileNavItem>
+                    <AnimatePresence>
+                      {dropdownOpen && (
+                        <DropdownMenu
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <DropdownHeader>
+                            <div>Signed in as</div>
+                            <div className="user-email">{user.fullName}</div>
+                            <div className="user-email">{user.email}</div>
+                          </DropdownHeader>
 
-                  <MobileNavItem>
-                    <MobileNavLink to="/notifications">
-                      <FiBell style={{ marginRight: "var(--space-xs)" }} />
-                      Notifications
-                    </MobileNavLink>
-                  </MobileNavItem>
+                          <DropdownItem to="/bookings">
+                            <FiCalendar />
+                            My Bookings
+                          </DropdownItem>
 
-                  <MobileNavItem>
-                    <MobileNavLink to="/profile">
-                      <FiSettings style={{ marginRight: "var(--space-xs)" }} />
-                      Profile Settings
-                    </MobileNavLink>
-                  </MobileNavItem>
+                          <DropdownItem to="/reviews">
+                            <FiStar />
+                            My Reviews
+                          </DropdownItem>
 
-                  <MobileNavItem>
-                    <MobileLogoutButton onClick={handleLogout} $size="sm">
-                      <FiLogOut style={{ marginRight: "var(--space-xs)" }} />
-                      Sign Out
-                    </MobileLogoutButton>
-                  </MobileNavItem>
+                          <DropdownItem to="/notifications">
+                            <FiBell />
+                            Notifications
+                          </DropdownItem>
+
+                          <DropdownItem to="/profile">
+                            <FiSettings />
+                            Profile Settings
+                          </DropdownItem>
+
+                          <DropdownDivider />
+
+                          <LogoutButton onClick={handleLogout}>
+                            <FiLogOut />
+                            Sign Out
+                          </LogoutButton>
+                        </DropdownMenu>
+                      )}
+                    </AnimatePresence>
+                  </UserSection>
                 </>
               ) : (
-                <MobileNavItem>
-                  <MobileAuthButton to={PATHS.LOGIN} $size="sm">
-                    <FiUser style={{ marginRight: "var(--space-xs)" }} />
-                    Account
-                  </MobileAuthButton>
-                </MobileNavItem>
+                <AuthButton to={PATHS.LOGIN} $size="md">
+                  <FiUser style={{ marginRight: "var(--space-xs)" }} />
+                  Account
+                </AuthButton>
               )}
-            </MobileNav>
-          </MobileMenu>
-        )}
-      </AnimatePresence>
-    </StyledHeader>
+
+              {/* Mobile Menu Button */}
+              <MobileMenuButton
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                $size="sm"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {mobileMenuOpen ? <FiX /> : <FiMenu />}
+              </MobileMenuButton>
+            </RightSection>
+          </NavContainer>
+        </HeaderContainer>
+
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <MobileMenu
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <MobileNav>
+                {navItems.map((item) => (
+                  <MobileNavItem key={item.path}>
+                    <MobileNavLink
+                      to={item.path}
+                      $isActive={location.pathname === item.path}
+                    >
+                      {item.label}
+                    </MobileNavLink>
+                  </MobileNavItem>
+                ))}
+
+                {user ? (
+                  <>
+                    {/* Mobile Notification Bell for logged-in users */}
+                    <MobileNavItem>
+                      <MobileNotificationSection>
+                        <NotificationBell mobileView={true} />
+                      </MobileNotificationSection>
+                    </MobileNavItem>
+
+                    <MobileNavItem>
+                      <MobileNavLink to="/bookings">
+                        <FiCalendar style={{ marginRight: "var(--space-xs)" }} />
+                        My Bookings
+                      </MobileNavLink>
+                    </MobileNavItem>
+
+                    <MobileNavItem>
+                      <MobileNavLink to="/reviews">
+                        <FiStar style={{ marginRight: "var(--space-xs)" }} />
+                        My Reviews
+                      </MobileNavLink>
+                    </MobileNavItem>
+
+                    <MobileNavItem>
+                      <MobileNavLink to="/notifications">
+                        <FiBell style={{ marginRight: "var(--space-xs)" }} />
+                        Notifications
+                      </MobileNavLink>
+                    </MobileNavItem>
+
+                    <MobileNavItem>
+                      <MobileNavLink to="/profile">
+                        <FiSettings style={{ marginRight: "var(--space-xs)" }} />
+                        Profile Settings
+                      </MobileNavLink>
+                    </MobileNavItem>
+
+                    <MobileNavItem>
+                      <MobileLogoutButton onClick={handleLogout} $size="sm">
+                        <FiLogOut style={{ marginRight: "var(--space-xs)" }} />
+                        Sign Out
+                      </MobileLogoutButton>
+                    </MobileNavItem>
+                  </>
+                ) : (
+                  <MobileNavItem>
+                    <MobileAuthButton to={PATHS.LOGIN} $size="sm">
+                      <FiUser style={{ marginRight: "var(--space-xs)" }} />
+                      Account
+                    </MobileAuthButton>
+                  </MobileNavItem>
+                )}
+              </MobileNav>
+            </MobileMenu>
+          )}
+        </AnimatePresence>
+      </StyledHeader>
+    </>
   );
 }
 
-// Styled Components
+// Sentinel element for intersection observer
+const Sentinel = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50px; // This determines when the scroll effect triggers
+  pointer-events: none;
+  z-index: -1;
+`;
+
+// Styled Components - Updated to use transient prop
 const StyledHeader = styled(motion.header)`
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   z-index: 9000;
-  background: ${({ scrolled }) =>
-    scrolled ? "rgba(255, 255, 255, 0.95)" : "transparent"};
-  backdrop-filter: ${({ scrolled }) =>
-    scrolled ? "blur(20px) saturate(180%)" : "none"};
-  border-bottom: ${({ scrolled }) =>
-    scrolled ? "1px solid var(--gray-200)" : "none"};
+  background: ${({ $scrolled }) =>
+    $scrolled ? "var(--white)" : "transparent"};
+  backdrop-filter: ${({ $scrolled }) =>
+    $scrolled ? "blur(20px) saturate(180%)" : "none"};
+  border-bottom: ${({ $scrolled }) =>
+    $scrolled ? "1px solid var(--gray-200)" : "none"};
   transition: all var(--transition-normal);
-  box-shadow: ${({ scrolled }) => (scrolled ? "var(--shadow-md)" : "none")};
+  box-shadow: ${({ $scrolled }) => ($scrolled ? "var(--shadow-md)" : "none")};
 `;
 
+// ... rest of your styled components remain the same
 const HeaderContainer = styled.div`
   display: flex;
   align-items: center;
@@ -351,23 +384,6 @@ const LogoImage = styled.img`
   border-radius: var(--radius-lg);
 `;
 
-const LogoText = styled.div`
-  font-size: var(--text-4xl);
-  font-weight: var(--font-bold);
-  color: var(--secondary);
-  font-family: var(--font-heading);
-
-  span {
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  @media ${devices.md} {
-    font-size: var(--text-xl);
-  }
-`;
 
 const NavContainer = styled.div`
   display: flex;

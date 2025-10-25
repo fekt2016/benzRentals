@@ -1,13 +1,13 @@
+/* eslint-disable react/prop-types */
 // src/components/sections/HeroSection.jsx
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import styled from "styled-components";
- 
 import { motion } from "framer-motion";
 import { ButtonLink, SecondaryButton } from "../ui/Button";
 import { devices } from "../../styles/GlobalStyles";
 
 const HeroSection = ({
-  backgroundImage,
+  backgroundVideo = "/videos/benzflex.mp4", // Default video path
   badge,
   title,
   description,
@@ -19,14 +19,42 @@ const HeroSection = ({
   height = "90vh",
   minHeight = "600px",
 }) => {
+  const videoRef = useRef(null);
+
+  // Ensure video plays and loops properly
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      video.play().catch(error => {
+        console.log("Video autoplay failed:", error);
+        // Fallback: try playing with user interaction
+        const playVideo = () => {
+          video.play();
+          document.removeEventListener('click', playVideo);
+        };
+        document.addEventListener('click', playVideo);
+      });
+    }
+  }, []);
+
   return (
     <HeroWrapper className={className} $height={height} $minHeight={minHeight}>
       <HeroBackground>
-        <BackgroundImage
-          src={backgroundImage}
-          alt="Hero Background"
+        <BackgroundVideo
+          ref={videoRef}
+          autoPlay
+          muted
+          loop
+          playsInline
           onError={onBackgroundError}
-        />
+        >
+          <source src={backgroundVideo} type="video/mp4" />
+          {/* Fallback image in case video doesn't load */}
+          <FallbackImage 
+            src="/images/hero-fallback.jpg" 
+            alt="Hero Background Fallback"
+          />
+        </BackgroundVideo>
         <Overlay />
       </HeroBackground>
 
@@ -131,11 +159,34 @@ const HeroBackground = styled.div`
   z-index: 1;
 `;
 
-const BackgroundImage = styled.img`
+const BackgroundVideo = styled.video`
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
+  
+  /* Ensure video covers the entire container */
+  min-width: 100%;
+  min-height: 100%;
+  
+  /* Improve performance */
+  transform: translateX(-50%) translateY(-50%);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+`;
+
+const FallbackImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  
+  /* Only show if video fails to load */
+  display: none;
 `;
 
 const Overlay = styled.div`
@@ -145,11 +196,12 @@ const Overlay = styled.div`
   width: 100%;
   height: 100%;
   background: var(--gradient-overlay);
+  z-index: 2;
 `;
 
 const HeroContent = styled.div`
   position: relative;
-  z-index: 2;
+  z-index: 3; /* Higher than overlay */
   text-align: center;
   color: var(--white);
   max-width: 800px;
@@ -225,7 +277,7 @@ const ScrollIndicator = styled.div`
   bottom: var(--space-lg);
   left: 50%;
   transform: translateX(-50%);
-  z-index: 2;
+  z-index: 3;
   color: var(--white);
   opacity: 0.7;
   font-size: var(--text-sm);

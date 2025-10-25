@@ -450,17 +450,30 @@ const BookingsPage = () => {
                     </VehicleCell>
                   </TableCell>
 
-                  <TableCell>
-                    <DateCell>
-                      <DateGroup>
-                        <strong>Pickup:</strong>
-                        {formatDate(booking.pickupDate)}
-                      </DateGroup>
-                      <DateGroup>
-                        <strong>Time:</strong> {booking.pickupTime}
-                      </DateGroup>
-                    </DateCell>
-                  </TableCell>
+                <TableCell>
+  <DateCell>
+    {booking.status === "confirmed" ? (
+      <>
+      <DateGroup>
+        <strong>Pickup:</strong>
+        {formatDate(booking.pickupDate)}
+      </DateGroup>
+      <DateGroup><strong>Time:</strong> 
+        {booking.pickupTime}</DateGroup>
+      </>
+    ) : booking.status === 'in_progress' ? (
+      <>
+      <DateGroup>
+        <strong>Return:</strong>
+        {formatDate(booking.returnDate)}
+        
+      </DateGroup>
+      <DateGroup><strong>Time:</strong> 
+        {booking.returnTime}</DateGroup>
+      </>
+    ) : "Coming soon..."}
+  </DateCell>
+</TableCell>
 
                   <TableCell>
                     <PriceCell>

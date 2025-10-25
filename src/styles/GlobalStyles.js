@@ -195,7 +195,8 @@ const GlobalStyles = createGlobalStyle`
     height: 100%;
     overflow-x: hidden;
     overflow-y: auto; /* Allow vertical scrolling */
-    position: relative;
+    position: relative !important; 
+    
     
     /* Prevent elastic scrolling on iOS */
     -webkit-overflow-scrolling: touch;

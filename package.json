@@ -8,9 +8,9 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-      "test": "vitest",
-  "test:ui": "vitest --ui",
-  "coverage": "vitest run --coverage" 
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
@@ -23,6 +23,7 @@
     "chart.js": "^4.5.0",
     "core-js": "^3.45.1",
     "css-vars-ponyfill": "^2.4.9",
+    "date-fns": "^4.1.0",
     "emailjs-com": "^3.2.0",
     "framer-motion": "^12.23.22",
     "js-cookie": "^3.0.5",

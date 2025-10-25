@@ -199,7 +199,7 @@ window.scrollTo(0, 0);
       {/* Hero Section */}
       <HeroContainer ref={heroRef}>
         <HeroSection
-          backgroundImage="/images/ben1.jpg"
+          backgroundVideo="/benzflex.mp4" 
           badge={
             <>
               <FaStar size={16} />

@@ -27,6 +27,8 @@ const useAuthForm = () => {
     password: "",
     passwordConfirm: "",
     fullName: "",
+    dateOfBirth: "",
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone// Add dateOfBirth to form state
   });
   const [isRegistering, setIsRegistering] = React.useState(false);
   const [isForgotPassword, setIsForgotPassword] = React.useState(false);
@@ -121,6 +123,11 @@ const useAuthForm = () => {
       return "Email address is required to reset your password.";
     }
 
+    // Date of birth validation errors
+    if (message.includes("date of birth") || message.includes("age") || message.includes("18")) {
+      return "You must be at least 18 years old to create an account.";
+    }
+
     return message.charAt(0).toUpperCase() + message.slice(1);
   };
 
@@ -151,9 +158,24 @@ const useAuthForm = () => {
   const generalError = extractAuthErrorMessage(hookError);
   const fieldErrors = extractFieldErrors(hookError);
 
+  // Calculate minimum and maximum dates for date of birth
+  const getDateConstraints = () => {
+    const today = new Date();
+    const minDate = new Date();
+    minDate.setFullYear(today.getFullYear() - 100); // 100 years ago
+    
+    const maxDate = new Date();
+    maxDate.setFullYear(today.getFullYear() - 18); // 18 years ago
+    
+    return {
+      min: minDate.toISOString().split('T')[0],
+      max: maxDate.toISOString().split('T')[0]
+    };
+  };
+
   // Client-side validation
   const validateForm = () => {
-    const { phone, email, password, passwordConfirm, fullName } = formData;
+    const { phone, email, password, passwordConfirm, fullName, dateOfBirth } = formData;
     const errors = [];
 
     if (isForgotPassword) {
@@ -190,6 +212,23 @@ const useAuthForm = () => {
         errors.push("Full name is required");
       } else if (fullName.trim().length < 2) {
         errors.push("Full name must be at least 2 characters");
+      }
+
+      if (!dateOfBirth) {
+        errors.push("Date of birth is required");
+      } else {
+        const dob = new Date(dateOfBirth);
+        const today = new Date();
+        let age = today.getFullYear() - dob.getFullYear();
+        const monthDiff = today.getMonth() - dob.getMonth();
+        
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+          age--;
+        }
+        
+        if (age < 18) {
+          errors.push("You must be at least 18 years old to create an account");
+        }
       }
 
       if (password !== passwordConfirm) {
@@ -233,6 +272,7 @@ const useAuthForm = () => {
       password: "",
       passwordConfirm: "",
       fullName: "",
+      dateOfBirth: "", // Reset dateOfBirth when toggling mode
     });
   };
 
@@ -289,6 +329,7 @@ const useAuthForm = () => {
           email: formData.email.trim(),
           password: formData.password,
           passwordConfirm: formData.passwordConfirm,
+          dateOfBirth: formData.dateOfBirth, // Include dateOfBirth in payload
         };
 
         registerMutation.mutate(payload, {
@@ -336,6 +377,7 @@ const useAuthForm = () => {
     handleSubmit,
     setOtpOpen,
     handleOtpSuccess,
+    getDateConstraints, // Export date constraints
   };
 };
 
@@ -356,11 +398,14 @@ const LoginPage = () => {
     handleSubmit,
     setOtpOpen,
     handleOtpSuccess,
+    getDateConstraints,
   } = useAuthForm();
 
   const getFieldError = (fieldName) => {
     return fieldErrors[fieldName] || '';
   };
+
+  const dateConstraints = getDateConstraints();
 
   return (
     <PageWrapper>
@@ -448,6 +493,28 @@ const LoginPage = () => {
                           disabled={isLoading}
                           error={!!getFieldError("fullName")}
                         />
+                      </FormField>
+
+                      {/* Date of Birth Field */}
+                      <FormField 
+                        label="Date of Birth" 
+                        error={getFieldError("dateOfBirth")}
+                        htmlFor="dateOfBirth"
+                      >
+                        <DateInput
+                          id="dateOfBirth"
+                          type="date"
+                          value={formData.dateOfBirth}
+                          onChange={(e) => updateFormData("dateOfBirth", e.target.value)}
+                          min={dateConstraints.min}
+                          max={dateConstraints.max}
+                          required
+                          disabled={isLoading}
+                          error={!!getFieldError("dateOfBirth")}
+                        />
+                        <DateHint>
+                          You must be at least 18 years old to register
+                        </DateHint>
                       </FormField>
                     </>
                   )}
@@ -598,7 +665,50 @@ const LoginPage = () => {
 
 export default LoginPage;
 
-// Styled Components
+// New Styled Components for Date Input
+const DateInput = styled.input`
+  width: 100%;
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid ${props => props.error ? 'var(--error)' : 'var(--gray-300)'};
+  border-radius: var(--radius-lg);
+  font-size: var(--text-base);
+  font-family: var(--font-body);
+  background: var(--white);
+  transition: all var(--transition-fast);
+  color: var(--text-primary);
+
+  &:focus {
+    outline: none;
+    border-color: ${props => props.error ? 'var(--error)' : 'var(--primary)'};
+    box-shadow: 0 0 0 3px ${props => props.error ? 'var(--error-light)' : 'var(--primary-light)'};
+  }
+
+  &:disabled {
+    background: var(--gray-100);
+    color: var(--text-muted);
+    cursor: not-allowed;
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: ${props => props.disabled ? 'grayscale(1) opacity(0.5)' : 'none'};
+  }
+
+  /* For Firefox */
+  &:invalid {
+    box-shadow: none;
+  }
+`;
+
+const DateHint = styled.span`
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+  font-family: var(--font-body);
+`;
+
+// Existing Styled Components (keep all the existing ones below)
 const PageWrapper = styled.div`
   min-height: 100vh;
   background: var(--gradient-primary);
