@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - "frontend/**"
-      - ".github/workflows/deploy.yml"
+      - "**"
+      - ".github/workflows/deploy-frontend.yml"
   workflow_dispatch:
 
 jobs:
@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout Code
+      # 1️⃣ Checkout your repo
       - name: 📦 Checkout code
         uses: actions/checkout@v4
 
@@ -24,27 +24,27 @@ jobs:
         with:
           node-version: "20"
 
-      # 3️⃣ Install Dependencies & Build
+      # 3️⃣ Install & Build (root directory)
       - name: 🏗️ Install and Build Frontend
-        working-directory: frontend
+        working-directory: .
         run: |
-          npm ci
+          npm ci || npm install
           npm run build
-          echo "✅ Build completed"
+          echo "✅ Build completed successfully"
 
-      # 4️⃣ Deploy via SSH
+      # 4️⃣ Upload build files to VPS via SSH
       - name: 📤 Deploy to VPS via SSH
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
-          # If you prefer SSH key auth:
+          # or if using SSH key:
           # key: ${{ secrets.VPS_SSH_KEY }}
           source: "dist/*"
-          target: "${{ secrets.VPS_PATH }}"
+          target: "/var/www/benzflex/frontend"
 
-      # 5️⃣ Restart Nginx (optional)
+      # 5️⃣ Restart Nginx
       - name: 🔁 Restart Nginx
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -53,4 +53,4 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
             systemctl restart nginx
-            echo "✅ Nginx restarted successfully!!"
+            echo "✅ Nginx restarted successfully"
