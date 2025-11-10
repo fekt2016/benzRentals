@@ -1,16 +1,25 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Cookies from "js-cookie";
 import authApi from "../services/authApi";
-import { useNavigate } from "react-router-dom";
+import {useNavigate} from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 
-export const useCurrentUser = () => {
+export const useCurrentUser = (options= {}) => {
+   const { enabled = true, queryKey = ["auth", "me"] } = options;
   return useQuery({
-    queryKey: ["auth"],
+    queryKey,
+    enabled,
     queryFn: async () => {
       try {
         // The cookie is sent automatically
-        return await authApi.getCurrentUser();
+        const data = await authApi.getCurrentUser();
+        console.log('[useCurrentUser] Received data:', {
+          hasData: !!data,
+          hasUser: !!data?.user,
+          executive: data?.user?.executive,
+          role: data?.user?.role,
+        });
+        return data;
       } catch (err) {
         if (err.response?.status === 401) {
           console.log("Session expired, please login");
@@ -18,8 +27,10 @@ export const useCurrentUser = () => {
         throw err;
       }
     },
-    staleTime: 1000 * 60 * 5,
-    refetchOnWindowFocus: false,
+    staleTime: 0, // Always consider data stale to force refetch (was 5 minutes)
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    // Add cacheTime to control how long unused data stays in cache
+    gcTime: 1000 * 60 * 10, // 10 minutes (formerly cacheTime)
   });
 };
 
@@ -47,21 +58,73 @@ export const useVerifyOtp = () => {
 
       return response;
     },
-    onSuccess: (data) => {
-      const token = data.data.token;
-      Cookies.set("token", token, { expires: 7 });
+ onSuccess: (data) => {
+  const token = data.data.token;
+  const isProduction = process.env.NODE_ENV === "production";
+  Cookies.set("token", token, { 
+    expires: 7, 
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax" 
+  });
+
+  try {
+    const decoded = jwtDecode(token);
+    console.log("Decoded token:", decoded);
+
+    // Sync authentication to mobile app via deep link (optional, non-blocking)
+    // This allows mobile app to automatically log in when user logs in on web
+    setTimeout(() => {
       try {
-        const decoded = jwtDecode(token); // { id, role, exp, ... }
-        if (decoded.role === "admin") {
-          navigate("/admin");
-        } else {
-          navigate("/");
+        const mobileSyncUrl = `benzflex://auth/sync?token=${encodeURIComponent(token)}`;
+        console.log('[useAuth] 🌐 Syncing auth to mobile app (optional)...');
+        
+        // Try multiple methods to trigger mobile app deep link
+        // This will only work if user has mobile app installed and open
+        // Method 1: Create and click anchor tag (most reliable)
+        try {
+          const link = document.createElement('a');
+          link.href = mobileSyncUrl;
+          link.style.display = 'none';
+          link.setAttribute('target', '_self');
+          document.body.appendChild(link);
+          link.click();
+          setTimeout(() => {
+            try {
+              document.body.removeChild(link);
+            } catch (e) {}
+          }, 100);
+        } catch (e) {
+          // Silently fail - sync is optional
+          console.log('[useAuth] Mobile sync unavailable (this is OK)');
         }
-      } catch (error) {
-        console.error("Error decoding token:", error);
-        navigate("/"); // fallback
+        
+        // Method 2: window.location (fallback)
+        setTimeout(() => {
+          try {
+            window.location.href = mobileSyncUrl;
+          } catch (e) {
+            // Silently fail - sync is optional
+          }
+        }, 100);
+      } catch (syncError) {
+        // Silently fail - sync is optional and shouldn't block login
+        console.log('[useAuth] Mobile sync error (non-critical, ignoring)');
       }
-    },
+    }, 500); // Small delay to not interfere with navigation
+
+    // Wrap navigate in setTimeout to ensure React Router context is stable
+    setTimeout(() => {
+      if (decoded.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
+    }, 0);
+  } catch (error) {
+    console.error("Error decoding token:", error);
+    navigate("/"); // fallback
+  }
+},
     onError: (err) => {
       console.error("OTP error", err);
     },
@@ -99,6 +162,8 @@ export const useRegister = () => {
   });
 };
 export const useUpdateProfile = () => {
+  const queryClient = useQueryClient();
+  
   return useMutation({
     mutationFn: async (payload) => {
       const response = await authApi.updateProfile(payload);
@@ -106,6 +171,8 @@ export const useUpdateProfile = () => {
     },
     onSuccess: (data) => {
       console.log("Profile updated successfully:", data);
+      // 🔥 Refresh current user data immediately
+      queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
     },
   });
 };
@@ -140,6 +207,8 @@ export const useChangePassword = () => {
 };
 
 export const useUploadAvatar = () => {
+  const queryClient = useQueryClient();
+  
   return useMutation({
     mutationFn: async (payload) => {
       const response = await authApi.uploadAvatar(payload);
@@ -147,6 +216,8 @@ export const useUploadAvatar = () => {
     },
     onSuccess: (data) => {
       console.log("Avatar uploaded successfully:", data);
+      // 🔥 Refresh current user data to show new avatar
+      queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
     },
   });
 };

@@ -17,11 +17,8 @@ const bookingApi = {
   },
 
   createBooking: async (formData) => {
-    const response = await api.post("/bookings", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    // Don't manually set Content-Type for FormData - let axios/browser handle it
+    const response = await api.post("/bookings", formData);
     return response;
   },
   updateBooking: async (id, formData) => {

@@ -5,6 +5,13 @@ const authApi = {
   getCurrentUser: async () => {
     try {
       const response = await api.get("/auth/me"); // your backend endpoint
+      console.log('[authApi.getCurrentUser] Response:', {
+        hasData: !!response?.data,
+        hasUser: !!response?.data?.data?.user,
+        executive: response?.data?.data?.user?.executive,
+        role: response?.data?.data?.user?.role,
+        fullResponse: response?.data?.data,
+      });
       return response?.data?.data;
     } catch (error) {
       console.log(error);

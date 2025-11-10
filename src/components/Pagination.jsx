@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 // src/components/ui/Pagination.js
 import React from "react";
 import styled from "styled-components";

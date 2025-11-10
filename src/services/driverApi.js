@@ -7,9 +7,13 @@ const driverApi = {
   },
 
   verifyDriver: async (driverId, data) => {
-    const response = await api.patch(`/drivers/${driverId}`, data);
+    const response = await api.patch(`/drivers/verify/${driverId}`, data);
     return response.data;
   },
+  getAllDrivers: async ()=>{
+    const response = await api.get('/drivers')
+    return response
+  }
 };
 
 export default driverApi;

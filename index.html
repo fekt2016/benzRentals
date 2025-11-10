@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     
     <!-- UPDATED: Mobile viewport meta tag to prevent scaling -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
@@ -19,7 +19,7 @@
     <meta http-equiv="Expires" content="0" />
 
     <!-- Default SEO (fallback if React doesn't load) -->
-    <title>BenzFlex - Premium Mercedes-Benz Rentals</title>
+    <title id="page-title">BenzFlex - Premium Mercedes-Benz Rentals</title>
     <meta
       name="description"
       content="Experience luxury with our premium Mercedes-Benz rental fleet. Exclusive vehicles, exceptional service."
@@ -101,8 +101,580 @@
         }
       }
     </style>
+    <!-- Immediate mobile app deep link redirect (runs IMMEDIATELY, before React loads) -->
+    <script>
+      // CRITICAL: This script runs BEFORE any other content loads
+      // Check if this is a mobile app redirect and redirect IMMEDIATELY
+      
+      // Global error handler to catch ANY errors (including Safari blocking)
+      window.addEventListener('error', function(e) {
+        // Filter out errors that are not related to our redirect script
+        // Check if error is from our script or related to deep links
+        var isRelevantError = false;
+        
+        if (e.filename && (
+          e.filename.includes('index.html') ||
+          e.filename.includes('benzflex://') ||
+          e.message && (
+            e.message.includes('benzflex') ||
+            e.message.includes('invalid address') ||
+            e.message.includes('deep link') ||
+            e.message.includes('redirect')
+          )
+        )) {
+          isRelevantError = true;
+        }
+        
+        // Also log if it's a syntax/runtime error that might affect our script
+        if (!e.filename || e.filename === window.location.href || e.filename === '') {
+          isRelevantError = true;
+        }
+        
+        // Only log if it's relevant to our redirect functionality
+        if (!isRelevantError) {
+          // Log briefly but don't spam
+          return;
+        }
+        
+        // Log full error details
+        console.error('[HTML Script] ❌ ========== GLOBAL ERROR CAUGHT (REDIRECT-RELATED) ==========');
+        console.error('[HTML Script] ❌ Error Message:', e.message);
+        console.error('[HTML Script] ❌ Error Filename:', e.filename);
+        console.error('[HTML Script] ❌ Error Line:', e.lineno);
+        console.error('[HTML Script] ❌ Error Column:', e.colno);
+        console.error('[HTML Script] ❌ Error Type:', e.type);
+        console.error('[HTML Script] ❌ Error Object:', e.error);
+        
+        // Log error properties if available
+        if (e.error) {
+          console.error('[HTML Script] ❌ Error Name:', e.error.name);
+          console.error('[HTML Script] ❌ Error Message:', e.error.message);
+          console.error('[HTML Script] ❌ Error Stack:', e.error.stack);
+          console.error('[HTML Script] ❌ Error Constructor:', e.error.constructor?.name);
+          
+          // Try to stringify the full error object
+          try {
+            console.error('[HTML Script] ❌ Full Error JSON:', JSON.stringify(e.error, Object.getOwnPropertyNames(e.error)));
+          } catch(jsonErr) {
+            console.error('[HTML Script] ❌ Could not stringify error:', jsonErr);
+          }
+        }
+        
+        // Log all error properties
+        console.error('[HTML Script] ❌ All Error Event Properties:', {
+          message: e.message,
+          filename: e.filename,
+          lineno: e.lineno,
+          colno: e.colno,
+          type: e.type,
+          error: e.error,
+          target: e.target,
+          currentTarget: e.currentTarget,
+          timeStamp: e.timeStamp,
+        });
+        
+        // Try to log to console even if error occurred
+        try {
+          console.error('[HTML Script] ❌ This error may be related to Safari blocking deep links');
+          console.error('[HTML Script] ❌ Safari may show "invalid address" error for custom URL schemes');
+          console.error('[HTML Script] ❌ Current URL:', window.location.href);
+          console.error('[HTML Script] ❌ User Agent:', navigator.userAgent);
+        } catch(consoleErr) {
+          // If console.error fails, at least try to show something
+          try {
+            alert('Error: ' + (e.message || 'Unknown error'));
+          } catch(alertErr) {
+            // Last resort - can't do anything
+          }
+        }
+        
+        console.error('[HTML Script] ❌ ==========================================');
+      }, true);
+      
+      // Catch unhandled promise rejections
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('[HTML Script] ❌ ========== UNHANDLED PROMISE REJECTION ==========');
+        console.error('[HTML Script] ❌ Rejection Reason:', e.reason);
+        console.error('[HTML Script] ❌ Rejection Promise:', e.promise);
+        
+        // Log rejection details
+        if (e.reason) {
+          console.error('[HTML Script] ❌ Reason Type:', typeof e.reason);
+          console.error('[HTML Script] ❌ Reason Constructor:', e.reason?.constructor?.name);
+          
+          if (e.reason instanceof Error) {
+            console.error('[HTML Script] ❌ Reason Name:', e.reason.name);
+            console.error('[HTML Script] ❌ Reason Message:', e.reason.message);
+            console.error('[HTML Script] ❌ Reason Stack:', e.reason.stack);
+          } else {
+            console.error('[HTML Script] ❌ Reason Value:', e.reason);
+          }
+          
+          // Try to stringify
+          try {
+            console.error('[HTML Script] ❌ Reason JSON:', JSON.stringify(e.reason, Object.getOwnPropertyNames(e.reason)));
+          } catch(jsonErr) {
+            console.error('[HTML Script] ❌ Could not stringify reason:', jsonErr);
+          }
+        }
+        
+        console.error('[HTML Script] ❌ This may indicate Safari blocked the redirect');
+        console.error('[HTML Script] ❌ Current URL:', window.location.href);
+        console.error('[HTML Script] ❌ ==========================================');
+      });
+      
+      (function() {
+        // Log immediately that script is starting
+        console.log('[HTML Script] 🚀 Script starting execution...');
+        console.log('[HTML Script] 📍 Current URL:', window.location.href);
+        console.log('[HTML Script] 📍 User Agent:', navigator.userAgent);
+        
+        try {
+          // Parse URL immediately from current location (before DOM is ready)
+          var fullUrl = window.location.href;
+          var search = window.location.search || '';
+          var hash = window.location.hash || '';
+          
+          console.log('[HTML Script] 🔍 Full URL:', fullUrl);
+          console.log('[HTML Script] 🔍 Search params:', search);
+          console.log('[HTML Script] 🔍 Hash:', hash);
+          console.log('[HTML Script] 🔍 Document ready state:', document.readyState);
+          console.log('[HTML Script] 🔍 Is Safari:', /^((?!chrome|android).)*safari/i.test(navigator.userAgent));
+          
+          // Check for mobile flag in multiple places (query string, hash, etc.)
+          var isMobile = search.indexOf('mobile=true') !== -1 || 
+                        hash.indexOf('mobile=true') !== -1 ||
+                        fullUrl.indexOf('mobile=true') !== -1;
+          
+          console.log('[HTML Script] 📱 Is mobile?', isMobile);
+          
+          // Extract booking_id using multiple methods (handle URL encoding)
+          var bookingId = null;
+          var sessionId = null;
+          
+          // Try direct URLSearchParams if available
+          if (window.URLSearchParams) {
+            var urlParams = new URLSearchParams(search);
+            bookingId = urlParams.get('booking_id') || 
+                       urlParams.get('amp;booking_id') || 
+                       urlParams.get('bookingId') ||
+                       urlParams.get('booking-id');
+            sessionId = urlParams.get('session_id') || 
+                       urlParams.get('sessionId') ||
+                       urlParams.get('session-id');
+          }
+          
+          // Fallback: manual parsing from search string
+          if (!bookingId) {
+            var match = search.match(/[?&]booking_id=([^&]+)/) || 
+                       search.match(/[?&]bookingId=([^&]+)/) ||
+                       search.match(/[?&]booking-id=([^&]+)/);
+            if (match) bookingId = decodeURIComponent(match[1].replace(/\+/g, ' '));
+          }
+          
+          if (!sessionId) {
+            var match = search.match(/[?&]session_id=([^&]+)/) || 
+                       search.match(/[?&]sessionId=([^&]+)/) ||
+                       search.match(/[?&]session-id=([^&]+)/);
+            if (match) sessionId = decodeURIComponent(match[1].replace(/\+/g, ' '));
+          }
+          
+          console.log('[HTML Script] 🎫 Booking ID:', bookingId);
+          console.log('[HTML Script] 🎟️ Session ID:', sessionId);
+          
+          // Update page title and show message immediately if mobile redirect
+          if (isMobile && bookingId) {
+            try {
+              // Update title
+              document.title = 'Opening BenzFlex App...';
+              var titleEl = document.getElementById('page-title');
+              if (titleEl) {
+                titleEl.textContent = 'Opening BenzFlex App...';
+              }
+              
+              // Show redirect message IMMEDIATELY
+              var msgDiv = document.getElementById('mobile-redirect-message');
+              if (msgDiv) {
+                msgDiv.style.display = 'flex';
+                console.log('[HTML Script] ✅ Redirect message shown');
+              } else {
+                console.error('[HTML Script] ❌ Could not find mobile-redirect-message div');
+              }
+              
+              // Set timeout to show button if redirect doesn't work (multiple fallbacks)
+              // Fallback 1: Show button after 2 seconds
+              setTimeout(function() {
+                try {
+                  var buttonDiv = document.getElementById('mobile-redirect-button');
+                  if (buttonDiv) {
+                    buttonDiv.style.display = 'block';
+                    console.log('[HTML Script] ⚠️ Fallback button shown (2s timeout)');
+                  }
+                } catch(e) {
+                  console.error('[HTML Script] Error showing fallback button:', e);
+                }
+              }, 2000);
+              
+              // Fallback 2: Show button after 5 seconds (more prominent)
+              setTimeout(function() {
+                try {
+                  var buttonDiv = document.getElementById('mobile-redirect-button');
+                  var msgDiv = document.getElementById('mobile-redirect-message');
+                  if (buttonDiv && msgDiv) {
+                    buttonDiv.style.display = 'block';
+                    // Update message to indicate redirect didn't work
+                    var msgText = msgDiv.querySelector('p');
+                    if (msgText) {
+                      msgText.textContent = 'If the app didn\'t open automatically, tap the button below:';
+                    }
+                    console.log('[HTML Script] ⚠️ Fallback button shown (5s timeout) - updated message');
+                  }
+                } catch(e) {
+                  console.error('[HTML Script] Error updating fallback message:', e);
+                }
+              }, 5000);
+            } catch(e) {
+              console.error('[HTML Script] Error updating UI:', e);
+            }
+          }
+          
+          if (isMobile && bookingId) {
+            // Redirect IMMEDIATELY to mobile app - don't wait for anything
+            // Use benzflex scheme (matches app.config.js)
+            var deepLink = 'benzflex://confirmation?session_id=' + encodeURIComponent(sessionId || '') + '&booking_id=' + encodeURIComponent(bookingId);
+            
+            console.log('[HTML Script] 📱 Mobile redirect detected!');
+            console.log('[HTML Script] ✅ Redirecting IMMEDIATELY to app:', deepLink);
+            console.log('[HTML Script] ✅ Booking ID:', bookingId);
+            console.log('[HTML Script] ✅ Session ID:', sessionId || 'none');
+            console.log('[HTML Script] ✅ Full redirect URL:', deepLink);
+            
+            // CRITICAL: Try ALL methods SYNCHRONOUSLY and IMMEDIATELY
+            // Don't wait for anything - execute all redirect attempts at once
+            
+            // CRITICAL: For custom URL schemes (benzflex://), Safari requires anchor tag clicks
+            // DO NOT use window.location.replace/href - Safari will show "invalid address" error
+            
+            // Update the fallback button with the deep link
+            // CRITICAL: Use anchor click method for Safari compatibility
+            try {
+              var buttonEl = document.getElementById('mobile-deep-link-button');
+              if (buttonEl) {
+                buttonEl.href = deepLink;
+                buttonEl.onclick = function(e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  console.log('[HTML Script] 🔘 Fallback button clicked - attempting redirect...');
+                  
+                  // Use anchor click method (same as automatic redirect) for Safari compatibility
+                  try {
+                    var manualLink = document.createElement('a');
+                    manualLink.href = deepLink;
+                    manualLink.style.display = 'none';
+                    document.body.appendChild(manualLink);
+                    manualLink.click();
+                    console.log('[HTML Script] ✅ Button click triggered anchor redirect');
+                    
+                    // Remove the temporary link after click
+                    setTimeout(function() {
+                      if (manualLink.parentNode) {
+                        manualLink.parentNode.removeChild(manualLink);
+                      }
+                    }, 100);
+                  } catch(clickErr) {
+                    console.error('[HTML Script] ❌ Button click method failed:', clickErr);
+                    // Last resort - try window.location (will show error in Safari but at least attempts)
+                    try {
+                      window.location.href = deepLink;
+                    } catch(locErr) {
+                      console.error('[HTML Script] ❌ All button redirect methods failed:', locErr);
+                    }
+                  }
+                  
+                  return false;
+                };
+                console.log('[HTML Script] ✅ Fallback button configured with deep link');
+              } else {
+                console.warn('[HTML Script] ⚠️ Fallback button element not found');
+              }
+            } catch(e) {
+              console.error('[HTML Script] ❌ Error setting up button:', e);
+            }
+            
+            // Method 1: Create and click anchor tag (REQUIRED for Safari custom schemes)
+            console.log('[HTML Script] 🔄 Attempting anchor tag method...');
+            try {
+              var link = document.createElement('a');
+              link.href = deepLink;
+              link.style.display = 'none';
+              link.style.position = 'absolute';
+              link.style.left = '-9999px';
+              
+              // Add error handler to catch Safari "invalid address" errors
+              link.addEventListener('error', function(e) {
+                console.error('[HTML Script] ❌ Anchor link error event:', e);
+                console.error('[HTML Script] ❌ Safari may have blocked the deep link');
+              });
+              
+              // Append to document immediately (even if body doesn't exist yet)
+              if (document.body) {
+                document.body.appendChild(link);
+                console.log('[HTML Script] ✅ Link appended to body');
+              } else {
+                console.log('[HTML Script] ⚠️ Body not ready, appending to head temporarily');
+                // If body doesn't exist, append to head temporarily
+                document.head.appendChild(link);
+                // Move to body when available
+                setTimeout(function() {
+                  if (document.body && link.parentNode) {
+                    document.body.appendChild(link);
+                    console.log('[HTML Script] ✅ Link moved to body');
+                  }
+                }, 0);
+              }
+              
+              // Log before clicking
+              console.log('[HTML Script] 🔗 About to click link with href:', deepLink);
+              console.log('[HTML Script] 🔗 Link element:', link);
+              
+              // Trigger click immediately
+              try {
+                link.click();
+                console.log('[HTML Script] ✅ Anchor click triggered for deep link');
+              } catch(clickErr) {
+                console.error('[HTML Script] ❌ Anchor click threw exception:', clickErr);
+                console.error('[HTML Script] ❌ Click error details:', {
+                  message: clickErr.message,
+                  stack: clickErr.stack,
+                  name: clickErr.name,
+                });
+              }
+              
+              // Check if we're still on the page after click (Safari might show error)
+              // Note: This check may not work if Safari navigates away, but we check anyway
+              setTimeout(function() {
+                try {
+                  // Only check if we can still access window.location (Safari might have navigated)
+                  if (window.location && window.location.href === fullUrl) {
+                    console.warn('[HTML Script] ⚠️ Still on same page after click - redirect may have failed');
+                    console.warn('[HTML Script] ⚠️ Safari may have shown "invalid address" error');
+                    console.warn('[HTML Script] ⚠️ Showing fallback button...');
+                    
+                    try {
+                      var buttonDiv = document.getElementById('mobile-redirect-button');
+                      var msgText = document.querySelector('#mobile-redirect-text');
+                      if (buttonDiv) {
+                        buttonDiv.style.display = 'block';
+                      }
+                      if (msgText) {
+                        msgText.textContent = 'Safari blocked the automatic redirect. Tap the button below to open the app:';
+                        msgText.style.color = '#ff6b6b';
+                      }
+                    } catch(e) {
+                      console.error('[HTML Script] ❌ Error showing fallback after Safari block:', e);
+                    }
+                  }
+                } catch(checkErr) {
+                  // If we can't check location, Safari probably navigated (which is good)
+                  console.log('[HTML Script] ℹ️ Could not check location (Safari may have navigated)');
+                }
+              }, 500);
+              
+              // Note: Fallback button is already scheduled to show in the initial UI setup above
+              // This ensures it shows even if anchor click appears to work but doesn't open app
+            } catch(e) {
+              console.error('[HTML Script] ❌ CRITICAL: Anchor method FAILED:', e);
+              console.error('[HTML Script] ❌ Anchor error details:', {
+                message: e.message,
+                stack: e.stack,
+                name: e.name,
+                deepLink: deepLink,
+                bookingId: bookingId,
+                sessionId: sessionId,
+              });
+              console.error('[HTML Script] ❌ This means the deep link redirect could not be triggered');
+              console.error('[HTML Script] ❌ Possible causes:');
+              console.error('[HTML Script]    1. Browser blocked the anchor click');
+              console.error('[HTML Script]    2. Document not ready for manipulation');
+              console.error('[HTML Script]    3. JavaScript error preventing execution');
+              // Show button immediately if anchor click fails
+              try {
+                var buttonDiv = document.getElementById('mobile-redirect-button');
+                var msgDiv = document.getElementById('mobile-redirect-message');
+                var msgText = msgDiv ? msgDiv.querySelector('#mobile-redirect-text') : null;
+                
+                if (buttonDiv) {
+                  buttonDiv.style.display = 'block';
+                  console.log('[HTML Script] ⚠️ Showing fallback button due to anchor failure');
+                }
+                
+                if (msgText) {
+                  msgText.textContent = 'Tap the button below to open the app:';
+                  msgText.style.color = '#ff6b6b';
+                }
+              } catch(e2) {
+                console.error('[HTML Script] ❌ Could not show fallback button:', e2);
+              }
+            }
+            
+            // Method 2: If anchor doesn't work, try window.location (but this may show error)
+            // Only use as fallback since Safari may show "invalid address" for custom schemes
+            // NOTE: We'll skip this for Safari as it causes the "invalid address" error
+            var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            
+            if (!isSafari) {
+              setTimeout(function() {
+                try {
+                  console.log('[HTML Script] 🔄 Attempting window.location method (non-Safari)...');
+                  // Use window.location.href as last resort (only for non-Safari)
+                  window.location.href = deepLink;
+                } catch(e) {
+                  console.error('[HTML Script] ❌ CRITICAL: window.location redirect FAILED:', e);
+                  console.error('[HTML Script] ❌ Location redirect error details:', {
+                    message: e.message,
+                    stack: e.stack,
+                    name: e.name,
+                    deepLink: deepLink,
+                  });
+                  console.error('[HTML Script] ❌ This means all redirect methods have failed');
+                  console.error('[HTML Script] ❌ User will need to manually open the app');
+                }
+              }, 200);
+            } else {
+              console.log('[HTML Script] ℹ️ Skipping window.location method (Safari detected - would show "invalid address")');
+              console.log('[HTML Script] ℹ️ Safari will show error page if we use window.location for custom schemes');
+            }
+            
+            // Prevent any further page loading
+            // Stop all event listeners and page rendering
+            try {
+              if (document.addEventListener) {
+                document.addEventListener('DOMContentLoaded', function(e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.stopImmediatePropagation();
+                  return false;
+                }, true);
+                window.addEventListener('load', function(e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  e.stopImmediatePropagation();
+                  return false;
+                }, true);
+              }
+              
+              // Also try to stop React from loading
+              if (window.stop) {
+                window.stop();
+              }
+            } catch(e) {
+              // Ignore errors in cleanup
+            }
+            
+            // Stop React from loading
+            var reactScript = document.querySelector('script[type="module"][src*="main.jsx"]');
+            if (reactScript) {
+              reactScript.remove();
+            }
+          }
+        } catch (e) {
+          // Try multiple methods to log the error (Safari might block console)
+          try {
+            console.error('[HTML Script] ❌ CRITICAL: Fatal error in mobile redirect script:', e);
+            console.error('[HTML Script] ❌ Fatal error details:', {
+              message: e.message,
+              stack: e.stack,
+              name: e.name,
+              fullUrl: typeof fullUrl !== 'undefined' ? fullUrl : 'undefined',
+              isMobile: typeof isMobile !== 'undefined' ? isMobile : 'undefined',
+              bookingId: typeof bookingId !== 'undefined' ? bookingId : 'undefined',
+              sessionId: typeof sessionId !== 'undefined' ? sessionId : 'undefined',
+            });
+            console.error('[HTML Script] ❌ The entire redirect process has failed');
+            console.error('[HTML Script] ❌ User will need to manually open the mobile app');
+          } catch(consoleErr) {
+            // If console.error fails, try alert (last resort)
+            try {
+              alert('Redirect Error: ' + e.message);
+            } catch(alertErr) {
+              // If everything fails, at least try to show something in the page
+              try {
+                var errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: red; color: white; padding: 20px; z-index: 999999;';
+                errorDiv.textContent = 'Error: ' + e.message;
+                document.body.appendChild(errorDiv);
+              } catch(domErr) {
+                // Completely failed - can't do anything
+              }
+            }
+          }
+          
+          // Always try to show the fallback button
+          try {
+            var msgDiv = document.getElementById('mobile-redirect-message');
+            var buttonDiv = document.getElementById('mobile-redirect-button');
+            var msgText = document.querySelector('#mobile-redirect-text');
+            
+            if (msgDiv) {
+              msgDiv.style.display = 'flex';
+            }
+            if (buttonDiv) {
+              buttonDiv.style.display = 'block';
+            }
+            if (msgText) {
+              msgText.textContent = 'An error occurred. Please tap the button below to open the app:';
+              msgText.style.color = '#ff6b6b';
+            }
+          } catch(uiErr) {
+            // UI update failed
+          }
+        }
+        
+        // Final log to confirm script completed
+        console.log('[HTML Script] ✅ Script execution completed');
+      })();
+    </script>
+    <!-- Meta refresh as backup for immediate redirect -->
+    <script>
+      (function() {
+        try {
+          var urlParams = new URLSearchParams(window.location.search);
+          var isMobile = urlParams.get('mobile') === 'true';
+          var bookingId = urlParams.get('booking_id') || urlParams.get('amp;booking_id') || urlParams.get('bookingId');
+          var sessionId = urlParams.get('session_id') || urlParams.get('sessionId');
+          
+          if (isMobile && bookingId) {
+            // Use benzflex scheme (matches app.config.js)
+            var deepLink = 'benzflex://confirmation?session_id=' + encodeURIComponent(sessionId || '') + '&booking_id=' + encodeURIComponent(bookingId);
+            // Add meta refresh tag as immediate redirect
+            var meta = document.createElement('meta');
+            meta.httpEquiv = 'refresh';
+            meta.content = '0;url=' + deepLink;
+            document.head.appendChild(meta);
+          }
+        } catch (e) {
+          console.error('[HTML Script] Meta refresh error:', e);
+        }
+      })();
+    </script>
   </head>
   <body>
+    <!-- Mobile redirect message (shown if mobile=true and redirect happens) -->
+    <div id="mobile-redirect-message" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #ffffff; z-index: 99999; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <div style="max-width: 400px; width: 100%;">
+        <h1 style="font-size: 24px; margin-bottom: 16px; color: #333;">Opening BenzFlex App...</h1>
+        <p id="mobile-redirect-text" style="font-size: 16px; color: #666; margin-bottom: 24px;">Please wait while we redirect you to the app.</p>
+        <div id="mobile-redirect-button" style="display: none; margin-top: 24px;">
+          <a id="mobile-deep-link-button" href="#" style="display: inline-block; padding: 16px 32px; background: #007AFF; color: white; text-decoration: none; border-radius: 12px; font-size: 18px; font-weight: 600; box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3); transition: all 0.3s ease;">Open in BenzFlex App</a>
+          <p style="font-size: 14px; color: #999; margin-top: 16px;">If the app is installed, this will open it automatically.</p>
+        </div>
+        <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #eee;">
+          <p style="font-size: 12px; color: #999;">Having trouble? Make sure the BenzFlex app is installed on your device.</p>
+        </div>
+      </div>
+    </div>
+    
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
 

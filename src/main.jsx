@@ -3,7 +3,11 @@ import { createRoot } from "react-dom/client";
 import "core-js/stable";
 import "regenerator-runtime/runtime";
 
-import App from "./App.jsx";
+// Initialize Sentry before React renders
+import { initSentry } from "./utils/sentry";
+initSentry();
+
+import App from "./app/App.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

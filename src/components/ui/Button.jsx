@@ -38,6 +38,12 @@ export const Button = styled(motion.button)`
   position: relative;
   overflow: hidden;
 
+  /* Accessibility: Focus visible */
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
   &:hover:not(:disabled) {
     transform: translateY(-2px);
   }
@@ -50,6 +56,7 @@ export const Button = styled(motion.button)`
     opacity: 0.6;
     cursor: not-allowed;
     transform: none !important;
+    aria-disabled: true;
   }
 
   /* Button with icons */

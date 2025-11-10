@@ -14,31 +14,21 @@ export const useMyDrivers = () => {
   });
 };
 
-export const useVerifyDriver = () => {
+export const useVerifyDriver = (driverId) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ driverId, verificationData }) => {
-      const response = await driverApi.verifyDriver(driverId, {
-        license: {
-          number: verificationData.license.number,
-          issuedBy: verificationData.license.issuedBy,
-          expiryDate: verificationData.license.expiryDate,
-          verified: verificationData.license.verified,
-        },
-        insurance: {
-          provider: verificationData.insurance.provider,
-          policyNumber: verificationData.insurance.policyNumber,
-          expiryDate: verificationData.insurance.expiryDate,
-          verified: verificationData.insurance.verified,
-        },
-      });
+    mutationFn: async (verificationData) => {
+
+      const response = await driverApi.verifyDriver(driverId, verificationData);
       return response.data;
     },
     onSuccess: (data, variables) => {
+      console.log(data)
       // Invalidate and refetch bookings to update the UI
-      queryClient.invalidateQueries(["bookings"]);
-      queryClient.invalidateQueries(["drivers"]);
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["drivers"] });
+      queryClient.invalidateQueries({ queryKey: ["myDrivers"] });
 
       // You can also update the cache directly for immediate UI update
       queryClient.setQueryData(["drivers", variables.driverId], data);
@@ -49,3 +39,21 @@ export const useVerifyDriver = () => {
     },
   });
 };
+
+export const useGetDrivers = ()=>{
+  return useQuery({
+    queryKey: ['drivers'],
+    queryFn: async ()=> {
+      const response = await driverApi.getAllDrivers()
+      return response
+    },
+    onSuccess: (data)=> {
+      console.log("driver got successfully", data)
+    }
+  })
+}
+// export const useVerifyDriver = ()=>{
+//   return useMutation({
+//     mutationFn: async()=>
+//   })
+// }

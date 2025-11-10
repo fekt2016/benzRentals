@@ -12,6 +12,7 @@ const carApi = {
   },
 
   createCar: async (formData) => {
+    console.log("api create car")
     const response = await api.post("/cars", formData, {
       headers: {
         "Content-Type": "multipart/form-data",

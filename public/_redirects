@@ -1,0 +1,8 @@
+# Netlify/Vercel redirects for SPA routing
+# All routes should fall back to index.html for React Router
+
+/confirmation  /index.html  200
+/checkout      /index.html  200
+/bookings      /index.html  200
+/*             /index.html  200
+
