@@ -12,7 +12,9 @@ jobs:
   deploy:
     name: 🌐 Deploy Frontend to VPS
     runs-on: ubuntu-latest
-
+    environment:
+      name: production
+      url: https://benzflex.com
     steps:
       # 1️⃣ Checkout your repo
       - name: 📦 Checkout code
