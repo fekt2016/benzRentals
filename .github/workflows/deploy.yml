@@ -53,4 +53,4 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
             systemctl restart nginx
-            echo "✅ Nginx restarted successfully"
+            echo "✅ Nginx restarted successfully!!!"
